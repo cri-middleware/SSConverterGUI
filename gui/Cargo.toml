@@ -1,0 +1,11 @@
+[package]
+name = "ssconverter-gui"
+version = "7.0.0"
+edition = "2024"
+
+[dependencies]
+ssconverter = { workspace = true }
+slint = "1.15.1"
+
+[build-dependencies]
+slint-build = "1.15.1"
