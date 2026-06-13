@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
+import { dirname, basename, join } from '@tauri-apps/api/path';
 import './style.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -52,8 +53,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </button>
     
     <div style="margin-top: 2rem;">
-      <span style="color: var(--text-muted); font-weight: 600;">History</span>
-      <div id="historyArea" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted); font-weight: 600;">History</span>
+        <button class="btn" id="btnClearHistory" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear History</button>
+      </div>
+      <div id="historyArea" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; padding-right: 0.5rem;"></div>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; margin-bottom: -1rem;">
@@ -61,6 +65,17 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <button class="btn" id="btnClearLog" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear Logs</button>
     </div>
     <div class="log-area" id="logArea"></div>
+  </div>
+
+  <!-- Progress Modal -->
+  <div id="progressModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+    <div style="background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid var(--border-color);">
+      <h3 style="margin-top: 0; color: var(--text-primary);" id="modalTitle">Processing...</h3>
+      <div id="modalLogArea" style="background: var(--bg-surface); padding: 0.75rem; border-radius: 8px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; margin: 1rem 0; color: var(--text-muted); border: 1px solid var(--border-color); white-space: pre-wrap;"></div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn" id="btnCancelConvert" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">Stop / Cancel</button>
+      </div>
+    </div>
   </div>
 `;
 
@@ -77,6 +92,7 @@ const btnSelectOut = document.getElementById('btnSelectOut') as HTMLButtonElemen
 const btnClearOut = document.getElementById('btnClearOut') as HTMLButtonElement;
 const btnConvert = document.getElementById('btnConvert') as HTMLButtonElement;
 const btnClearLog = document.getElementById('btnClearLog') as HTMLButtonElement;
+const btnClearHistory = document.getElementById('btnClearHistory') as HTMLButtonElement;
 const inDirDisplay = document.getElementById('inDirDisplay') as HTMLInputElement;
 const outDirDisplay = document.getElementById('outDirDisplay') as HTMLInputElement;
 const convertStatus = document.getElementById('convertStatus')!;
@@ -84,8 +100,36 @@ const logArea = document.getElementById('logArea')!;
 const historyArea = document.getElementById('historyArea')!;
 const chkEmbedded = document.getElementById('chkEmbedded') as HTMLInputElement;
 
+const progressModal = document.getElementById('progressModal')!;
+const modalTitle = document.getElementById('modalTitle')!;
+const modalLogArea = document.getElementById('modalLogArea')!;
+const btnCancelConvert = document.getElementById('btnCancelConvert') as HTMLButtonElement;
+
 let selectedPath: string | null = null;
 let selectedOutPath: string | null = null;
+
+async function onInputSelected(path: string) {
+    selectedPath = path;
+    inDirDisplay.value = path;
+    btnConvert.disabled = false;
+
+    if (path.endsWith('.sspj')) {
+        try {
+            const dir = await dirname(path);
+            const base = await basename(path, '.sspj');
+            const defaultOut = await join(dir, `${base}_ssab`);
+            selectedOutPath = defaultOut;
+            outDirDisplay.value = defaultOut;
+            outDirDisplay.placeholder = "";
+        } catch (e) {
+            log(`Failed to resolve default output: ${e}`, 'error');
+        }
+    } else {
+        selectedOutPath = null;
+        outDirDisplay.value = '';
+        outDirDisplay.placeholder = "Batch Mode: Output placed next to each .sspj";
+    }
+}
 
 function log(msg: string, type: 'info' | 'error' | 'success' = 'info') {
     const div = document.createElement('div');
@@ -102,11 +146,17 @@ function updateBadge(el: HTMLElement, text: string, type: 'pending' | 'active' |
     el.className = `status-badge badge-${type}`;
 }
 
-function saveHistory(item: HistoryItem) {
+function saveHistory(items: HistoryItem[]) {
     let history: HistoryItem[] = JSON.parse(localStorage.getItem('convert_history') || '[]');
-    history = history.filter(h => h.inputPath !== item.inputPath);
-    history.unshift(item);
-    if (history.length > 5) history.pop();
+    
+    // Process each new item
+    items.forEach(newItem => {
+        history = history.filter(h => h.inputPath !== newItem.inputPath);
+        history.unshift(newItem);
+    });
+    
+    if (history.length > 100) history = history.slice(0, 100); // Keep up to 100 per-sspj history items
+    
     localStorage.setItem('convert_history', JSON.stringify(history));
     renderHistory();
 }
@@ -130,18 +180,25 @@ function renderHistory() {
                 <span style="font-weight: 500; color: var(--text-primary);" title="${item.inputPath}">${pathLabel}</span>
                 <span style="font-size: 0.8rem; color: var(--text-muted);">Out: ${item.outputPath || 'Default'} | Emb: ${item.embedded ? 'Yes' : 'No'}</span>
             </div>
-            <button class="btn btn-history-retry" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; background: var(--primary-color); color: white;">Load</button>
+            <button class="btn btn-history-retry" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; background: var(--primary-color); color: white;">⚡ Convert</button>
         `;
         
         const btn = div.querySelector('button')!;
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             selectedPath = item.inputPath;
             inDirDisplay.value = selectedPath;
             selectedOutPath = item.outputPath;
             outDirDisplay.value = selectedOutPath || '';
             chkEmbedded.checked = item.embedded;
             btnConvert.disabled = false;
-            log(`Loaded from history: ${selectedPath}`);
+            
+            if (!item.outputPath && selectedPath.endsWith('.sspj')) {
+                // re-calculate default if it was empty in history
+                await onInputSelected(selectedPath);
+            }
+            
+            log(`Re-converting from history: ${selectedPath}`);
+            btnConvert.click();
         });
         
         historyArea.appendChild(div);
@@ -153,10 +210,8 @@ listen<{ paths: string[] }>('tauri://file-drop', event => {
     if (event.payload.paths && event.payload.paths.length > 0) {
         const path = event.payload.paths[0];
         if (path.endsWith('.sspj') || !path.includes('.')) {
-            selectedPath = path;
-            inDirDisplay.value = selectedPath;
-            btnConvert.disabled = false;
-            log(`Dropped Input: ${selectedPath}`);
+            onInputSelected(path);
+            log(`Dropped Input: ${path}`);
         } else {
             log(`Dropped file is not .sspj or a folder: ${path}`, 'error');
         }
@@ -168,10 +223,8 @@ listen<{ paths: string[] }>('tauri://drag-drop', event => {
     if (event.payload.paths && event.payload.paths.length > 0) {
         const path = event.payload.paths[0];
         if (path.endsWith('.sspj') || !path.includes('.')) {
-            selectedPath = path;
-            inDirDisplay.value = selectedPath;
-            btnConvert.disabled = false;
-            log(`Dropped Input: ${selectedPath}`);
+            onInputSelected(path);
+            log(`Dropped Input: ${path}`);
         }
     }
 });
@@ -179,6 +232,18 @@ listen<{ paths: string[] }>('tauri://drag-drop', event => {
 // Listen to converter logs from the backend
 listen<string>('convert-log', event => {
     log(event.payload);
+    
+    // Also push to the modal log area
+    const div = document.createElement('div');
+    div.textContent = event.payload;
+    modalLogArea.appendChild(div);
+    modalLogArea.scrollTop = modalLogArea.scrollHeight;
+});
+
+btnCancelConvert.addEventListener('click', async () => {
+    btnCancelConvert.disabled = true;
+    modalTitle.textContent = 'Cancelling... Please wait.';
+    await invoke('cancel_conversion');
 });
 
 btnSelectInFile.addEventListener('click', async () => {
@@ -189,10 +254,8 @@ btnSelectInFile.addEventListener('click', async () => {
             filters: [{ name: 'SpriteStudio Project', extensions: ['sspj'] }]
         });
         if (file) {
-            selectedPath = file as string;
-            inDirDisplay.value = selectedPath;
-            btnConvert.disabled = false;
-            log(`Selected Input File: ${selectedPath}`);
+            await onInputSelected(file as string);
+            log(`Selected Input File: ${file}`);
         }
     } catch (e: any) {
         log(`Error: ${e.message || e}`, 'error');
@@ -206,10 +269,8 @@ btnSelectInDir.addEventListener('click', async () => {
             directory: true
         });
         if (dir) {
-            selectedPath = dir as string;
-            inDirDisplay.value = selectedPath;
-            btnConvert.disabled = false;
-            log(`Selected Input Folder: ${selectedPath}`);
+            await onInputSelected(dir as string);
+            log(`Selected Input Folder: ${dir}`);
         }
     } catch (e: any) {
         log(`Error: ${e.message || e}`, 'error');
@@ -247,10 +308,16 @@ btnConvert.addEventListener('click', async () => {
         btnSelectInDir.disabled = true;
         
         updateBadge(convertStatus, 'Converting...', 'active');
-        log('Starting conversion natively...');
+        log('Starting conversion...');
+        
+        // Setup and show modal
+        modalLogArea.innerHTML = '';
+        modalTitle.textContent = selectedPath.includes('.sspj') ? 'Converting Project...' : 'Scanning & Converting...';
+        btnCancelConvert.disabled = false;
+        progressModal.style.display = 'flex';
         
         const startTime = performance.now();
-        const result = await invoke('convert_sspj', {
+        const result = await invoke<string[]>('convert_sspj', {
             inputPath: selectedPath,
             outputPath: selectedOutPath,
             embedded: chkEmbedded.checked
@@ -259,18 +326,28 @@ btnConvert.addEventListener('click', async () => {
         log(`Conversion completed in ${(endTime - startTime).toFixed(2)} ms.`, 'success');
         
         updateBadge(convertStatus, 'Success', 'success');
-        log(result as string, 'success');
         
-        saveHistory({
-            inputPath: selectedPath,
-            outputPath: selectedOutPath,
+        if (result.length === 1) {
+            log('Successfully converted 1 project.', 'success');
+        } else {
+            log(`Successfully converted ${result.length} projects.`, 'success');
+        }
+        
+        // Save history per sspj file
+        const historyItems: HistoryItem[] = result.map(sspjPath => ({
+            inputPath: sspjPath,
+            // If it was a batch folder conversion, output path is automatic (null)
+            outputPath: selectedPath!.includes('.sspj') ? selectedOutPath : null,
             embedded: chkEmbedded.checked,
             timestamp: Date.now()
-        });
+        }));
+        
+        saveHistory(historyItems);
     } catch (e: any) {
-        log(`Error: ${e}`, 'error');
-        updateBadge(convertStatus, 'Failed', 'error');
+        log(`Error/Cancelled: ${e}`, 'error');
+        updateBadge(convertStatus, 'Failed/Cancelled', 'error');
     } finally {
+        progressModal.style.display = 'none';
         btnConvert.disabled = false;
         btnSelectInFile.disabled = false;
         btnSelectInDir.disabled = false;
@@ -279,6 +356,12 @@ btnConvert.addEventListener('click', async () => {
 
 btnClearLog.addEventListener('click', () => {
     logArea.textContent = '';
+});
+
+btnClearHistory.addEventListener('click', () => {
+    localStorage.removeItem('convert_history');
+    renderHistory();
+    log('Cleared history.');
 });
 
 // Initial render
