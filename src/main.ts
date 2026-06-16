@@ -117,7 +117,7 @@ async function onInputSelected(path: string) {
         try {
             const dir = await dirname(path);
             const base = await basename(path, '.sspj');
-            const defaultOut = await join(dir, `${base}_ssab`);
+            const defaultOut = await join(dir, base);
             selectedOutPath = defaultOut;
             outDirDisplay.value = defaultOut;
             outDirDisplay.placeholder = "";
