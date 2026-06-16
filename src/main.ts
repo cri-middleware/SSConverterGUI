@@ -7,7 +7,7 @@ import './style.css';
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="header">
     <h1>SSConverter GUI</h1>
-    <p>Convert SpriteStudio project (.sspj) to binaries (.ssab)</p>
+    <p>Convert SpriteStudio projects (.sspj) to binaries (.ssab)</p>
   </div>
   
   <div class="panel">
@@ -22,7 +22,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </div>
 
-    <div class="form-group drop-zone" id="dropZoneOut" style="margin-top: 1rem;">
+    <div class="form-group drop-zone" id="dropZoneOut" style="margin-top: 0.5rem;">
       <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
         <span style="font-size: 1.1rem; color: #818cf8;">📤 Output Directory</span>
         <button class="btn" id="btnClearOut" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear</button>
@@ -52,19 +52,25 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       ⚡ Convert
     </button>
     
-    <div style="margin-top: 2rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-        <span style="color: var(--text-muted); font-weight: 600;">History</span>
-        <button class="btn" id="btnClearHistory" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear History</button>
+    <div style="display: flex; gap: 1.5rem; margin-top: 1.5rem; flex: 1; min-height: 200px;">
+      <!-- History Area -->
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="color: var(--text-muted); font-weight: 600;">History</span>
+          <button class="btn" id="btnClearHistory" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear History</button>
+        </div>
+        <div id="historyArea" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; padding-right: 0.5rem;"></div>
       </div>
-      <div id="historyArea" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; padding-right: 0.5rem;"></div>
-    </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; margin-bottom: -1rem;">
-      <span style="color: var(--text-muted); font-weight: 600;">Logs</span>
-      <button class="btn" id="btnClearLog" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear Logs</button>
+      <!-- Logs Area -->
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="color: var(--text-muted); font-weight: 600;">Logs</span>
+          <button class="btn" id="btnClearLog" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear Logs</button>
+        </div>
+        <div class="log-area" id="logArea" style="flex: 1; margin-top: 0; max-height: none;"></div>
+      </div>
     </div>
-    <div class="log-area" id="logArea"></div>
   </div>
 
   <!-- Progress Modal -->
