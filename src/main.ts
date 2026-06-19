@@ -52,14 +52,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       ⚡ Convert
     </button>
     
-    <div style="display: flex; gap: 1.5rem; margin-top: 1.5rem; flex: 1; min-height: 200px;">
+    <div style="display: flex; gap: 1.5rem; margin-top: 1.5rem; flex: 1; min-height: 0;">
       <!-- History Area -->
       <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
           <span style="color: var(--text-muted); font-weight: 600;">History</span>
           <button class="btn" id="btnClearHistory" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear History</button>
         </div>
-        <div id="historyArea" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; padding-right: 0.5rem;"></div>
+        <div id="historyArea" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; padding-right: 0.5rem; min-height: 0;"></div>
       </div>
 
       <!-- Logs Area -->
@@ -68,7 +68,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <span style="color: var(--text-muted); font-weight: 600;">Logs</span>
           <button class="btn" id="btnClearLog" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear Logs</button>
         </div>
-        <div class="log-area" id="logArea" style="flex: 1; margin-top: 0; max-height: none;"></div>
+        <div class="log-area" id="logArea" style="flex: 1; margin-top: 0; max-height: none; min-height: 0;"></div>
       </div>
     </div>
   </div>
