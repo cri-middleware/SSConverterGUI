@@ -17,7 +17,7 @@ Built with Tauri v2, Vite, and TypeScript, it provides an intuitive interface fo
 - [Tauri v2](https://v2.tauri.app/) (Rust) - Application framework & backend
 - [Vite](https://vitejs.dev/) - Frontend build tool
 - [TypeScript](https://www.typescriptlang.org/) / HTML / Vanilla CSS - Frontend UI
-- [SpriteStudio7-SDK](https://github.com/SpriteStudio/SpriteStudio7-SDK) (`ssconverter` Rust crate) - Core conversion logic
+- [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) (`ssconverter` Rust crate) - Core conversion logic
 
 ## ⚙️ Prerequisites
 
@@ -30,7 +30,7 @@ To build and run this project, you need the following environment:
 ## 🚀 Installation and Execution
 
 1. **Clone the repository and submodules**
-   This project uses `SpriteStudio7-SDK` as a submodule. Be sure to clone with the `--recursive` flag, or update submodules after cloning.
+   This project uses `SpriteStudio-SDK` as a submodule. Be sure to clone with the `--recursive` flag, or update submodules after cloning.
    ```bash
    git clone --recursive <repository-url>
    cd SsConverterGUI
@@ -66,4 +66,4 @@ To build and run this project, you need the following environment:
 
 ## 📄 License
 
-Please refer to the repository's license and the license of the SpriteStudio7-SDK for usage terms and conditions.
+Please refer to the repository's license and the license of the SpriteStudio-SDK for usage terms and conditions.

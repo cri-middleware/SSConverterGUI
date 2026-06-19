@@ -13,7 +13,7 @@ This is a cross-platform GUI application built with Tauri v2 for converting Spri
 
 *   **Frontend**: Built with Vite, vanilla TypeScript, HTML, and CSS. Located primarily in the `src/` directory and `index.html`.
 *   **Backend**: Built with Rust using the Tauri v2 framework. Located in the `src-tauri/` directory.
-*   **Core SDK**: The actual conversion logic relies on the `ssconverter` crate from the `SpriteStudio7-SDK`, which is included as a local Git submodule.
+*   **Core SDK**: The actual conversion logic relies on the `ssconverter` crate from the `SpriteStudio-SDK`, which is included as a local Git submodule.
 
 ## Development Guidelines
 
@@ -26,7 +26,7 @@ This is a cross-platform GUI application built with Tauri v2 for converting Spri
 *   Tauri commands and backend logic are managed in `src-tauri/src/`.
 *   Ensure that any new Rust dependencies are added to `src-tauri/Cargo.toml`.
 *   The backend handles file system operations, dialogues, and invokes the `ssconverter` functions.
-*   **Conversion Logic Reference**: When implementing or modifying the conversion process, please refer to the `SpriteStudio7-SDK` submodule. The conversion behavior and options should strictly conform to how the `ssconverter-cli` (located inside the SDK) operates, as it serves as the reference implementation.
+*   **Conversion Logic Reference**: When implementing or modifying the conversion process, please refer to the `SpriteStudio-SDK` submodule. The conversion behavior and options should strictly conform to how the `ssconverter-cli` (located inside the SDK) operates, as it serves as the reference implementation.
 
 ### Running & Building
 *   Start the development server with: `npm run tauri dev`
