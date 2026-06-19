@@ -38,20 +38,20 @@ To build and run this project, you need the following environment:
 
 2. **Install Dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Run in Development Mode**
    ```bash
-   npm run tauri dev
+   pnpm run tauri dev
    # or
-   npx tauri dev
+   pnpm tauri dev
    ```
 
 4. **Build the Application**
    This will generate a standalone executable.
    ```bash
-   npm run tauri build
+   pnpm run tauri build
    ```
    The built application will be located in the `src-tauri/target/release/bundle/` directory.
 
