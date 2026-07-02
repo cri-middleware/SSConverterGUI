@@ -1,0 +1,78 @@
+# Contributing to SSConverter GUI
+
+Thank you for your interest in contributing to SSConverter GUI! We welcome all kinds of contributions, including bug reports, feature requests, documentation improvements, and code contributions.
+
+## Table of Contents
+- [Code of Conduct](#code-of-conduct)
+- [How Can I Contribute?](#how-can-i-contribute)
+- [Development Environment](#development-environment)
+- [Coding Standards](#coding-standards)
+
+## Code of Conduct
+Please refer to [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
+
+## How Can I Contribute?
+
+### Technical Constraints & Guiding Principles
+- **Core Logic Separation:** The actual conversion logic (`ssconverter`) resides in the `SpriteStudio-SDK` submodule. Do not implement complex `.sspj` parsing or binary generation in the GUI repository. All core logic changes must be made in the `SpriteStudio-SDK` repository.
+- **Lightweight Frontend:** This project intentionally avoids heavy frontend frameworks (like React or Vue) to keep the application lightweight and fast. Use Vanilla TypeScript and standard DOM APIs for UI development.
+
+### Reporting Bugs
+If you find a bug, please check if it relates to the GUI (e.g. file selection, UI glitches) or the actual conversion logic. 
+- GUI issues should be reported in this repository.
+- Conversion issues (e.g. incorrect binary output, crashes during conversion) should be reported to the `SpriteStudio-SDK` repository.
+
+### Pull Requests
+1. Fork the repository.
+2. Clone your fork with `--recursive` to ensure the SDK submodule is initialized.
+3. Test your changes locally by running `pnpm run tauri dev`.
+4. Submit a Pull Request.
+
+## Development Environment
+Please refer to the "Developers Guide" section in the [README.md](./README.md) for detailed prerequisites and setup instructions.
+
+## Coding Standards
+- **Frontend**: Use strict TypeScript. Avoid inline styles; use the central `style.css`.
+- **Backend (Rust)**: Use `cargo clippy` and `cargo fmt`.
+
+<br>
+<br>
+
+---
+
+# SSConverter GUI への貢献について
+
+SSConverter GUI にご関心をお寄せいただき、ありがとうございます！ バグ報告、機能提案、ドキュメントの改善、コードの提供など、あらゆる形での貢献を歓迎します。
+
+## 目次
+- [行動規範](#行動規範-1)
+- [貢献する方法](#貢献する方法-1)
+- [開発環境のセットアップ](#開発環境のセットアップ-1)
+- [コーディング規約](#コーディング規約-1)
+
+## 行動規範
+[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) を参照してください。
+
+## 貢献する方法
+
+### 技術的制約と設計原則
+- **コアロジックの分離:** 実際の変換処理アルゴリズム (`ssconverter`) は `SpriteStudio-SDK` サブモジュールに存在します。本リポジトリ（GUI側）で独自の `.sspj` 解析やバイナリ生成は行わないでください。変換ロジックの修正は `SpriteStudio-SDK` 側へPull Requestをお願いします。
+- **軽量なフロントエンド:** 本プロジェクトはアプリの軽量化のため、ReactやVueといった重いフロントエンドフレームワークを意図的に避けています。UIの実装には Vanilla TypeScript と標準的な DOM API を使用してください。
+
+### バグの報告
+バグを発見した場合は、それがGUIに関する問題（ファイル選択が効かない、UI崩れ等）なのか、変換ロジック自体の問題なのかを切り分けてください。
+- GUIの不具合：本リポジトリに報告してください。
+- 変換の不具合（出力バイナリがおかしい、変換中にクラッシュする等）：`SpriteStudio-SDK` リポジトリへ報告してください。
+
+### プルリクエスト
+1. リポジトリをフォークしてください。
+2. サブモジュールを取得するため、必ず `--recursive` オプションを付けてクローンしてください。
+3. `pnpm run tauri dev` でローカルでの動作確認を行ってください。
+4. プルリクエストを送信してください。
+
+## 開発環境のセットアップ
+必要な環境やセットアップ手順については、[README.ja.md](./README.ja.md) の「開発者向けガイド」セクションを参照してください。
+
+## コーディング規約
+- **フロントエンド**: Strict な TypeScript を記述してください。インラインスタイルは避け、`style.css` を活用してください。
+- **バックエンド (Rust)**: `cargo clippy` および `cargo fmt` に準拠してください。
