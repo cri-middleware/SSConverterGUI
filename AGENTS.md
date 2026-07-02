@@ -6,6 +6,7 @@
     read tool truncated the file, read the remaining ranges before making non-trivial changes.
 *   Follow existing code style in touched files (naming, type usage, control flow, error
     handling).
+*   **Documentation Updates**: The project maintains dual-language documentation. When modifying files like `README.md` or `CONTRIBUTING.md`, always update both the English version (`.md`) and the Japanese version (`.ja.md`) simultaneously to keep them in sync.
 
 ## Project Overview
 
@@ -29,5 +30,6 @@ This is a cross-platform GUI application built with Tauri v2 for converting Spri
 *   **Conversion Logic Reference**: When implementing or modifying the conversion process, please refer to the `SpriteStudio-SDK` submodule. The conversion behavior and options should strictly conform to how the `ssconverter-cli` (located inside the SDK) operates, as it serves as the reference implementation.
 
 ### Running & Building
-*   Start the development server with: `npm run tauri dev`
-*   Build the application with: `npm run tauri build`
+*   **Prerequisites**: Requires Node.js (v26+), `pnpm`, and the Rust toolchain (`rustup`). The repository must be cloned with the `--recursive` flag to fetch the `SpriteStudio-SDK` submodule.
+*   Start the development server with: `pnpm run tauri dev`
+*   Build the application with: `pnpm run tauri build`
