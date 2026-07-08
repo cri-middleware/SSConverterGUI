@@ -1,6 +1,6 @@
 [package]
 name = "ssconverter-gui"
-version = "7.0.0"
+version = "7.0.0-beta01"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2024"

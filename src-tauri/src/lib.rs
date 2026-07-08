@@ -4,13 +4,31 @@ use ssconverter::{ConverterConfig, ConvertConfig, convert_sspj_to_ssab_files_can
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 struct CancelState(Arc<AtomicBool>);
 
 #[tauri::command]
 fn cancel_conversion(state: tauri::State<CancelState>) {
     state.0.store(true, Ordering::Relaxed);
+}
+
+#[derive(serde::Serialize)]
+struct VersionInfo {
+    app_version: String,
+    converter_version: String,
+    ssab_schema_version: u32,
+}
+
+#[tauri::command]
+fn get_versions(app: tauri::AppHandle) -> VersionInfo {
+    VersionInfo {
+        // Resolved from tauri.conf.json's `version`, which is linked to
+        // `../package.json`, so package.json is the single source of truth.
+        app_version: app.package_info().version.to_string(),
+        converter_version: ssconverter::version_string(),
+        ssab_schema_version: ssconverter::ssab_schema_version(),
+    }
 }
 
 #[tauri::command]
@@ -96,7 +114,7 @@ pub fn run() {
         .manage(CancelState(Arc::new(AtomicBool::new(false))))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![convert_sspj, cancel_conversion])
+        .invoke_handler(tauri::generate_handler![convert_sspj, cancel_conversion, get_versions])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

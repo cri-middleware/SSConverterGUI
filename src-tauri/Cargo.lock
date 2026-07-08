@@ -3390,7 +3390,7 @@ dependencies = [
 
 [[package]]
 name = "ssconverter-gui"
-version = "7.0.0"
+version = "7.0.0-beta01"
 dependencies = [
  "serde",
  "serde_json",

@@ -2,9 +2,11 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
+import { updateHistory, HistoryItem } from './utils';
 import './style.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+  <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme" title="Toggle Theme">☀️</button>
   <div class="header">
     <h1>SSConverter GUI</h1>
     <p>Convert SpriteStudio projects (.sspj) to binaries (.ssab)</p>
@@ -52,7 +54,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       ⚡ Convert
     </button>
     
-    <div style="display: flex; gap: 1.5rem; margin-top: 1.5rem; flex: 1; min-height: 0;">
+    <div style="display: flex; gap: 1.5rem; margin-top: 2rem; height: 240px;">
       <!-- History Area -->
       <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -73,10 +75,19 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </div>
   </div>
 
+  <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+    <span id="appVersionDisplay">App Version: Loading...</span>
+    <span id="versionDisplay">Converter Version: Loading...</span>
+    <button class="btn" id="btnCopyVersion" style="margin-top: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); display: none;" title="Copy Versions">Copy Versions</button>
+  </div>
+
   <!-- Progress Modal -->
-  <div id="progressModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+  <div id="progressModal" style="display: none; position: fixed; inset: 0; background: var(--modal-overlay); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
     <div style="background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid var(--border-color);">
-      <h3 style="margin-top: 0; color: var(--text-primary);" id="modalTitle">Processing...</h3>
+      <h3 style="margin-top: 0; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;" id="modalTitle">
+        <div class="spinner" id="modalSpinner"></div>
+        <span id="modalTitleText">Processing...</span>
+      </h3>
       <div id="modalLogArea" style="background: var(--bg-surface); padding: 0.75rem; border-radius: 8px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; margin: 1rem 0; color: var(--text-muted); border: 1px solid var(--border-color); white-space: pre-wrap;"></div>
       <div style="display: flex; justify-content: flex-end;">
         <button class="btn" id="btnCancelConvert" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">Stop / Cancel</button>
@@ -85,13 +96,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `;
 
-interface HistoryItem {
-    inputPath: string;
-    outputPath: string | null;
-    embedded: boolean;
-    timestamp: number;
-}
-
 const btnSelectInFile = document.getElementById('btnSelectInFile') as HTMLButtonElement;
 const btnSelectInDir = document.getElementById('btnSelectInDir') as HTMLButtonElement;
 const btnSelectOut = document.getElementById('btnSelectOut') as HTMLButtonElement;
@@ -99,17 +103,40 @@ const btnClearOut = document.getElementById('btnClearOut') as HTMLButtonElement;
 const btnConvert = document.getElementById('btnConvert') as HTMLButtonElement;
 const btnClearLog = document.getElementById('btnClearLog') as HTMLButtonElement;
 const btnClearHistory = document.getElementById('btnClearHistory') as HTMLButtonElement;
+const dropZoneIn = document.getElementById('dropZoneIn')!;
 const inDirDisplay = document.getElementById('inDirDisplay') as HTMLInputElement;
 const outDirDisplay = document.getElementById('outDirDisplay') as HTMLInputElement;
 const convertStatus = document.getElementById('convertStatus')!;
 const logArea = document.getElementById('logArea')!;
 const historyArea = document.getElementById('historyArea')!;
 const chkEmbedded = document.getElementById('chkEmbedded') as HTMLInputElement;
+const appVersionDisplay = document.getElementById('appVersionDisplay')!;
+const versionDisplay = document.getElementById('versionDisplay')!;
+const btnCopyVersion = document.getElementById('btnCopyVersion') as HTMLButtonElement;
 
 const progressModal = document.getElementById('progressModal')!;
-const modalTitle = document.getElementById('modalTitle')!;
+const modalTitleText = document.getElementById('modalTitleText')!;
+const modalSpinner = document.getElementById('modalSpinner')!;
 const modalLogArea = document.getElementById('modalLogArea')!;
 const btnCancelConvert = document.getElementById('btnCancelConvert') as HTMLButtonElement;
+const themeToggle = document.getElementById('themeToggle') as HTMLButtonElement;
+
+let isDarkMode = localStorage.getItem('theme') !== 'light';
+function applyTheme() {
+    if (isDarkMode) {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggle.textContent = '☀️';
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        themeToggle.textContent = '🌙';
+    }
+}
+themeToggle.addEventListener('click', () => {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    applyTheme();
+});
+applyTheme();
 
 let selectedPath: string | null = null;
 let selectedOutPath: string | null = null;
@@ -155,13 +182,9 @@ function updateBadge(el: HTMLElement, text: string, type: 'pending' | 'active' |
 function saveHistory(items: HistoryItem[]) {
     let history: HistoryItem[] = JSON.parse(localStorage.getItem('convert_history') || '[]');
     
-    // Process each new item
     items.forEach(newItem => {
-        history = history.filter(h => h.inputPath !== newItem.inputPath);
-        history.unshift(newItem);
+        history = updateHistory(history, newItem, 100);
     });
-    
-    if (history.length > 100) history = history.slice(0, 100); // Keep up to 100 per-sspj history items
     
     localStorage.setItem('convert_history', JSON.stringify(history));
     renderHistory();
@@ -211,8 +234,32 @@ function renderHistory() {
     });
 }
 
+// Highlight the input drop zone while a file/folder is dragged over it.
+// Native drag-drop suppresses HTML5 dragover/drop, so use Tauri's window events.
+function isOverDropZone(pos?: { x: number; y: number }): boolean {
+    if (!pos) return true; // No position info: highlight anyway.
+    const rect = dropZoneIn.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const x = pos.x / dpr;
+    const y = pos.y / dpr;
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+function updateDragHighlight(pos?: { x: number; y: number }) {
+    dropZoneIn.classList.toggle('dragover', isOverDropZone(pos));
+}
+
+function clearDragHighlight() {
+    dropZoneIn.classList.remove('dragover');
+}
+
+listen<{ position?: { x: number; y: number } }>('tauri://drag-enter', event => updateDragHighlight(event.payload.position));
+listen<{ position?: { x: number; y: number } }>('tauri://drag-over', event => updateDragHighlight(event.payload.position));
+listen('tauri://drag-leave', clearDragHighlight);
+
 // Tauri v2 drag-drop intercept
 listen<{ paths: string[] }>('tauri://file-drop', event => {
+    clearDragHighlight();
     if (event.payload.paths && event.payload.paths.length > 0) {
         const path = event.payload.paths[0];
         if (path.endsWith('.sspj') || !path.includes('.')) {
@@ -226,6 +273,7 @@ listen<{ paths: string[] }>('tauri://file-drop', event => {
 
 // Also listen to tauri://drag-drop just in case (different v2 plugin events)
 listen<{ paths: string[] }>('tauri://drag-drop', event => {
+    clearDragHighlight();
     if (event.payload.paths && event.payload.paths.length > 0) {
         const path = event.payload.paths[0];
         if (path.endsWith('.sspj') || !path.includes('.')) {
@@ -248,7 +296,8 @@ listen<string>('convert-log', event => {
 
 btnCancelConvert.addEventListener('click', async () => {
     btnCancelConvert.disabled = true;
-    modalTitle.textContent = 'Cancelling... Please wait.';
+    modalTitleText.textContent = 'Cancelling... Please wait.';
+    modalSpinner.style.display = 'none';
     await invoke('cancel_conversion');
 });
 
@@ -318,7 +367,8 @@ btnConvert.addEventListener('click', async () => {
         
         // Setup and show modal
         modalLogArea.innerHTML = '';
-        modalTitle.textContent = selectedPath.includes('.sspj') ? 'Converting Project...' : 'Scanning & Converting...';
+        modalTitleText.textContent = selectedPath.includes('.sspj') ? 'Converting Project...' : 'Scanning & Converting...';
+        modalSpinner.style.display = 'inline-block';
         btnCancelConvert.disabled = false;
         progressModal.style.display = 'flex';
         
@@ -370,5 +420,29 @@ btnClearHistory.addEventListener('click', () => {
     log('Cleared history.');
 });
 
+async function loadVersions() {
+    try {
+        const info = await invoke<{ app_version: string; converter_version: string; ssab_schema_version: number }>('get_versions');
+        appVersionDisplay.textContent = `App Version: ${info.app_version}`;
+        versionDisplay.textContent = `Converter Version: ${info.converter_version} (ssab v${info.ssab_schema_version})`;
+        btnCopyVersion.style.display = 'inline-flex';
+        btnCopyVersion.onclick = async () => {
+            try {
+                const textToCopy = `App Version: ${info.app_version}\nConverter Version: ${info.converter_version} (ssab v${info.ssab_schema_version})`;
+                await navigator.clipboard.writeText(textToCopy);
+                const orig = btnCopyVersion.textContent;
+                btnCopyVersion.textContent = 'Copied!';
+                setTimeout(() => { btnCopyVersion.textContent = orig; }, 2000);
+            } catch (e) {
+                log('Failed to copy version.', 'error');
+            }
+        };
+    } catch (e: any) {
+        appVersionDisplay.textContent = 'App Version: unknown';
+        versionDisplay.textContent = `Converter Version: unavailable (${e.message || e})`;
+    }
+}
+
 // Initial render
 renderHistory();
+loadVersions();
