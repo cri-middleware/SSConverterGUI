@@ -99,16 +99,6 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      # Decode the App Store Connect API key (.p8) used for notarization and
-      # expose its path to later steps. macOS only.
-      - name: Prepare Apple API key
-        if: matrix.platform == 'macos-latest'
-        env:
-          APPLE_API_KEY_BASE64: ${{ secrets.SS_APPLE_API_KEY_BASE64 }}
-        run: |
-          echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
-          echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple_api_key.p8" >> "$GITHUB_ENV"
-
       # Build only (no tagName) - code signing & notarization happen in-place
       # during this build step when the APPLE_* env vars are present.
       - name: Build app
@@ -118,10 +108,10 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.SS_APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.SS_APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.SS_APPLE_SIGNING_IDENTITY }}
-          # macOS notarization via App Store Connect API key.
-          # APPLE_API_KEY_PATH is set by the "Prepare Apple API key" step.
-          APPLE_API_ISSUER: ${{ secrets.SS_APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.SS_APPLE_API_KEY }}
+          # macOS notarization via Apple ID + app-specific password.
+          APPLE_ID: ${{ secrets.SS_APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.SS_APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.SS_APPLE_TEAM_ID }}
         with:
           args: ${{ matrix.args }}
 
