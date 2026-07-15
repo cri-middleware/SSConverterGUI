@@ -1,0 +1,82 @@
+name: Publish docs via GitHub Pages
+
+# Build the MkDocs site and deploy it to GitHub Pages via the artifact method
+# (no gh-pages branch) — matching SSPlayerForGodot / SSPlayerForRenPy.
+#
+# The site documents the *released* application (the install guide sends users to
+# Releases), so publishing is tied to a published release rather than to every
+# merge on main — the same decoupling SSPlayerForWeb applies. Use "Run workflow"
+# for an immediate refresh, e.g. a docs fix that should not wait for the next
+# release.
+#
+# PRs touching the docs still build with --strict but never publish: it is a
+# validation gate that catches broken links / nav gaps before merge, so a release
+# deploy never fails on a link that landed weeks earlier.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/pages.yml'
+
+# Permissions required by the artifact-based Pages deploy. No contents:write —
+# there is no gh-pages branch.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Serialize deploys per ref; cancel only superseded PR builds, never a release deploy.
+concurrency:
+  group: docs-pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # The docs build never touches the SpriteStudio-SDK submodule, so skip it.
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - run: echo "cache_id=$(date --utc '+%V')" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@v5
+        with:
+          key: mkdocs-material-${{ env.cache_id }}
+          path: .cache
+          restore-keys: |
+            mkdocs-material-
+
+      - name: Install dependencies
+        run: pip install -r docs/requirements.txt
+
+      # Fail the build on broken links / missing nav entries so PRs catch it before merge.
+      - name: Build docs (strict validation)
+        run: mkdocs build --strict
+
+      # Only the MkDocs output (site/) is served — no examples/demos to bundle.
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -5,20 +5,7 @@
 SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) をバイナリ形式 (`.ssab`) に変換するための、クロスプラットフォーム対応のGUIアプリケーションです。
 Tauri v2、Vite、TypeScript を使用して構築されており、効率的な変換作業のための直感的なインターフェースを提供します。
 
----
-
-本ドキュメントは、以下の2種類のペルソナ（読者）を対象としています。
-
-1. **利用者**: 変換ツールとして完成済みのアプリケーションをそのまま使用したい方。
-2. **開発者**: GUI機能の追加やカスタマイズ、またはコア変換ロジック（SDK）の改修を行いたい方（ソースコードからビルドを行います）。
-
----
-
-## 1. 利用者向けガイド
-
-コマンドラインの操作に慣れていない方でも、簡単に変換作業を行うことができます。
-
-### ✨ 主な機能
+## ✨ 主な機能
 
 - **かんたん変換**: `.sspj` ファイルを選択してボタンを押すだけで変換が完了します。
 - **ドラッグ＆ドロップ対応**: ファイルやフォルダを直接ウィンドウにドラッグ＆ドロップできます。
@@ -27,78 +14,45 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 - **変換履歴**: 過去の変換履歴から、同じ設定で素早く再実行できます。
 - **リアルタイムログ**: 進行状況やエラーログを画面上でリアルタイムに確認できます。
 
-### 💡 他のコンバータツールとの比較・優れている点
+## 📚 ドキュメント
 
-SpriteStudio プロジェクトの変換ツールには、本 GUI ツールの他にもいくつかのバリエーションが存在します。用途に合わせて使い分けてください。
+詳細なドキュメントは `docs/` フォルダにあります。
 
-* **vs `ssconverter-cli` (SpriteStudio-SDK同梱のコマンドライン版)**
-  * **直感的な操作**: コマンドプロンプトやターミナルの知識が不要で、誰でもドラッグ＆ドロップですぐに変換できます。
-  * **一括変換が容易**: フォルダを指定するだけで内部の `.sspj` を自動検索して一括変換できるため、自前でバッチスクリプト等を書く手間が省けます。
-* **vs `ssconverter-web` (SSPlayerForWeb のブラウザ版)**
-  * **ローカルファイルへの直接アクセス**: Web版のようにファイルを一つ一つブラウザにアップロード・ダウンロードする手間がなく、ローカルのフォルダを直接高速に処理できます。
-  * **大規模プロジェクトに強い**: ブラウザのメモリ制限やセキュリティ制限（サンドボックス）を受けないため、アセットが大量にある巨大なプロジェクトの変換でも安定したネイティブパフォーマンスを発揮します。
+- [**ドキュメント (日本語)**](./docs/ja/index.md)
+- [**Documentation (English)**](./docs/en/index.md)
 
-### 📥 インストールと起動
+### クイックリンク（日本語）
 
-1. [GitHub Releases](https://github.com/cri-middleware/SsConverterGUI/releases) ページから、お使いの OS に合った最新版の実行ファイル（インストーラまたはポータブル版）をダウンロードしてください。
-2. ダウンロードしたファイルを実行し、アプリケーションを起動します。
+- [インストール](./docs/ja/install.md)
+- [使い方](./docs/ja/usage.md)
+- [開発者向け](./docs/ja/development.md)
 
-### 💡 使い方
+## 🚀 クイックスタート
 
-1. アプリケーションを起動します。
-2. **"📥 Target .sspj File or Folder"** エリアに、`.sspj` ファイル、または複数の `.sspj` ファイルを含むフォルダをドラッグ＆ドロップします。（または「File...」「Folder...」ボタンからブラウズして選択します）
-3. *(オプション)* **"📤 Output Directory"** で出力先フォルダを指定します。空欄のままにした場合、元の `.sspj` ファイルと同じ場所に `.ssab` ファイルが生成されます。
-4. *(オプション)* アセット（画像等）をバイナリファイルに埋め込みたい場合は、**"Embedded Assets"** にチェックを入れます。
-5. **"⚡ Convert"** ボタンをクリックして、変換処理を開始します。
-6. 画面下部にステータスとログが表示されるので、完了を確認します。
+1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SsConverterGUI/releases) からお使いの OS に合った最新版の実行ファイルを入手して起動します。
+2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）をターゲットエリアにドラッグ＆ドロップします。
+3. **変換**: **「⚡ Convert」** ボタンをクリックし、画面下部のステータスとログで完了を確認します。
 
----
+出力先フォルダの指定やアセットの埋め込みを含む詳しい手順は、[使い方](./docs/ja/usage.md)を参照してください。
 
-## 2. 開発者向けガイド
+## 🛠️ ソースからのビルド
 
-GUIやアプリケーションの機能（Tauri）、およびコアとなる変換ロジック (`libssconverter` Rust クレート) の開発を行いたい方向けの手順です。ソースコードからすべて自身でビルドします。
+変換のコア機能として `SpriteStudio-SDK` をサブモジュールとして使用しているため、クローンの際は `--recursive` を付けてください。
+ビルドには Node.js (v26 以上)、`pnpm`、Rust ツールチェーンが必要です。
 
-### 🛠️ 技術スタック
+```bash
+git clone --recursive https://github.com/cri-middleware/SsConverterGUI.git
+cd SsConverterGUI
+pnpm install
+pnpm run tauri dev
+```
 
-- **バックエンド / フレームワーク**: [Tauri v2](https://v2.tauri.app/) (Rust)
-- **フロントエンド**: [Vite](https://vitejs.dev/)
-- **UI 実装**: TypeScript / HTML / Vanilla CSS
-- **コア変換ロジック**: [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) (`ssconverter` Rust クレート)
+前提条件・技術スタック・ビルド手順の詳細は、[開発者向けガイド](./docs/ja/development.md)を参照してください。
 
-### ⚙️ 開発環境の要件
+## 🔗 関連リポジトリ
 
-ソースコードからアプリケーションをビルドするには、以下の環境が必要です。
-
-- **Node.js**: `v26` 以上を推奨
-  - パッケージマネージャーとして `pnpm` を使用します。未インストールの場合は、あらかじめ `npm install -g pnpm` （または `corepack enable pnpm`）を実行してインストールしてください。
-- **Rust ツールチェーン**: [rustup](https://rustup.rs/) を経由したインストール
-- ご利用の OS における Tauri v2 の[前提条件 (Prerequisites)](https://v2.tauri.app/start/prerequisites/) を満たしていること。
-
-### 🚀 セットアップと実行手順
-
-1. **リポジトリとサブモジュールのクローン**
-   変換のコア機能として `SpriteStudio-SDK` をサブモジュールとして使用しています。クローンする際は必ず `--recursive` フラグを使用してください。
-   ```bash
-   git clone --recursive https://github.com/cri-middleware/SsConverterGUI.git
-   cd SsConverterGUI
-   ```
-
-2. **依存関係のインストール**
-   ```bash
-   pnpm install
-   ```
-
-3. **開発モードでの起動とビルド**
-   Rustによるコアロジックのビルドを含め、変更をリアルタイムに検知する開発サーバーを立ち上げてGUIを起動します。
-   ```bash
-   pnpm run tauri dev
-   ```
-
-4. **アプリケーションのビルド**
-   配布用のスタンドアロンな実行ファイルを生成します。
-   ```bash
-   pnpm run tauri build
-   ```
+- [SpriteStudio Docs](https://github.com/cri-middleware/SpriteStudio-Docs) — SDK と公式 Player のドキュメントポータル
+- [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) — `ssconverter` クレートを提供する SDK 本体
 
 ## 📄 ライセンス
 
