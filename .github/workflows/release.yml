@@ -37,7 +37,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
-          name: SsConverter GUI ${{ steps.meta.outputs.tag }}
+          name: SSConverter GUI ${{ steps.meta.outputs.tag }}
           draft: true
           prerelease: ${{ contains(steps.meta.outputs.version, '-') }}
           body: |
@@ -159,7 +159,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
-          name: SsConverter GUI ${{ needs.create-release.outputs.tag }}
+          name: SSConverter GUI ${{ needs.create-release.outputs.tag }}
           draft: true
           prerelease: ${{ contains(needs.create-release.outputs.version, '-') }}
           files: |

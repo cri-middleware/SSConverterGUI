@@ -31,8 +31,8 @@ This project uses `SpriteStudio-SDK` as a submodule for the core logic. Be sure 
 `--recursive` flag.
 
 ```bash
-git clone --recursive https://github.com/cri-middleware/SsConverterGUI.git
-cd SsConverterGUI
+git clone --recursive https://github.com/cri-middleware/SSConverterGUI.git
+cd SSConverterGUI
 ```
 
 ### 2. Install dependencies

@@ -1,9 +1,9 @@
 site_name: SSConverter GUI
 site_description: "A cross-platform desktop app for converting SpriteStudio projects (.sspj) into .ssab binaries"
 site_author: "CRI Middleware Co., Ltd."
-site_url: "https://cri-middleware.github.io/SsConverterGUI/"
-repo_name: "cri-middleware/SsConverterGUI"
-repo_url: "https://github.com/cri-middleware/SsConverterGUI"
+site_url: "https://cri-middleware.github.io/SSConverterGUI/"
+repo_name: "cri-middleware/SSConverterGUI"
+repo_url: "https://github.com/cri-middleware/SSConverterGUI"
 edit_uri: "edit/main/docs/"
 
 theme:

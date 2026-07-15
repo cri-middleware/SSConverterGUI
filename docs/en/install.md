@@ -6,7 +6,7 @@ knowledge. If you want to build from source instead, see [Development](developme
 ## Download
 
 1. Download the latest executable for your OS from the
-   [GitHub Releases](https://github.com/cri-middleware/SsConverterGUI/releases) page.
+   [GitHub Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page.
 2. Run the downloaded file to launch the application (no installation required for portable
    versions).
 

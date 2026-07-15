@@ -29,7 +29,7 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 
 ## 🚀 クイックスタート
 
-1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SsConverterGUI/releases) からお使いの OS に合った最新版の実行ファイルを入手して起動します。
+1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS に合った最新版の実行ファイルを入手して起動します。
 2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）をターゲットエリアにドラッグ＆ドロップします。
 3. **変換**: **「⚡ Convert」** ボタンをクリックし、画面下部のステータスとログで完了を確認します。
 
@@ -41,8 +41,8 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 ビルドには Node.js (v26 以上)、`pnpm`、Rust ツールチェーンが必要です。
 
 ```bash
-git clone --recursive https://github.com/cri-middleware/SsConverterGUI.git
-cd SsConverterGUI
+git clone --recursive https://github.com/cri-middleware/SSConverterGUI.git
+cd SSConverterGUI
 pnpm install
 pnpm run tauri dev
 ```

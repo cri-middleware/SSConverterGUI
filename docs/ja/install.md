@@ -5,7 +5,7 @@
 
 ## ダウンロード
 
-1. [GitHub Releases](https://github.com/cri-middleware/SsConverterGUI/releases) ページから、
+1. [GitHub Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページから、
    お使いの OS に合った最新版の実行ファイル（インストーラまたはポータブル版）をダウンロードしてください。
 2. ダウンロードしたファイルを実行し、アプリケーションを起動します。
 

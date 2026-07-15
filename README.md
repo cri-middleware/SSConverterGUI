@@ -29,7 +29,7 @@ Comprehensive documentation is available in the `docs/` folder:
 
 ## 🚀 Quick Start
 
-1. **Download**: Get the latest executable for your OS from [Releases](https://github.com/cri-middleware/SsConverterGUI/releases) and run it.
+1. **Download**: Get the latest executable for your OS from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) and run it.
 2. **Select**: Drag & drop a `.sspj` file — or a folder containing several — into the target area.
 3. **Convert**: Click the **"⚡ Convert"** button, then check the status and logs at the bottom of the screen.
 
@@ -41,8 +41,8 @@ This project uses `SpriteStudio-SDK` as a submodule for the core conversion logi
 It requires Node.js (v26+), `pnpm`, and the Rust toolchain.
 
 ```bash
-git clone --recursive https://github.com/cri-middleware/SsConverterGUI.git
-cd SsConverterGUI
+git clone --recursive https://github.com/cri-middleware/SSConverterGUI.git
+cd SSConverterGUI
 pnpm install
 pnpm run tauri dev
 ```

@@ -31,8 +31,8 @@
 `--recursive` フラグを使用してください。
 
 ```bash
-git clone --recursive https://github.com/cri-middleware/SsConverterGUI.git
-cd SsConverterGUI
+git clone --recursive https://github.com/cri-middleware/SSConverterGUI.git
+cd SSConverterGUI
 ```
 
 ### 2. 依存関係のインストール
