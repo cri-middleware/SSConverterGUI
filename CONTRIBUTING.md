@@ -29,7 +29,7 @@ If you find a bug, please check if it relates to the GUI (e.g. file selection, U
 4. Submit a Pull Request.
 
 ## Development Environment
-Please refer to the "Developers Guide" section in the [README.md](./README.md) for detailed prerequisites and setup instructions.
+Please refer to the [Development Guide](./docs/en/development.md) for detailed prerequisites and setup instructions.
 
 ## Coding Standards
 - **Frontend**: Use strict TypeScript. Avoid inline styles; use the central `style.css`.
@@ -45,10 +45,10 @@ Please refer to the "Developers Guide" section in the [README.md](./README.md) f
 SSConverter GUI にご関心をお寄せいただき、ありがとうございます！ バグ報告、機能提案、ドキュメントの改善、コードの提供など、あらゆる形での貢献を歓迎します。
 
 ## 目次
-- [行動規範](#行動規範-1)
-- [貢献する方法](#貢献する方法-1)
-- [開発環境のセットアップ](#開発環境のセットアップ-1)
-- [コーディング規約](#コーディング規約-1)
+- [行動規範](#行動規範)
+- [貢献する方法](#貢献する方法)
+- [開発環境のセットアップ](#開発環境のセットアップ)
+- [コーディング規約](#コーディング規約)
 
 ## 行動規範
 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) を参照してください。
@@ -71,7 +71,7 @@ SSConverter GUI にご関心をお寄せいただき、ありがとうござい�
 4. プルリクエストを送信してください。
 
 ## 開発環境のセットアップ
-必要な環境やセットアップ手順については、[README.ja.md](./README.ja.md) の「開発者向けガイド」セクションを参照してください。
+必要な環境やセットアップ手順については、[開発者向けガイド](./docs/ja/development.md)を参照してください。
 
 ## コーディング規約
 - **フロントエンド**: Strict な TypeScript を記述してください。インラインスタイルは避け、`style.css` を活用してください。

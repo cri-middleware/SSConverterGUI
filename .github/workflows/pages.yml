@@ -22,12 +22,10 @@ on:
       - 'mkdocs.yml'
       - '.github/workflows/pages.yml'
 
-# Permissions required by the artifact-based Pages deploy. No contents:write —
-# there is no gh-pages branch.
+# Least privilege at the workflow level: only the deploy job needs the Pages /
+# OIDC write scopes, so they are granted there rather than to every job.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Serialize deploys per ref; cancel only superseded PR builds, never a release deploy.
 concurrency:
@@ -39,9 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The docs build never touches the SpriteStudio-SDK submodule, so skip it.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: 3.x
           cache: pip
@@ -49,7 +47,7 @@ jobs:
 
       - run: echo "cache_id=$(date --utc '+%V')" >> "$GITHUB_ENV"
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache
@@ -66,7 +64,7 @@ jobs:
       # Only the MkDocs output (site/) is served — no examples/demos to bundle.
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: site
 
@@ -74,9 +72,14 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
+    # Permissions required by the artifact-based Pages deploy. No contents:write —
+    # there is no gh-pages branch.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5

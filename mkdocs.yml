@@ -73,8 +73,8 @@ markdown_extensions:
 extra:
   alternate:
     - name: English
-      link: ./
+      link: /SSConverterGUI/
       lang: en
     - name: 日本語
-      link: ./ja/
+      link: /SSConverterGUI/ja/
       lang: ja

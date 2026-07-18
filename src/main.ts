@@ -5,6 +5,12 @@ import { dirname, basename, join } from '@tauri-apps/api/path';
 import { updateHistory, HistoryItem } from './utils';
 import './style.css';
 
+// Mirrors the Rust `ConvertSummary` returned by the `convert_sspj` command.
+interface ConvertSummary {
+    succeeded: string[];
+    failed: { path: string; error: string }[];
+}
+
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme" title="Toggle Theme">☀️</button>
   <div class="header">
@@ -164,55 +170,86 @@ async function onInputSelected(path: string) {
     }
 }
 
-function log(msg: string, type: 'info' | 'error' | 'success' = 'info') {
+const MAX_LOG_LINES = 500;
+function trimLog(el: HTMLElement) {
+    while (el.childElementCount > MAX_LOG_LINES) {
+        el.removeChild(el.firstChild!);
+    }
+}
+
+function log(msg: string, type: 'info' | 'error' | 'success' | 'warning' = 'info') {
     const div = document.createElement('div');
     div.textContent = msg;
     if (type !== 'info') {
         div.className = `log-${type}`;
     }
     logArea.appendChild(div);
+    trimLog(logArea);
     logArea.scrollTop = logArea.scrollHeight;
 }
 
-function updateBadge(el: HTMLElement, text: string, type: 'pending' | 'active' | 'success' | 'error') {
+function updateBadge(el: HTMLElement, text: string, type: 'pending' | 'active' | 'success' | 'error' | 'warning') {
     el.textContent = text;
     el.className = `status-badge badge-${type}`;
 }
 
+// Read history defensively: corrupt or non-array localStorage must not throw
+// and break app startup or misreport a successful conversion.
+function loadHistory(): HistoryItem[] {
+    try {
+        const parsed = JSON.parse(localStorage.getItem('convert_history') || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
 function saveHistory(items: HistoryItem[]) {
-    let history: HistoryItem[] = JSON.parse(localStorage.getItem('convert_history') || '[]');
-    
+    let history: HistoryItem[] = loadHistory();
+
     items.forEach(newItem => {
         history = updateHistory(history, newItem, 100);
     });
-    
+
     localStorage.setItem('convert_history', JSON.stringify(history));
     renderHistory();
 }
 
 function renderHistory() {
-    const history: HistoryItem[] = JSON.parse(localStorage.getItem('convert_history') || '[]');
+    const history: HistoryItem[] = loadHistory();
     historyArea.innerHTML = '';
     if (history.length === 0) {
+        // Static markup only (no user-controlled data) — safe.
         historyArea.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">No history yet.</div>';
         return;
     }
-    
+
     history.forEach(item => {
         const div = document.createElement('div');
         div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.9rem;';
-        
-        const pathLabel = item.inputPath.length > 40 ? '...' + item.inputPath.slice(-37) : item.inputPath;
-        
-        div.innerHTML = `
-            <div style="display: flex; flex-direction: column; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                <span style="font-weight: 500; color: var(--text-primary);" title="${item.inputPath}">${pathLabel}</span>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">Out: ${item.outputPath || 'Default'} | Emb: ${item.embedded ? 'Yes' : 'No'}</span>
-            </div>
-            <button class="btn btn-history-retry" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; background: var(--primary-color); color: white;">⚡ Convert</button>
-        `;
-        
-        const btn = div.querySelector('button')!;
+
+        // Paths are arbitrary and may contain HTML metacharacters (`"`, `<`, `>`
+        // are all legal in file/dir names on macOS/Linux), so build the row with
+        // textContent / property assignment — never string-interpolated
+        // innerHTML — to avoid DOM injection from a maliciously named path.
+        const info = document.createElement('div');
+        info.style.cssText = 'display: flex; flex-direction: column; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+
+        const pathSpan = document.createElement('span');
+        pathSpan.style.cssText = 'font-weight: 500; color: var(--text-primary);';
+        pathSpan.title = item.inputPath;
+        pathSpan.textContent = item.inputPath.length > 40 ? '...' + item.inputPath.slice(-37) : item.inputPath;
+
+        const metaSpan = document.createElement('span');
+        metaSpan.style.cssText = 'font-size: 0.8rem; color: var(--text-muted);';
+        metaSpan.textContent = `Out: ${item.outputPath || 'Default'} | Emb: ${item.embedded ? 'Yes' : 'No'}`;
+
+        info.append(pathSpan, metaSpan);
+
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-history-retry';
+        btn.style.cssText = 'padding: 0.4rem 0.75rem; font-size: 0.85rem; background: var(--primary-color); color: white;';
+        btn.textContent = '⚡ Convert';
         btn.addEventListener('click', async () => {
             selectedPath = item.inputPath;
             inDirDisplay.value = selectedPath;
@@ -220,16 +257,17 @@ function renderHistory() {
             outDirDisplay.value = selectedOutPath || '';
             chkEmbedded.checked = item.embedded;
             btnConvert.disabled = false;
-            
+
             if (!item.outputPath && selectedPath.endsWith('.sspj')) {
                 // re-calculate default if it was empty in history
                 await onInputSelected(selectedPath);
             }
-            
+
             log(`Re-converting from history: ${selectedPath}`);
             btnConvert.click();
         });
-        
+
+        div.append(info, btn);
         historyArea.appendChild(div);
     });
 }
@@ -257,31 +295,31 @@ listen<{ position?: { x: number; y: number } }>('tauri://drag-enter', event => u
 listen<{ position?: { x: number; y: number } }>('tauri://drag-over', event => updateDragHighlight(event.payload.position));
 listen('tauri://drag-leave', clearDragHighlight);
 
-// Tauri v2 drag-drop intercept
-listen<{ paths: string[] }>('tauri://file-drop', event => {
+// Handle a dropped path, classifying it by its real filesystem type rather than
+// guessing from the path string (a folder can be named `assets.bak`, a file can
+// have no extension), then accept a `.sspj` file or any directory.
+async function handleDrop(paths: string[] | undefined) {
     clearDragHighlight();
-    if (event.payload.paths && event.payload.paths.length > 0) {
-        const path = event.payload.paths[0];
-        if (path.endsWith('.sspj') || !path.includes('.')) {
-            onInputSelected(path);
-            log(`Dropped Input: ${path}`);
-        } else {
-            log(`Dropped file is not .sspj or a folder: ${path}`, 'error');
-        }
+    if (!paths || paths.length === 0) return;
+    const path = paths[0];
+    let kind: string;
+    try {
+        kind = await invoke<string>('path_kind', { path });
+    } catch {
+        kind = path.endsWith('.sspj') ? 'file' : 'missing';
     }
-});
+    if (kind === 'dir' || (kind === 'file' && path.endsWith('.sspj'))) {
+        await onInputSelected(path);
+        log(`Dropped Input: ${path}`);
+    } else {
+        log(`Dropped item is not a .sspj file or a folder: ${path}`, 'error');
+    }
+}
 
-// Also listen to tauri://drag-drop just in case (different v2 plugin events)
-listen<{ paths: string[] }>('tauri://drag-drop', event => {
-    clearDragHighlight();
-    if (event.payload.paths && event.payload.paths.length > 0) {
-        const path = event.payload.paths[0];
-        if (path.endsWith('.sspj') || !path.includes('.')) {
-            onInputSelected(path);
-            log(`Dropped Input: ${path}`);
-        }
-    }
-});
+// Subscribe to both drop event names for cross-version compatibility:
+// `tauri://drag-drop` (Tauri v2) and the legacy `tauri://file-drop`.
+listen<{ paths: string[] }>('tauri://file-drop', event => handleDrop(event.payload.paths));
+listen<{ paths: string[] }>('tauri://drag-drop', event => handleDrop(event.payload.paths));
 
 // Listen to converter logs from the backend
 listen<string>('convert-log', event => {
@@ -291,6 +329,7 @@ listen<string>('convert-log', event => {
     const div = document.createElement('div');
     div.textContent = event.payload;
     modalLogArea.appendChild(div);
+    trimLog(modalLogArea);
     modalLogArea.scrollTop = modalLogArea.scrollHeight;
 });
 
@@ -356,49 +395,59 @@ btnClearOut.addEventListener('click', () => {
 
 btnConvert.addEventListener('click', async () => {
     if (!selectedPath) return;
-    
+
+    const isSingleFile = selectedPath.endsWith('.sspj');
+
     try {
         btnConvert.disabled = true;
         btnSelectInFile.disabled = true;
         btnSelectInDir.disabled = true;
-        
+
         updateBadge(convertStatus, 'Converting...', 'active');
         log('Starting conversion...');
-        
+
         // Setup and show modal
         modalLogArea.innerHTML = '';
-        modalTitleText.textContent = selectedPath.includes('.sspj') ? 'Converting Project...' : 'Scanning & Converting...';
+        modalTitleText.textContent = isSingleFile ? 'Converting Project...' : 'Scanning & Converting...';
         modalSpinner.style.display = 'inline-block';
         btnCancelConvert.disabled = false;
         progressModal.style.display = 'flex';
-        
+
         const startTime = performance.now();
-        const result = await invoke<string[]>('convert_sspj', {
+        const result = await invoke<ConvertSummary>('convert_sspj', {
             inputPath: selectedPath,
             outputPath: selectedOutPath,
             embedded: chkEmbedded.checked
         });
         const endTime = performance.now();
-        log(`Conversion completed in ${(endTime - startTime).toFixed(2)} ms.`, 'success');
-        
-        updateBadge(convertStatus, 'Success', 'success');
-        
-        if (result.length === 1) {
-            log('Successfully converted 1 project.', 'success');
+        log(`Conversion finished in ${(endTime - startTime).toFixed(2)} ms.`);
+
+        const { succeeded, failed } = result;
+        failed.forEach(f => log(`Failed: ${f.path} — ${f.error}`, 'error'));
+
+        if (failed.length === 0) {
+            updateBadge(convertStatus, 'Success', 'success');
+            log(`Successfully converted ${succeeded.length} project${succeeded.length === 1 ? '' : 's'}.`, 'success');
+        } else if (succeeded.length === 0) {
+            updateBadge(convertStatus, 'Failed', 'error');
+            log(`Conversion failed for ${failed.length} project${failed.length === 1 ? '' : 's'}.`, 'error');
         } else {
-            log(`Successfully converted ${result.length} projects.`, 'success');
+            updateBadge(convertStatus, `${succeeded.length} ok / ${failed.length} failed`, 'warning');
+            log(`Converted ${succeeded.length}, failed ${failed.length}.`, 'warning');
         }
-        
-        // Save history per sspj file
-        const historyItems: HistoryItem[] = result.map(sspjPath => ({
+
+        // Save one history entry per successfully converted sspj file.
+        const historyItems: HistoryItem[] = succeeded.map(sspjPath => ({
             inputPath: sspjPath,
-            // If it was a batch folder conversion, output path is automatic (null)
-            outputPath: selectedPath!.includes('.sspj') ? selectedOutPath : null,
+            // In batch (folder) mode each output is placed automatically (null).
+            outputPath: isSingleFile ? selectedOutPath : null,
             embedded: chkEmbedded.checked,
             timestamp: Date.now()
         }));
-        
-        saveHistory(historyItems);
+
+        if (historyItems.length > 0) {
+            saveHistory(historyItems);
+        }
     } catch (e: any) {
         log(`Error/Cancelled: ${e}`, 'error');
         updateBadge(convertStatus, 'Failed/Cancelled', 'error');

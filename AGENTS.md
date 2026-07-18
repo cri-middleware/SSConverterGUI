@@ -6,15 +6,22 @@
     read tool truncated the file, read the remaining ranges before making non-trivial changes.
 *   Follow existing code style in touched files (naming, type usage, control flow, error
     handling).
-*   **Documentation Updates**: The project maintains dual-language documentation. Root-level files (`README.md`, `CONTRIBUTING.md`) pair an English version (`.md`) with a Japanese one (`.ja.md`); the docs site pairs `docs/en/<path>` with `docs/ja/<path>`. Always update both languages simultaneously to keep them in sync. See **Documentation** under Development Guidelines.
+*   **Documentation Updates**: The project keeps documentation in sync across languages. `README.md` pairs with `README.ja.md`; the other root docs (`CONTRIBUTING.md`, `SUPPORT.md`, `CODE_OF_CONDUCT.md`) are single files that carry an English section followed by a Japanese one; the docs site pairs `docs/en/<path>` with `docs/ja/<path>`. Update every language of a document together. See **Documentation** under Development Guidelines.
 
 ## Project Overview
 
 This is a cross-platform GUI application built with Tauri v2 for converting SpriteStudio (`.sspj`) projects to `.ssab` binaries.
 
-*   **Frontend**: Built with Vite, vanilla TypeScript, HTML, and CSS. Located primarily in the `src/` directory and `index.html`.
-*   **Backend**: Built with Rust using the Tauri v2 framework. Located in the `src-tauri/` directory.
-*   **Core SDK**: The actual conversion logic relies on the `ssconverter` crate from the `SpriteStudio-SDK`, which is included as a local Git submodule.
+*   **Frontend**: Vite + vanilla TypeScript, HTML, and CSS, in `src/` and `index.html`.
+*   **Backend**: Rust with the Tauri v2 framework, in `src-tauri/`.
+*   **Core SDK**: The conversion logic comes from the `ssconverter` crate in the `SpriteStudio-SDK` Git submodule.
+
+### Key files
+
+*   `src/main.ts` — all UI wiring: file/folder selection, drag-and-drop, conversion history (localStorage), the progress modal, and `invoke` calls to the backend.
+*   `src/utils.ts` — framework-free history logic (`updateHistory`), unit-tested in `src/utils.test.ts`.
+*   `src-tauri/src/lib.rs` — the Tauri commands: `convert_sspj`, `cancel_conversion`, `get_versions`, `path_kind`.
+*   `src-tauri/tauri.conf.json` and `src-tauri/capabilities/default.json` — app/window config and the granted permission set.
 
 ## Development Guidelines
 
@@ -27,7 +34,15 @@ This is a cross-platform GUI application built with Tauri v2 for converting Spri
 *   Tauri commands and backend logic are managed in `src-tauri/src/`.
 *   Ensure that any new Rust dependencies are added to `src-tauri/Cargo.toml`.
 *   The backend handles file system operations, dialogues, and invokes the `ssconverter` functions.
-*   **Conversion Logic Reference**: When implementing or modifying the conversion process, please refer to the `SpriteStudio-SDK` submodule. The conversion behavior and options should strictly conform to how the `ssconverter-cli` (located inside the SDK) operates, as it serves as the reference implementation.
+*   **Conversion Logic Reference**: When implementing or modifying the conversion process, refer to the `SpriteStudio-SDK` submodule. The conversion behavior and options should strictly conform to how the `ssconverter-cli` (inside the SDK) operates, as it is the reference implementation.
+
+### Testing
+*   Frontend unit tests use Vitest (jsdom); run them with `pnpm test`. Keep framework-free logic in `src/utils.ts` so it stays testable without Tauri.
+*   The Rust/Tauri layer needs the `SpriteStudio-SDK` submodule to compile and is exercised by running the app, not by unit tests.
+
+### Versioning
+*   `package.json`'s `version` drives the app/bundle version: `tauri.conf.json` reads it via `"version": "../package.json"`, and the `get_versions` command surfaces it at runtime. Keep `src-tauri/Cargo.toml`'s crate `version` in sync when bumping.
+*   Record user-facing changes in `CHANGELOG.md` (Keep a Changelog + SemVer). Releases run from the manual `Release` workflow (`.github/workflows/release.yml`).
 
 ### Documentation
 *   The docs site is **MkDocs + Material**, matching the sibling repos (`SpriteStudio-Docs`, `SSPlayerForGodot`, `SSPlayerForUnity`, `SSPlayerForRenPy`). Config is `mkdocs.yml`; sources are under `docs/`.
@@ -47,6 +62,6 @@ This is a cross-platform GUI application built with Tauri v2 for converting Spri
     ```
 
 ### Running & Building
-*   **Prerequisites**: Requires Node.js (v26+), `pnpm`, and the Rust toolchain (`rustup`). The repository must be cloned with the `--recursive` flag to fetch the `SpriteStudio-SDK` submodule.
-*   Start the development server with: `pnpm run tauri dev`
-*   Build the application with: `pnpm run tauri build`
+*   **Prerequisites**: Node.js (v26+), `pnpm`, and the Rust toolchain (`rustup`). Clone with `--recursive` to fetch the `SpriteStudio-SDK` submodule.
+*   Start the development server with: `pnpm run tauri dev`.
+*   Build the application with: `pnpm run tauri build`.

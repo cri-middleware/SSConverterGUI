@@ -14,14 +14,19 @@ on:
         default: false
         type: boolean
 
-# Needed to create the release and upload assets.
+# Least privilege at the workflow level: the build job (which holds the Apple
+# signing secrets and runs third-party actions) needs only read. The write scope
+# to create the Release is granted to the `package` job alone, below.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.actor }}-${{ github.head_ref || github.run_number }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Third-party actions are pinned to a full commit SHA (tag in the trailing
+# comment) so a moved/retagged release can't inject code into jobs that carry
+# secrets or write scope. Bump deliberately (Dependabot: github-actions).
 jobs:
   build:
     strategy:
@@ -37,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           # The ssconverter SDK is a git submodule; it must be fetched.
           submodules: recursive
@@ -59,25 +64,42 @@ jobs:
             exit 1
           fi
 
+      # Guard against shipping the unreleased CHANGELOG placeholder date
+      # (e.g. "2026-0X-XX"): the top entry's date must be a real YYYY-MM-DD.
+      - name: Check CHANGELOG has a real release date
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          header=$(grep -m1 '^## \[' CHANGELOG.md || true)
+          echo "Top CHANGELOG entry: ${header}"
+          date_part=$(printf '%s' "${header}" | sed -E 's/.*- //')
+          if ! printf '%s' "${date_part}" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "::error::CHANGELOG.md top entry has a non-date '${date_part}' — set the real release date before tagging."
+            exit 1
+          fi
+
       - name: Install pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
         with:
           version: 9
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 26
           cache: pnpm
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
+          # Pinned by SHA, so the channel must be named explicitly here (the
+          # action can no longer infer it from a `@stable` ref).
+          toolchain: stable
           # Universal macOS builds need both arch targets installed.
           targets: "${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}"
 
       - name: Rust cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: './src-tauri -> target'
           key: ${{ matrix.platform }}
@@ -103,7 +125,7 @@ jobs:
       # Build only (no tagName) - code signing & notarization happen in-place
       # during this build step when the APPLE_* env vars are present.
       - name: Build app
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
         env:
           # macOS code signing (Developer ID Application). Absent on Windows.
           APPLE_CERTIFICATE: ${{ secrets.SS_APPLE_CERTIFICATE }}
@@ -116,12 +138,33 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
+      # The shipped binary statically links the whole Rust dependency graph, so
+      # its third-party license notices must ship with it. cargo-about (no
+      # `targets` in about.toml) evaluates the union of all targets, so the file
+      # is identical on each runner; it is regenerated here only so every archive
+      # is self-contained.
+      # NOTE: the bundled frontend (npm) deps still need their own full-text
+      # notices appended — tracked as a follow-up (see handoff notes).
+      - name: Install cargo-about
+        uses: taiki-e/install-action@07b4745e0c39a41822af610387492e3e53aa222b # v2
+        with:
+          tool: cargo-about
+
+      - name: Generate third-party license notices
+        shell: bash
+        run: |
+          cargo about generate -c about.toml about.hbs \
+            --manifest-path src-tauri/Cargo.toml \
+            -o THIRD_PARTY_NOTICES.md
+
       - name: Package macOS artifact (.app.tar.gz)
         if: matrix.platform == 'macos-latest'
         run: |
           APP_DIR="src-tauri/target/universal-apple-darwin/release/bundle/macos"
           APP_NAME=$(basename "$(ls -d "$APP_DIR"/*.app | head -1)")
-          tar -czf "SSConverterGUI_${VERSION}_universal.app.tar.gz" -C "$APP_DIR" "$APP_NAME"
+          # Ship the app alongside the license and third-party notices.
+          cp LICENSE.md THIRD_PARTY_NOTICES.md "$APP_DIR/"
+          tar -czf "SSConverterGUI_${VERSION}_universal.app.tar.gz" -C "$APP_DIR" "$APP_NAME" LICENSE.md THIRD_PARTY_NOTICES.md
 
       - name: Package Windows artifact (.zip)
         if: matrix.platform == 'windows-latest'
@@ -131,11 +174,13 @@ jobs:
           $staging = "SSConverterGUI"
           New-Item -ItemType Directory -Force -Path $staging | Out-Null
           Copy-Item $exe.FullName -Destination "$staging/SSConverterGUI.exe"
-          Compress-Archive -Path "$staging/SSConverterGUI.exe" `
+          Copy-Item "LICENSE.md" -Destination "$staging/LICENSE.md"
+          Copy-Item "THIRD_PARTY_NOTICES.md" -Destination "$staging/THIRD_PARTY_NOTICES.md"
+          Compress-Archive -Path "$staging/*" `
             -DestinationPath "SSConverterGUI_${env:VERSION}_x64.zip"
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: SSConverterGUI-${{ matrix.platform }}
           path: |
@@ -146,10 +191,13 @@ jobs:
   package:
     needs: build
     runs-on: ubuntu-latest
+    # Only this job needs write access, and only to create the Release.
+    permissions:
+      contents: write
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: release-dist
           merge-multiple: true
@@ -164,7 +212,7 @@ jobs:
       # Keep the bundle as a workflow artifact so a QA run
       # (upload_release=false) is useful without creating a Release.
       - name: Upload final release package
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: SSConverterGUI-release-dist
           path: release-dist
@@ -172,7 +220,7 @@ jobs:
       # Only on an explicit dispatch with upload_release=true, on a v* tag ref.
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v') && inputs.upload_release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           files: |
             release-dist/*.app.tar.gz
@@ -184,6 +232,8 @@ jobs:
             Portable builds (no installer):
             - macOS: `.app.tar.gz` (universal, signed & notarized) - unpack and move `SSConverterGUI.app` to Applications.
             - Windows: `.zip` containing the portable `SSConverterGUI.exe` (requires WebView2 runtime, preinstalled on Windows 10/11).
+
+            Each archive includes `LICENSE.md` and `THIRD_PARTY_NOTICES.md`.
           generate_release_notes: true
           # The explicit upload_release=true dispatch is itself the publish
           # gate, so publish immediately instead of creating a draft.
