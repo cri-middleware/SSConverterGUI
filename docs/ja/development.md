@@ -64,12 +64,24 @@ pnpm run tauri build
 テーマで構築されており、他の SpriteStudio Player リポジトリと同じ構成です。ソースは `docs/en/` と
 `docs/ja/` にあります。
 
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r docs/requirements.txt
+### macOS / Linux (bash)
 
-mkdocs serve           # http://127.0.0.1:8000 でライブプレビュー
-mkdocs build --strict  # CI と同一。リンク切れや nav の不整合で失敗する
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r docs/requirements.txt
+
+.venv/bin/mkdocs serve           # http://127.0.0.1:8000 でライブプレビュー
+.venv/bin/mkdocs build --strict  # CI と同一。リンク切れや nav の不整合で失敗する
+```
+
+### Windows (PowerShell)
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python -m pip install -r docs/requirements.txt
+
+.\.venv\Scripts\mkdocs serve           # http://127.0.0.1:8000 でライブプレビュー
+.\.venv\Scripts\mkdocs build --strict  # CI と同一。リンク切れや nav の不整合で失敗する
 ```
 
 すべてのページは `docs/en/` と `docs/ja/` に 1 つずつ存在します。ページを追加・移動・リネームする際は

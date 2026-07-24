@@ -51,14 +51,25 @@ This is a cross-platform GUI application built with Tauri v2 for converting Spri
 *   **Internal links are relative file paths** ending in `.md` (e.g. `install.md`), which is what `--strict` validates. Links to other repos' docs are absolute `https://…` URLs.
 *   **Pinned toolchain**: `docs/requirements.txt` versions are deliberately pinned and kept in sync with the sibling repos. Bump intentionally.
 *   The **README is an entry point, not a duplicate** of the site: it carries the feature list, a quick start, and links into `docs/`. Detailed walkthroughs belong in `docs/`, not the README.
-*   Always validate with `mkdocs build --strict` before finishing — CI (`.github/workflows/pages.yml`) runs the same command on every PR touching `docs/` and blocks merge on any broken internal link or nav mismatch.
+*   Always validate with `.venv/bin/mkdocs build --strict` before finishing — CI (`.github/workflows/pages.yml`) runs the same command on every PR touching `docs/` and blocks merge on any broken internal link or nav mismatch.
 *   **Publishing is tied to releases**: the site deploys when a GitHub Release is published, or from a manual `workflow_dispatch` run. Merging to `main` does **not** publish — the site documents the released application, so it intentionally tracks releases rather than every merge.
 
     ```bash
-    python -m venv .venv && source .venv/bin/activate
-    pip install -r docs/requirements.txt
-    mkdocs serve           # live preview at http://127.0.0.1:8000
-    mkdocs build --strict  # exactly what CI runs
+    # macOS / Linux (bash)
+    python3 -m venv .venv
+    .venv/bin/python -m pip install -r docs/requirements.txt
+
+    .venv/bin/mkdocs serve           # live preview at http://127.0.0.1:8000
+    .venv/bin/mkdocs build --strict  # exactly what CI runs
+    ```
+
+    ```powershell
+    # Windows (PowerShell)
+    py -m venv .venv
+    .\.venv\Scripts\python -m pip install -r docs/requirements.txt
+
+    .\.venv\Scripts\mkdocs serve           # live preview at http://127.0.0.1:8000
+    .\.venv\Scripts\mkdocs build --strict  # exactly what CI runs
     ```
 
 ### Running & Building

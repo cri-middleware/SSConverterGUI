@@ -63,12 +63,24 @@ This site is built with [MkDocs](https://www.mkdocs.org/) and the
 [Material](https://squidfunk.github.io/mkdocs-material/) theme, matching the other SpriteStudio
 player repositories. The sources live under `docs/en/` and `docs/ja/`.
 
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r docs/requirements.txt
+### macOS / Linux (bash)
 
-mkdocs serve           # live preview at http://127.0.0.1:8000
-mkdocs build --strict  # exactly what CI runs; fails on broken links / missing nav
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r docs/requirements.txt
+
+.venv/bin/mkdocs serve           # live preview at http://127.0.0.1:8000
+.venv/bin/mkdocs build --strict  # exactly what CI runs; fails on broken links / missing nav
+```
+
+### Windows (PowerShell)
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python -m pip install -r docs/requirements.txt
+
+.\.venv\Scripts\mkdocs serve           # live preview at http://127.0.0.1:8000
+.\.venv\Scripts\mkdocs build --strict  # exactly what CI runs; fails on broken links / missing nav
 ```
 
 Every page exists twice — once under `docs/en/` and once under `docs/ja/`. When you add, move, or
