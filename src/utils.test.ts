@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { updateHistory, HistoryItem } from './utils';
+import { updateHistory, sanitizeHistory, isHistoryItem, HistoryItem } from './utils';
 
 describe('updateHistory', () => {
     it('should add a new item to the beginning of the history', () => {
@@ -35,5 +35,43 @@ describe('updateHistory', () => {
         expect(result).toHaveLength(2);
         expect(result[0].inputPath).toBe('test3.sspj');
         expect(result[1].inputPath).toBe('test1.sspj');
+    });
+});
+
+describe('isHistoryItem', () => {
+    const valid: HistoryItem = { inputPath: 'a.sspj', outputPath: null, embedded: false, timestamp: 1 };
+
+    it('should accept a well-formed item', () => {
+        expect(isHistoryItem(valid)).toBe(true);
+        expect(isHistoryItem({ ...valid, outputPath: '/out' })).toBe(true);
+    });
+
+    it('should reject non-objects', () => {
+        expect(isHistoryItem(null)).toBe(false);
+        expect(isHistoryItem(undefined)).toBe(false);
+        expect(isHistoryItem('a.sspj')).toBe(false);
+        expect(isHistoryItem(42)).toBe(false);
+    });
+
+    it('should reject items with a missing or mistyped field', () => {
+        expect(isHistoryItem({ timestamp: 1 })).toBe(false);
+        expect(isHistoryItem({ ...valid, inputPath: undefined })).toBe(false);
+        expect(isHistoryItem({ ...valid, outputPath: 42 })).toBe(false);
+        expect(isHistoryItem({ ...valid, embedded: 'yes' })).toBe(false);
+        expect(isHistoryItem({ ...valid, timestamp: '1' })).toBe(false);
+    });
+});
+
+describe('sanitizeHistory', () => {
+    const valid: HistoryItem = { inputPath: 'a.sspj', outputPath: null, embedded: false, timestamp: 1 };
+
+    it('should drop malformed entries but keep the valid ones', () => {
+        expect(sanitizeHistory([null, valid, { timestamp: 1 }])).toEqual([valid]);
+    });
+
+    it('should return an empty array for non-array input', () => {
+        expect(sanitizeHistory(null)).toEqual([]);
+        expect(sanitizeHistory({ inputPath: 'a.sspj' })).toEqual([]);
+        expect(sanitizeHistory('[]')).toEqual([]);
     });
 });

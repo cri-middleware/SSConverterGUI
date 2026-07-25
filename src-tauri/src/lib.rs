@@ -8,9 +8,24 @@ use tauri::Emitter;
 // Bounds for the directory scan so a mis-dropped huge or pathological tree
 // (e.g. a home folder) cannot run unbounded — without these only the Cancel
 // button could stop the walk.
-const SCAN_MAX_DEPTH: usize = 64;
+//
+// Depth is deliberately unbounded: `WalkDir::max_depth` just stops descending,
+// so a depth cap would drop deeply nested projects from a batch silently and
+// still report success. The entry and time budgets bound the walk just as
+// effectively and do raise `budget_exceeded` when they trip.
+const SCAN_MAX_DEPTH: usize = usize::MAX;
 const SCAN_MAX_ENTRIES: usize = 500_000;
 const SCAN_MAX_MILLIS: u64 = 30_000;
+
+/// Which of the two scan budgets stopped the walk, inferred from how many
+/// entries were visited before it gave up.
+fn scan_limit_label(visited: usize) -> String {
+    if visited >= SCAN_MAX_ENTRIES {
+        format!("{} entries", SCAN_MAX_ENTRIES)
+    } else {
+        format!("{} seconds", SCAN_MAX_MILLIS / 1000)
+    }
+}
 
 struct CancelState(Arc<AtomicBool>);
 
@@ -19,17 +34,26 @@ fn cancel_conversion(state: tauri::State<CancelState>) {
     state.0.store(true, Ordering::Relaxed);
 }
 
-/// Classify a filesystem path so the frontend can tell a file from a directory
-/// by its actual type rather than by guessing from the path string.
+/// Classify a filesystem path so the frontend can tell a `.sspj` project, a
+/// plain file and a directory apart by their actual type rather than by
+/// guessing from the path string.
+///
+/// Returns `"sspj"`, `"file"`, `"dir"` or `"missing"`. `.sspj` is matched the
+/// same way `ssconverter` matches it, so the GUI and the converter always agree
+/// on what counts as a project. Errors other than "not found" are reported as
+/// `Err` instead of being collapsed into `"missing"` — an unreadable directory
+/// is not a nonexistent one, and the caller needs to say so.
 #[tauri::command]
-fn path_kind(path: String) -> String {
+fn path_kind(path: String) -> Result<String, String> {
     let p = Path::new(&path);
-    if p.is_dir() {
-        "dir".to_string()
-    } else if p.is_file() {
-        "file".to_string()
-    } else {
-        "missing".to_string()
+    match std::fs::metadata(p) {
+        Ok(meta) if meta.is_dir() => Ok("dir".to_string()),
+        Ok(_) if p.extension().and_then(|ext| ext.to_str()) == Some("sspj") => {
+            Ok("sspj".to_string())
+        }
+        Ok(_) => Ok("file".to_string()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok("missing".to_string()),
+        Err(err) => Err(format!("Cannot read {}: {}", path, err)),
     }
 }
 
@@ -52,6 +76,10 @@ struct ConvertFailure {
 struct ConvertSummary {
     succeeded: Vec<String>,
     failed: Vec<ConvertFailure>,
+    /// Non-fatal problems that make the run incomplete (currently only a
+    /// truncated directory scan). Already emitted live as `convert-warning`;
+    /// repeated here so the final status can say the batch was not exhaustive.
+    warnings: Vec<String>,
 }
 
 #[tauri::command]
@@ -82,6 +110,7 @@ async fn convert_sspj(
 
         let path = Path::new(&input_path);
         let mut files_to_convert = vec![];
+        let mut warnings: Vec<String> = vec![];
 
         if path.is_file() {
             files_to_convert.push(path.to_path_buf());
@@ -105,15 +134,42 @@ async fn convert_sspj(
             if should_stop.load(Ordering::Relaxed) {
                 return Err("Conversion cancelled during directory scan.".into());
             }
-            if budget_exceeded.load(Ordering::Relaxed) {
-                return Err(format!(
-                    "Directory scan stopped after reaching its limit ({} entries or {} seconds). Please choose a more specific folder.",
-                    SCAN_MAX_ENTRIES,
-                    SCAN_MAX_MILLIS / 1000
-                ));
-            }
+
+            let visited = visited.load(Ordering::Relaxed);
+            let hit_budget = budget_exceeded.load(Ordering::Relaxed);
+
+            let _ = app.emit(
+                "convert-log",
+                format!(
+                    "Scan complete: {} .sspj file(s) found in {} entries.",
+                    found.load(Ordering::Relaxed),
+                    visited
+                ),
+            );
+
             if files_to_convert.is_empty() {
-                return Err("No .sspj files found in the directory.".into());
+                return Err(if hit_budget {
+                    format!(
+                        "Directory scan stopped at its limit ({}) after {} entries without finding a .sspj file. Please choose a more specific folder.",
+                        scan_limit_label(visited),
+                        visited
+                    )
+                } else {
+                    "No .sspj files found in the directory.".to_string()
+                });
+            }
+
+            if hit_budget {
+                // Convert what the walk already found instead of discarding the
+                // batch, but be explicit that the listing is incomplete.
+                let msg = format!(
+                    "Directory scan stopped at its limit ({}) after {} entries; converting the {} .sspj file(s) found so far. Choose a more specific folder to reach the rest.",
+                    scan_limit_label(visited),
+                    visited,
+                    files_to_convert.len()
+                );
+                let _ = app.emit("convert-warning", msg.clone());
+                warnings.push(msg);
             }
         } else {
             return Err("Invalid input path.".into());
@@ -127,10 +183,11 @@ async fn convert_sspj(
                 return Err("Conversion cancelled by user.".into());
             }
 
+            let _ = app.emit("convert-log", format!("Converting: {}", file.display()));
+
+            // Owned handle for the progress callback, which outlives this scope
+            // only as far as the call below.
             let app_clone = app.clone();
-
-            let _ = app_clone.emit("convert-log", format!("Converting: {:?}", file.file_name().unwrap_or_default()));
-
             let result = convert_sspj_to_ssab_files_cancellable(&file, &config, &|msg: &str| {
                 let _ = app_clone.emit("convert-log", msg);
             }, &should_stop);
@@ -144,8 +201,14 @@ async fn convert_sspj(
                     if should_stop.load(Ordering::Relaxed) {
                         return Err("Conversion cancelled by user.".into());
                     }
-                    let log_msg = format!("Conversion failed for {:?}: {}", file.file_name().unwrap_or_default(), err);
-                    let _ = app.emit("convert-log", log_msg);
+                    // Full path, not just the file name: in a real batch nearly
+                    // every project is called `project.sspj`. This is the only
+                    // place a failure is logged — the frontend renders the
+                    // event rather than re-listing `failed` afterwards.
+                    let _ = app.emit(
+                        "convert-error",
+                        format!("Conversion failed for {}: {}", file.display(), err),
+                    );
                     failed.push(ConvertFailure {
                         path: file.to_string_lossy().into_owned(),
                         error: err.to_string(),
@@ -154,7 +217,7 @@ async fn convert_sspj(
             }
         }
 
-        Ok(ConvertSummary { succeeded, failed })
+        Ok(ConvertSummary { succeeded, failed, warnings })
     })
     .await
     .map_err(|e| format!("Task panicked: {}", e))?

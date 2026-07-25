@@ -2,14 +2,21 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
-import { updateHistory, HistoryItem } from './utils';
+import { updateHistory, sanitizeHistory, HistoryItem } from './utils';
 import './style.css';
 
 // Mirrors the Rust `ConvertSummary` returned by the `convert_sspj` command.
 interface ConvertSummary {
     succeeded: string[];
     failed: { path: string; error: string }[];
+    // Already logged live via the `convert-warning` event; used here only to
+    // decide the final status.
+    warnings: string[];
 }
+
+// Mirrors the Rust `path_kind` command: the real filesystem type of a path,
+// with `.sspj` recognised exactly as the converter recognises it.
+type PathKind = 'sspj' | 'file' | 'dir' | 'missing';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme" title="Toggle Theme">☀️</button>
@@ -145,14 +152,29 @@ themeToggle.addEventListener('click', () => {
 applyTheme();
 
 let selectedPath: string | null = null;
+let selectedKind: PathKind | null = null;
 let selectedOutPath: string | null = null;
+let isConverting = false;
 
-async function onInputSelected(path: string) {
+// Ask the backend what a path actually is. Every `.sspj`-vs-folder decision in
+// the UI goes through this, so the app never disagrees with itself (or with the
+// converter) about what a path is. Returns null after logging why on failure.
+async function classifyPath(path: string): Promise<PathKind | null> {
+    try {
+        return await invoke<PathKind>('path_kind', { path });
+    } catch (e) {
+        log(`Could not inspect ${path}: ${e}`, 'error');
+        return null;
+    }
+}
+
+async function onInputSelected(path: string, kind: PathKind) {
     selectedPath = path;
+    selectedKind = kind;
     inDirDisplay.value = path;
     btnConvert.disabled = false;
 
-    if (path.endsWith('.sspj')) {
+    if (kind === 'sspj') {
         try {
             const dir = await dirname(path);
             const base = await basename(path, '.sspj');
@@ -166,26 +188,41 @@ async function onInputSelected(path: string) {
     } else {
         selectedOutPath = null;
         outDirDisplay.value = '';
-        outDirDisplay.placeholder = "Batch Mode: Output placed next to each .sspj";
+        outDirDisplay.placeholder = kind === 'dir'
+            ? "Batch Mode: Output placed next to each .sspj"
+            : "Leave empty to output next to the source file";
     }
 }
 
 const MAX_LOG_LINES = 500;
 function trimLog(el: HTMLElement) {
-    while (el.childElementCount > MAX_LOG_LINES) {
-        el.removeChild(el.firstChild!);
+    while (el.children.length > MAX_LOG_LINES) {
+        el.firstElementChild!.remove();
     }
 }
 
-function log(msg: string, type: 'info' | 'error' | 'success' | 'warning' = 'info') {
+type LogType = 'info' | 'error' | 'success' | 'warning';
+
+function appendLine(el: HTMLElement, msg: string, type: LogType) {
     const div = document.createElement('div');
     div.textContent = msg;
     if (type !== 'info') {
         div.className = `log-${type}`;
     }
-    logArea.appendChild(div);
-    trimLog(logArea);
-    logArea.scrollTop = logArea.scrollHeight;
+    el.appendChild(div);
+    trimLog(el);
+    el.scrollTop = el.scrollHeight;
+}
+
+function log(msg: string, type: LogType = 'info') {
+    appendLine(logArea, msg, type);
+}
+
+// Backend events go to the main log and to the progress modal, so a running
+// conversion is readable without closing the modal.
+function logFromBackend(msg: string, type: LogType = 'info') {
+    appendLine(logArea, msg, type);
+    appendLine(modalLogArea, msg, type);
 }
 
 function updateBadge(el: HTMLElement, text: string, type: 'pending' | 'active' | 'success' | 'error' | 'warning') {
@@ -193,12 +230,12 @@ function updateBadge(el: HTMLElement, text: string, type: 'pending' | 'active' |
     el.className = `status-badge badge-${type}`;
 }
 
-// Read history defensively: corrupt or non-array localStorage must not throw
-// and break app startup or misreport a successful conversion.
+// Read history defensively: corrupt localStorage must not throw and break app
+// startup or misreport a successful conversion. `sanitizeHistory` also drops
+// individual malformed entries, which would otherwise blow up in rendering.
 function loadHistory(): HistoryItem[] {
     try {
-        const parsed = JSON.parse(localStorage.getItem('convert_history') || '[]');
-        return Array.isArray(parsed) ? parsed : [];
+        return sanitizeHistory(JSON.parse(localStorage.getItem('convert_history') || '[]'));
     } catch {
         return [];
     }
@@ -250,21 +287,34 @@ function renderHistory() {
         btn.className = 'btn btn-history-retry';
         btn.style.cssText = 'padding: 0.4rem 0.75rem; font-size: 0.85rem; background: var(--primary-color); color: white;';
         btn.textContent = '⚡ Convert';
+        // A conversion may finish and re-render the list while the previous one
+        // is still tearing down, so honour the current busy state here too.
+        btn.disabled = isConverting;
         btn.addEventListener('click', async () => {
+            if (isConverting) return;
+
+            const kind = await classifyPath(item.inputPath);
+            if (!kind) return;
+            if (kind === 'missing') {
+                log(`History entry no longer exists: ${item.inputPath}`, 'error');
+                return;
+            }
+
             selectedPath = item.inputPath;
+            selectedKind = kind;
             inDirDisplay.value = selectedPath;
+            // Replay exactly what the recorded run used. A batch entry stores
+            // `outputPath: null`, which means "next to the .sspj" — recomputing
+            // the default here would write into a `<name>/` subdirectory
+            // instead, so the retry would not reproduce the original run.
             selectedOutPath = item.outputPath;
             outDirDisplay.value = selectedOutPath || '';
+            outDirDisplay.placeholder = selectedOutPath ? '' : 'Leave empty to output next to .sspj';
             chkEmbedded.checked = item.embedded;
             btnConvert.disabled = false;
 
-            if (!item.outputPath && selectedPath.endsWith('.sspj')) {
-                // re-calculate default if it was empty in history
-                await onInputSelected(selectedPath);
-            }
-
             log(`Re-converting from history: ${selectedPath}`);
-            btnConvert.click();
+            await runConversion();
         });
 
         div.append(info, btn);
@@ -300,38 +350,30 @@ listen('tauri://drag-leave', clearDragHighlight);
 // have no extension), then accept a `.sspj` file or any directory.
 async function handleDrop(paths: string[] | undefined) {
     clearDragHighlight();
+    if (isConverting) {
+        log('A conversion is already running — dropped item ignored.', 'warning');
+        return;
+    }
     if (!paths || paths.length === 0) return;
     const path = paths[0];
-    let kind: string;
-    try {
-        kind = await invoke<string>('path_kind', { path });
-    } catch {
-        kind = path.endsWith('.sspj') ? 'file' : 'missing';
-    }
-    if (kind === 'dir' || (kind === 'file' && path.endsWith('.sspj'))) {
-        await onInputSelected(path);
-        log(`Dropped Input: ${path}`);
-    } else {
+    const kind = await classifyPath(path);
+    if (!kind) return;
+    if (kind !== 'dir' && kind !== 'sspj') {
         log(`Dropped item is not a .sspj file or a folder: ${path}`, 'error');
+        return;
     }
+    await onInputSelected(path, kind);
+    log(`Dropped Input: ${path}`);
 }
 
-// Subscribe to both drop event names for cross-version compatibility:
-// `tauri://drag-drop` (Tauri v2) and the legacy `tauri://file-drop`.
-listen<{ paths: string[] }>('tauri://file-drop', event => handleDrop(event.payload.paths));
 listen<{ paths: string[] }>('tauri://drag-drop', event => handleDrop(event.payload.paths));
 
-// Listen to converter logs from the backend
-listen<string>('convert-log', event => {
-    log(event.payload);
-    
-    // Also push to the modal log area
-    const div = document.createElement('div');
-    div.textContent = event.payload;
-    modalLogArea.appendChild(div);
-    trimLog(modalLogArea);
-    modalLogArea.scrollTop = modalLogArea.scrollHeight;
-});
+// Converter progress from the backend. Failures and warnings arrive on their
+// own events so they keep their severity; the summary returned by
+// `convert_sspj` is used for counts only and never re-logs them.
+listen<string>('convert-log', event => logFromBackend(event.payload));
+listen<string>('convert-warning', event => logFromBackend(event.payload, 'warning'));
+listen<string>('convert-error', event => logFromBackend(event.payload, 'error'));
 
 btnCancelConvert.addEventListener('click', async () => {
     btnCancelConvert.disabled = true;
@@ -348,8 +390,15 @@ btnSelectInFile.addEventListener('click', async () => {
             filters: [{ name: 'SpriteStudio Project', extensions: ['sspj'] }]
         });
         if (file) {
-            await onInputSelected(file as string);
-            log(`Selected Input File: ${file}`);
+            const path = file as string;
+            const kind = await classifyPath(path);
+            if (!kind) return;
+            if (kind === 'missing') {
+                log(`Selected file no longer exists: ${path}`, 'error');
+                return;
+            }
+            await onInputSelected(path, kind);
+            log(`Selected Input File: ${path}`);
         }
     } catch (e: any) {
         log(`Error: ${e.message || e}`, 'error');
@@ -363,8 +412,15 @@ btnSelectInDir.addEventListener('click', async () => {
             directory: true
         });
         if (dir) {
-            await onInputSelected(dir as string);
-            log(`Selected Input Folder: ${dir}`);
+            const path = dir as string;
+            const kind = await classifyPath(path);
+            if (!kind) return;
+            if (kind === 'missing') {
+                log(`Selected folder no longer exists: ${path}`, 'error');
+                return;
+            }
+            await onInputSelected(path, kind);
+            log(`Selected Input Folder: ${path}`);
         }
     } catch (e: any) {
         log(`Error: ${e.message || e}`, 'error');
@@ -393,21 +449,40 @@ btnClearOut.addEventListener('click', () => {
     log('Cleared output directory. Will use default location.');
 });
 
-btnConvert.addEventListener('click', async () => {
-    if (!selectedPath) return;
+// Lock every control that feeds a conversion. The backend keeps a single
+// cancel flag shared by all runs, so two concurrent conversions would cancel
+// and un-cancel each other; keeping the inputs frozen also guarantees the
+// options recorded in history are the ones the run actually used.
+function setBusy(busy: boolean) {
+    isConverting = busy;
+    btnConvert.disabled = busy || !selectedPath;
+    btnSelectInFile.disabled = busy;
+    btnSelectInDir.disabled = busy;
+    btnSelectOut.disabled = busy;
+    btnClearOut.disabled = busy;
+    btnClearHistory.disabled = busy;
+    chkEmbedded.disabled = busy;
+    historyArea.querySelectorAll<HTMLButtonElement>('.btn-history-retry')
+        .forEach(retry => { retry.disabled = busy; });
+}
 
-    const isSingleFile = selectedPath.endsWith('.sspj');
+async function runConversion() {
+    if (isConverting || !selectedPath) return;
+
+    // Snapshot everything the run depends on before the await.
+    const inputPath = selectedPath;
+    const isSingleFile = selectedKind !== 'dir';
+    const outputPath = selectedOutPath;
+    const embedded = chkEmbedded.checked;
 
     try {
-        btnConvert.disabled = true;
-        btnSelectInFile.disabled = true;
-        btnSelectInDir.disabled = true;
+        setBusy(true);
 
         updateBadge(convertStatus, 'Converting...', 'active');
         log('Starting conversion...');
 
         // Setup and show modal
-        modalLogArea.innerHTML = '';
+        modalLogArea.replaceChildren();
         modalTitleText.textContent = isSingleFile ? 'Converting Project...' : 'Scanning & Converting...';
         modalSpinner.style.display = 'inline-block';
         btnCancelConvert.disabled = false;
@@ -415,33 +490,38 @@ btnConvert.addEventListener('click', async () => {
 
         const startTime = performance.now();
         const result = await invoke<ConvertSummary>('convert_sspj', {
-            inputPath: selectedPath,
-            outputPath: selectedOutPath,
-            embedded: chkEmbedded.checked
+            inputPath,
+            outputPath,
+            embedded
         });
         const endTime = performance.now();
         log(`Conversion finished in ${(endTime - startTime).toFixed(2)} ms.`);
 
-        const { succeeded, failed } = result;
-        failed.forEach(f => log(`Failed: ${f.path} — ${f.error}`, 'error'));
+        // Individual failures and warnings were already logged from their
+        // backend events — only the totals are reported here.
+        const { succeeded, failed, warnings } = result;
+        const plural = (n: number) => n === 1 ? '' : 's';
 
-        if (failed.length === 0) {
-            updateBadge(convertStatus, 'Success', 'success');
-            log(`Successfully converted ${succeeded.length} project${succeeded.length === 1 ? '' : 's'}.`, 'success');
-        } else if (succeeded.length === 0) {
+        if (failed.length > 0 && succeeded.length === 0) {
             updateBadge(convertStatus, 'Failed', 'error');
-            log(`Conversion failed for ${failed.length} project${failed.length === 1 ? '' : 's'}.`, 'error');
-        } else {
+            log(`Conversion failed for ${failed.length} project${plural(failed.length)}.`, 'error');
+        } else if (failed.length > 0) {
             updateBadge(convertStatus, `${succeeded.length} ok / ${failed.length} failed`, 'warning');
             log(`Converted ${succeeded.length}, failed ${failed.length}.`, 'warning');
+        } else if (warnings.length > 0) {
+            updateBadge(convertStatus, `${succeeded.length} ok (incomplete)`, 'warning');
+            log(`Converted ${succeeded.length} project${plural(succeeded.length)}, but the scan was incomplete.`, 'warning');
+        } else {
+            updateBadge(convertStatus, 'Success', 'success');
+            log(`Successfully converted ${succeeded.length} project${plural(succeeded.length)}.`, 'success');
         }
 
         // Save one history entry per successfully converted sspj file.
         const historyItems: HistoryItem[] = succeeded.map(sspjPath => ({
             inputPath: sspjPath,
             // In batch (folder) mode each output is placed automatically (null).
-            outputPath: isSingleFile ? selectedOutPath : null,
-            embedded: chkEmbedded.checked,
+            outputPath: isSingleFile ? outputPath : null,
+            embedded,
             timestamp: Date.now()
         }));
 
@@ -453,14 +533,14 @@ btnConvert.addEventListener('click', async () => {
         updateBadge(convertStatus, 'Failed/Cancelled', 'error');
     } finally {
         progressModal.style.display = 'none';
-        btnConvert.disabled = false;
-        btnSelectInFile.disabled = false;
-        btnSelectInDir.disabled = false;
+        setBusy(false);
     }
-});
+}
+
+btnConvert.addEventListener('click', runConversion);
 
 btnClearLog.addEventListener('click', () => {
-    logArea.textContent = '';
+    logArea.replaceChildren();
 });
 
 btnClearHistory.addEventListener('click', () => {
