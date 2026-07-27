@@ -29,7 +29,9 @@ Comprehensive documentation is available in the `docs/` folder:
 
 ## 🚀 Quick Start
 
-1. **Download**: Get the latest executable for your OS from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) and run it.
+Requires **macOS 10.15+** or **Windows 10/11 (64-bit)**. Both builds are portable — no installer.
+
+1. **Download**: Get the archive for your OS from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases), unpack it, and run it. The Windows `.exe` is unsigned, so SmartScreen prompts on first launch — see the [Installation Guide](./docs/en/install.md).
 2. **Select**: Drag & drop a `.sspj` file — or a folder containing several — into the target area.
 3. **Convert**: Click the **"⚡ Convert"** button, then check the status and logs at the bottom of the screen.
 

@@ -29,7 +29,9 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 
 ## 🚀 クイックスタート
 
-1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS に合った最新版の実行ファイルを入手して起動します。
+動作環境は **macOS 10.15 以降** または **Windows 10 / 11 (64-bit)** です。いずれもポータブル版のため、インストーラはありません。
+
+1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS に合ったアーカイブを入手し、展開して起動します。Windows 版の `.exe` は未署名のため初回起動時に SmartScreen の警告が表示されます。詳しくは[インストール手順](./docs/ja/install.md)を参照してください。
 2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）をターゲットエリアにドラッグ＆ドロップします。
 3. **変換**: **「⚡ Convert」** ボタンをクリックし、画面下部のステータスとログで完了を確認します。
 
