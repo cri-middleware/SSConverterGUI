@@ -138,13 +138,47 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
+      # A missing, expired, or misnamed Apple secret silently turns the steps
+      # above into no-ops, which would ship an unsigned .app under a Release that
+      # advertises it as signed & notarized. Inspect the real artifact rather than
+      # trusting that the env was populated.
+      - name: Verify signature and notarization
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          # Mandatory on a v* tag (the only ref that can publish a Release); a QA
+          # build may legitimately run without the secrets, so there it warns.
+          REQUIRED: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          # Deliberately no `set -e`: every check must run so the log shows all
+          # failures at once, not just the first.
+          set -uo pipefail
+          APP=$(ls -d src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app | head -1)
+          echo "Verifying ${APP}"
+          status=0
+          codesign --verify --deep --strict --verbose=2 "$APP" || {
+            echo "::error::code signature is missing or invalid"; status=1; }
+          codesign -dvv "$APP" 2>&1 | grep -q 'Authority=Developer ID Application' || {
+            echo "::error::not signed by a Developer ID Application certificate"; status=1; }
+          # A stapled ticket is what lets Gatekeeper clear the app offline; without
+          # it a notarized build still prompts users on a machine with no network.
+          xcrun stapler validate "$APP" || {
+            echo "::error::no stapled notarization ticket"; status=1; }
+          spctl --assess --type execute -vvv "$APP" || {
+            echo "::error::Gatekeeper rejected the app"; status=1; }
+          if [ "$status" -ne 0 ]; then
+            if [ "$REQUIRED" = "true" ]; then
+              echo "::error::a release build must be signed and notarized — check the SS_APPLE_* secrets"
+              exit 1
+            fi
+            echo "::warning::unsigned build — expected when the SS_APPLE_* secrets are unavailable"
+          fi
+
       # The shipped binary statically links the whole Rust dependency graph, so
       # its third-party license notices must ship with it. cargo-about (no
       # `targets` in about.toml) evaluates the union of all targets, so the file
       # is identical on each runner; it is regenerated here only so every archive
       # is self-contained.
-      # NOTE: the bundled frontend (npm) deps still need their own full-text
-      # notices appended — tracked as a follow-up (see handoff notes).
       - name: Install cargo-about
         uses: taiki-e/install-action@07b4745e0c39a41822af610387492e3e53aa222b # v2
         with:
@@ -156,6 +190,14 @@ jobs:
           cargo about generate -c about.toml about.hbs \
             --manifest-path src-tauri/Cargo.toml \
             -o THIRD_PARTY_NOTICES.md
+
+      # Tauri embeds the compiled frontend bundle in the same binary, so the npm
+      # packages whose code lands in `dist/` need their notices shipped alongside
+      # the Rust ones. Appends to the file cargo-about just wrote; fails loudly if
+      # a dependency's license text cannot be located.
+      - name: Append frontend (npm) license notices
+        shell: bash
+        run: node scripts/gen-npm-notices.mjs THIRD_PARTY_NOTICES.md
 
       - name: Package macOS artifact (.app.tar.gz)
         if: matrix.platform == 'macos-latest'
@@ -230,10 +272,21 @@ jobs:
           # Prepended to the auto-generated notes.
           body: |
             Portable builds (no installer):
-            - macOS: `.app.tar.gz` (universal, signed & notarized) - unpack and move `SSConverterGUI.app` to Applications.
-            - Windows: `.zip` containing the portable `SSConverterGUI.exe` (requires WebView2 runtime, preinstalled on Windows 10/11).
+            - **macOS 10.15+**: `.app.tar.gz` (universal, signed & notarized) - unpack and move `SSConverterGUI.app` to Applications.
+            - **Windows 10/11 (x64)**: `.zip` containing the portable `SSConverterGUI.exe` (requires the WebView2 runtime, preinstalled on Windows 10/11).
+
+            > **Windows users:** the `.exe` is **not** code-signed, so SmartScreen shows
+            > "Windows protected your PC" on first launch. Choose **More info → Run anyway**,
+            > and verify the download against `SHA256SUMS` below if you want to be sure.
+
+            Verify your download:
+            ```
+            sha256sum -c SHA256SUMS --ignore-missing          # macOS / Linux
+            certutil -hashfile SSConverterGUI_x64.zip SHA256  # Windows (compare manually)
+            ```
 
             Each archive includes `LICENSE.md` and `THIRD_PARTY_NOTICES.md`.
+            See the [installation guide](https://cri-middleware.github.io/SSConverterGUI/install/) for details.
           generate_release_notes: true
           # The explicit upload_release=true dispatch is itself the publish
           # gate, so publish immediately instead of creating a draft.
