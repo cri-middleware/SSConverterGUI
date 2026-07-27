@@ -1,0 +1,108 @@
+name: CI
+
+# Pre-merge gate. `release.yml` builds the shipped artifacts but runs no checks,
+# so this is the only place a broken test, type error, or lint lands before a
+# release build does.
+#
+# Deliberately no `paths-ignore`: a workflow skipped by a path filter never
+# reports its checks, which leaves a required status check pending forever on
+# docs-only PRs. The Rust cache keeps the cost of running anyway small.
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# Third-party actions are pinned to a full commit SHA (tag in the trailing
+# comment), matching release.yml. Bump deliberately (Dependabot: github-actions).
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      # The frontend never touches the SpriteStudio-SDK submodule, so skip it.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: pnpm test
+
+      # `pnpm run build` is `tsc && vite build`, so this covers type checking and
+      # proves the bundle the Rust build embeds can actually be produced.
+      - name: Type check and build
+        run: pnpm run build
+
+  rust:
+    # Run on macOS rather than Linux: the app ships for macOS and Windows only,
+    # so a Linux job would need webkit2gtk system packages for a target nobody
+    # releases. macOS needs no extra system dependencies.
+    runs-on: macos-latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          # The ssconverter SDK is a git submodule; it must be fetched to compile.
+          submodules: recursive
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          # Pinned by SHA, so the channel must be named explicitly here.
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: './src-tauri -> target'
+          key: ci
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `tauri::generate_context!` embeds the frontend bundle at compile time, so
+      # `../dist` must exist before any cargo command touches the crate.
+      - name: Build frontend bundle
+        run: pnpm run build
+
+      - name: cargo fmt
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      # Scoped to this crate: the ssconverter submodule is a path dependency, and
+      # its lint cleanliness is the SDK repo's gate, not this one's.
+      # `--locked` also asserts Cargo.lock is in sync with the submodule's
+      # manifests — the check that catches a submodule bump landing without a
+      # lockfile refresh.
+      - name: cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings
