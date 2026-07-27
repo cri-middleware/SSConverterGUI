@@ -1,0 +1,19 @@
+# Questions, private reports, and conversion-engine bugs each have a better home
+# than this tracker — send them there before an issue is opened, not after.
+blank_issues_enabled: false
+contact_links:
+  - name: ❓ How do I use the app? / 使い方の質問
+    url: https://spritestudio.jp/community/
+    about: Questions and tips belong in the SpriteStudio Community forum. / 使い方のご質問や情報交換は公式コミュニティへ。
+
+  - name: 🔁 Conversion problem (wrong .ssab, crash while converting) / 変換処理そのものの問題
+    url: https://github.com/cri-middleware/SpriteStudio-SDK/issues
+    about: The conversion engine lives in SpriteStudio-SDK — report it there. / 変換エンジンは SpriteStudio-SDK 側です。
+
+  - name: 🔒 Private inquiry or large reproduction data / 非公開のお問い合わせ・大きな再現データ
+    url: https://www.webtech.co.jp/help/en/spritestudio7/inquiries/ssplayer_tool/
+    about: Use the CRI Middleware Help Center for private or contractual support. / 非公開のご相談は公式ヘルプセンターへ。
+
+  - name: 🛡️ Security vulnerability / 脆弱性の報告
+    url: https://github.com/cri-middleware/SSConverterGUI/security/advisories/new
+    about: Report privately via a GitHub Security Advisory — never a public issue. / 公開 Issue ではなく非公開でご報告ください。

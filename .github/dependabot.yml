@@ -1,0 +1,38 @@
+version: 2
+
+# Both workflows pin third-party actions to a full commit SHA and note "bump
+# deliberately (Dependabot: github-actions)" — this is the updater that raises
+# those bumps as reviewable PRs instead of leaving the pins to rot.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # The three @tauri-apps/* runtime packages are released together and must
+      # stay in step with the Rust-side tauri crates.
+      tauri:
+        patterns: ['@tauri-apps/*']
+      dev-dependencies:
+        dependency-type: development
+
+  # NOTE: the `ssconverter` dependency is a path dependency pointing into the
+  # SpriteStudio-SDK git submodule, which Dependabot does not check out. If this
+  # updater starts reporting a resolution error on that path, remove this entry
+  # and bump the Rust dependencies manually — the submodule pointer is updated
+  # deliberately anyway, not by an updater.
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        patterns: ['*']

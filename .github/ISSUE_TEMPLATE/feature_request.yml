@@ -1,0 +1,34 @@
+name: ✨ Feature request / 機能のご要望
+description: Suggest a new feature or an improvement to the application. / 新機能や改善のご提案
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues first — your idea may already be under discussion. /
+        投稿前に、同様のご要望が既にないか検索してください。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve? / どのような課題を解決しますか
+      description: >
+        Describe the situation you run into today, not only the feature you have in mind. /
+        実現したい機能だけでなく、現在困っている状況もお書きください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / ご提案の内容
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / 検討した代替案
+      description: >
+        Would [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/tree/main/cli)
+        already cover this? / CLI 版で代替できるかもあわせてご検討ください。

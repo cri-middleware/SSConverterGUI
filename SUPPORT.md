@@ -25,6 +25,9 @@ For private consultations, sensitive issue reports, sending large reproduction d
 
 *Note: For reproduction data, please use the file upload feature within the Help Center form.*
 
+## 🛡️ Security Vulnerabilities
+Please do **not** report security vulnerabilities through public GitHub Issues. See [SECURITY.md](./SECURITY.md) for the private reporting channels.
+
 ---
 
 ## 日本語でのサポート (Support in Japanese)
@@ -51,6 +54,9 @@ SSConverter GUI をご利用いただきありがとうございます。ご質�
 非公開でのご相談、再現データ（`.sspj` プロジェクトなど）を送付いただく必要がある場合、または契約に基づくサポートが必要な場合は、公式の**ヘルプセンター**をご利用ください。
 
 👉 [**ヘルプセンター（お問い合わせフォーム）**](https://www.webtech.co.jp/help/ja/spritestudio7/inquiries/ssplayer_tool/)
+
+### 🛡️ 脆弱性のご報告
+セキュリティ上の脆弱性は、公開の GitHub Issues では**報告しないでください**。非公開の報告窓口については [SECURITY.md](./SECURITY.md) を参照してください。
 
 ---
 
