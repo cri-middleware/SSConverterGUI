@@ -18,8 +18,10 @@ Built with Tauri v2, Vite, and TypeScript, it provides an intuitive interface fo
 
 Comprehensive documentation is available in the `docs/` folder:
 
+- [**Documentation site (hosted)**](https://cri-middleware.github.io/SSConverterGUI/) — 🚧 live after the first release
 - [**Documentation (English)**](./docs/en/index.md)
 - [**ドキュメント (日本語)**](./docs/ja/index.md)
+- [**SpriteStudio Docs (portal)**](https://cri-middleware.github.io/SpriteStudio-Docs/) — the SDK and every official player in one place — 🚧 live after the first release
 
 ### Quick Links (English)
 
