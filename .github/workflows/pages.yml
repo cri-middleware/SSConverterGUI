@@ -9,28 +9,26 @@ name: Publish docs via GitHub Pages
 # for an immediate refresh, e.g. a docs fix that should not wait for the next
 # release.
 #
-# PRs touching the docs still build with --strict but never publish: it is a
-# validation gate that catches broken links / nav gaps before merge, so a release
-# deploy never fails on a link that landed weeks earlier.
+# A published release or a manual dispatch deploys, and nothing else does — the
+# same trigger pair every sibling repository uses. Note the trade-off: --strict now
+# runs at deploy time only, so a broken link surfaces on the release build rather
+# than on the PR that introduced it. Run `mkdocs build --strict` locally before
+# merging a docs change.
 on:
   release:
     types: [published]
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - '.github/workflows/pages.yml'
 
 # Least privilege at the workflow level: only the deploy job needs the Pages /
 # OIDC write scopes, so they are granted there rather than to every job.
 permissions:
   contents: read
 
-# Serialize deploys per ref; cancel only superseded PR builds, never a release deploy.
+# Never run two deploys at once; let an in-progress deploy finish rather than
+# cancelling it.
 concurrency:
-  group: docs-pages-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -57,19 +55,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r docs/requirements.txt
 
-      # Fail the build on broken links / missing nav entries so PRs catch it before merge.
+      # --strict fails the build on broken links / missing nav entries.
       - name: Build docs (strict validation)
         run: mkdocs build --strict
 
       # Only the MkDocs output (site/) is served — no examples/demos to bundle.
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: site
 
   deploy:
-    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     # Permissions required by the artifact-based Pages deploy. No contents:write —
