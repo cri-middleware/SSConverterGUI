@@ -58,6 +58,43 @@ pnpm run tauri dev
 pnpm run tauri build
 ```
 
+### 5. リリース用アーカイブのビルド（任意）
+
+`pnpm run tauri build` で得られるのは実行ファイル単体です。リリース時に実際にアップロードされるもの
+—— 同じアーカイブ名・同じ構成で、`LICENSE.md` と `THIRD_PARTY_NOTICES.md` を同梱したもの —— を手元で
+再現するには、リリーススクリプトを使用してください。`.github/workflows/release.yml` の手順をそのまま
+なぞっているため、リリースを実行しなくてもパッケージングやクロスコンパイルの問題を検出できます。
+
+```bash
+# macOS（ユニバーサル: Apple シリコン + Intel）
+scripts/release-macos.sh
+```
+
+```powershell
+# Windows x64（ホストビルド）
+./scripts/release-windows.ps1
+
+# Windows arm64（CI と同じく x64 ホストからクロスコンパイル）
+./scripts/release-windows.ps1 -Arch arm64
+```
+
+アーカイブは `dist-release/`（git 管理外）に出力されます。
+
+- **ライセンス表記**: [cargo-about](https://github.com/EmbarkStudios/cargo-about) で生成します
+  (`cargo install cargo-about`)。`--skip-notices` / `-SkipNotices` を渡すとこの手順を省略でき、
+  素早く確認できますが、アーカイブの内容はリリース版と異なります。
+- **Windows arm64**: Visual Studio インストーラーの **MSVC v143 - VS 2022 C++ ARM64 build tools**
+  コンポーネントが必要です。Rust のターゲット追加はスクリプトが行います。生成物はビルドした x64 ホスト
+  上では実行できないため、動作確認は Arm 実機で行ってください。
+- **macOS の署名・公証**: 任意です。ワークフローと同じ環境変数で制御します。`APPLE_SIGNING_IDENTITY`
+  を設定すると署名し、さらに `APPLE_API_KEY` / `APPLE_API_ISSUER` と、`APPLE_API_KEY_PATH` または
+  `APPLE_API_KEY_BASE64` のいずれかを設定すると公証と staple まで行います。その後スクリプトは完成した
+  `.app` を実際に検査し、指定したはずの処理が行われていなければ **エラーで終了** します（証明書の失効や
+  設定漏れがあると、署名は黙って何もしないまま通過してしまうためです）。いずれも設定しなければ未署名の
+  アプリが生成され、その旨が表示されるだけです。CI と異なり `APPLE_CERTIFICATE` からの取り込みは行わない
+  ため、証明書は事前にキーチェーンへ登録しておく必要があります
+  (`security find-identity -v -p codesigning`)。
+
 ## 📚 ドキュメントのビルド
 
 本サイトは [MkDocs](https://www.mkdocs.org/) と [Material](https://squidfunk.github.io/mkdocs-material/)
