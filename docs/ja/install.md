@@ -8,7 +8,7 @@
 | OS | 必要な環境 |
 |---|---|
 | **macOS** | macOS 10.15 (Catalina) 以降。Apple シリコン / Intel はどちらも同一のユニバーサルビルドで動作します。 |
-| **Windows** | Windows 10 / 11 (64-bit) と [WebView2 ランタイム](https://developer.microsoft.com/microsoft-edge/webview2/)。WebView2 は現行の Windows 10 / 11 にはプリインストールされています。 |
+| **Windows** | Windows 10 / 11 (64-bit) と [WebView2 ランタイム](https://developer.microsoft.com/microsoft-edge/webview2/)。WebView2 は現行の Windows 10 / 11 にはプリインストールされています。x64 PC と Arm PC でビルドが分かれています。 |
 
 いずれもポータブル版です。インストーラはなく、展開したフォルダの外に何かを書き込むこともありません。
 
@@ -19,10 +19,17 @@
 
 | OS | ファイル |
 |---|---|
-| macOS | `SSConverterGUI_<version>_universal.app.tar.gz` |
-| Windows | `SSConverterGUI_<version>_x64.zip` |
+| macOS (Apple シリコン / Intel) | `SSConverterGUI_<version>_universal.app.tar.gz` |
+| Windows (x64) | `SSConverterGUI_<version>_x64.zip` |
+| Windows on Arm | `SSConverterGUI_<version>_arm64.zip` |
 
-どちらのアーカイブにも `LICENSE.md` と `THIRD_PARTY_NOTICES.md` が同梱されています。
+いずれのアーカイブにも `LICENSE.md` と `THIRD_PARTY_NOTICES.md` が同梱されています。
+
+!!! tip "Windows 版はどちらを選べばよいですか"
+
+    **設定 → システム → バージョン情報** を開き、**システムの種類** を確認してください。*ARM ベース
+    プロセッサ* と表示されていれば `arm64`、そうでなければ `x64` のアーカイブです。Arm PC でも
+    エミュレーションで x64 版は動作しますが、arm64 版のほうが変換が明確に高速です。
 
 ### ダウンロードファイルの検証（任意）
 
@@ -38,7 +45,7 @@ shasum -a 256 -c SHA256SUMS --ignore-missing
 Windows (PowerShell) の場合 — 表示されたハッシュ値を `SHA256SUMS` の該当行と見比べてください:
 
 ```powershell
-Get-FileHash .\SSConverterGUI_<version>_x64.zip -Algorithm SHA256
+Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
 ```
 
 ## アプリケーションの起動
