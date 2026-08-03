@@ -1,4 +1,4 @@
-# Installation
+# 📥 Installation
 
 This page is for users who want to run the finished application. It requires no command-line
 knowledge. If you want to build from source instead, see [Development](development.md).

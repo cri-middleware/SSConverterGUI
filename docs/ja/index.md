@@ -1,4 +1,4 @@
-# SSConverter GUI
+# 🖥️ SSConverter GUI
 
 SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) をバイナリ形式 (`.ssab`) に変換する
 ための、クロスプラットフォーム対応の**デスクトップアプリケーション**です。Tauri v2、Vite、TypeScript を

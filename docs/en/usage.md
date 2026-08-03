@@ -1,4 +1,4 @@
-# Usage
+# ▶️ Usage
 
 This page walks through a conversion from start to finish. If you have not installed the
 application yet, see [Installation](install.md).

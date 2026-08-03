@@ -1,4 +1,4 @@
-# SSConverter GUI
+# 🖥️ SSConverter GUI
 
 A cross-platform **desktop application** for converting SpriteStudio project files (`.sspj`) into
 binary format (`.ssab`). Built with Tauri v2, Vite, and TypeScript, it provides an intuitive
