@@ -212,13 +212,8 @@ jobs:
             release-dist/*.zip
             release-dist/SHA256SUMS
           tag_name: ${{ github.ref_name }}
-          # Prepended to the auto-generated notes. Deliberately just a pointer:
-          # which archive to take, the SmartScreen note and the checksum
-          # commands all live in the install guide, and end users land here.
-          body: |
-            Portable builds, no installer. The
-            [installation guide](https://cri-middleware.github.io/SSConverterGUI/install/)
-            covers which archive to take, first launch, and verifying it against `SHA256SUMS`.
+          # No `body`, as in the sibling repos: the generated notes are the
+          # release page, and everything else lives in the install guide.
           generate_release_notes: true
           # Always a draft, as in the sibling repos: a human checks the assets
           # and the generated notes, then publishes from the GitHub UI, choosing
