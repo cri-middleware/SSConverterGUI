@@ -1,4 +1,4 @@
-# Development
+# 🛠️ Development
 
 This page is for developers who want to modify and build the application from source, including
 the GUI frontend and the core `libssconverter` logic via the Rust backend. If you only want to use
