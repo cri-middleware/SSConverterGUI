@@ -8,17 +8,22 @@
 # below.
 #
 # Usage:
-#   scripts/release-macos.sh [--skip-notices]
+#   scripts/release-macos.sh [--skip-notices] [--require-signing]
 #
-#   --skip-notices  Skip generating THIRD_PARTY_NOTICES.md. Quicker, but the
-#                   archive then differs from the released one.
+#   --skip-notices     Skip generating THIRD_PARTY_NOTICES.md. Quicker, but the
+#                      archive then differs from the released one.
+#   --require-signing  Treat a build that is not signed, notarized and stapled as
+#                      a failure even when the environment says nothing was
+#                      requested. The release workflow passes this on a v* tag.
 
 set -euo pipefail
 
 skip_notices=0
+require_signing=0
 for arg in "$@"; do
   case "$arg" in
     --skip-notices) skip_notices=1 ;;
+    --require-signing) require_signing=1 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -42,10 +47,15 @@ echo "==> SSConverterGUI ${version} — macOS universal"
 #   APPLE_API_KEY           its key ID
 #   APPLE_API_ISSUER        the issuer ID
 #
-# APPLE_API_KEY_BASE64 is accepted too and decoded below, as the workflow's
-# "Prepare Apple API key" step does. There is deliberately no APPLE_CERTIFICATE
-# import: that is tauri-action's job on a throwaway CI keychain, so locally the
-# identity has to be in a keychain already — `security find-identity -v -p codesigning`.
+# APPLE_API_KEY_BASE64 is accepted too and decoded below, which is what the
+# workflow's "Prepare Apple API key" step already does for CI.
+#
+# Nothing here touches a keychain. The Tauri CLI handles that: with
+# APPLE_CERTIFICATE and APPLE_CERTIFICATE_PASSWORD set — how CI supplies the
+# .p12 — it imports them into a temporary keychain of its own; without them it
+# resolves APPLE_SIGNING_IDENTITY against the keychains you already have, which
+# is the local case. So leave them unset locally and keep the identity in your
+# login keychain — `security find-identity -v -p codesigning`.
 if [ -n "${APPLE_API_KEY_BASE64:-}" ] && [ -z "${APPLE_API_KEY_PATH:-}" ]; then
   api_key_file="$(mktemp -t ssconverter_apple_api_key)"
   # The private key must not outlive this build.
@@ -67,6 +77,14 @@ if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
   fi
 else
   echo "==> Skipping code signing (APPLE_SIGNING_IDENTITY not set)"
+fi
+
+# An unset or expired secret looks exactly like "signing was never requested",
+# so a release build asserts the outcome instead of trusting the environment.
+if [ "$require_signing" -eq 1 ]; then
+  echo "==> Signing and notarization are required for this build"
+  sign=1
+  notarize=1
 fi
 
 # The universal binary links both slices, so both targets must be installed.

@@ -35,20 +35,14 @@ jobs:
         include:
           - platform: macos-latest # Universal binary (arm64 + x86_64)
             arch: universal
-            args: '--bundles app --target universal-apple-darwin'
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - platform: windows-latest # Portable exe only
             arch: x64
-            args: '--no-bundle'
-            rust_targets: ''
           # arm64 cross-compiles from this x86_64 runner (MSVC ships the ARM64
-          # toolchain), mirroring how the SDK builds its Windows arm64 CLI.
-          # `--no-bundle` keeps it a bare exe, so no installer generator has to
+          # toolchain), mirroring how the SDK builds its Windows arm64 CLI. The
+          # script builds it with `--no-bundle`, so no installer generator has to
           # understand the target architecture.
           - platform: windows-latest # Portable exe only, cross-compiled
             arch: arm64
-            args: '--no-bundle --target aarch64-pc-windows-msvc'
-            rust_targets: aarch64-pc-windows-msvc
 
     runs-on: ${{ matrix.platform }}
 
@@ -107,9 +101,7 @@ jobs:
           # Pinned by SHA, so the channel must be named explicitly here (the
           # action can no longer infer it from a `@stable` ref).
           toolchain: stable
-          # Universal macOS builds need both arch targets installed; Windows
-          # arm64 needs its cross target. Empty for a plain host build.
-          targets: ${{ matrix.rust_targets }}
+          # No `targets:` — the release scripts add the ones they need.
 
       - name: Rust cache
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -117,8 +109,15 @@ jobs:
           workspaces: './src-tauri -> target'
           key: ${{ matrix.platform }}-${{ matrix.arch }}
 
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+      # The shipped binary statically links the whole Rust dependency graph, so
+      # its third-party license notices must ship with it. cargo-about (no
+      # `targets` in about.toml) evaluates the union of all targets, so the file
+      # is identical on each runner; the release scripts regenerate it per build
+      # only so every archive is self-contained.
+      - name: Install cargo-about
+        uses: taiki-e/install-action@41049aa56687c35e0afa74eed4f09cec4f9afabf # v2
+        with:
+          tool: cargo-about
 
       # Decode the App Store Connect API key (.p8) used for notarization and
       # expose its path to the build step. No-ops when the secret is absent,
@@ -126,123 +125,40 @@ jobs:
       - name: Prepare Apple API key
         if: matrix.platform == 'macos-latest'
         env:
-          APPLE_API_KEY_BASE64: ${{ secrets.SS_APPLE_API_KEY_BASE64 }}
+          SS_APPLE_API_KEY_BASE64: ${{ secrets.SS_APPLE_API_KEY_BASE64 }}
         run: |
-          if [ -z "$APPLE_API_KEY_BASE64" ]; then
+          if [ -z "$SS_APPLE_API_KEY_BASE64" ]; then
             echo "SS_APPLE_API_KEY_BASE64 not set — skipping API key setup (the app will not be notarized)."
             exit 0
           fi
-          echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
+          echo "$SS_APPLE_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
           echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple_api_key.p8" >> "$GITHUB_ENV"
 
-      # Build only (no tagName) - code signing & notarization happen in-place
-      # during this build step when the APPLE_* env vars are present.
-      - name: Build app
-        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
+      # The script builds, signs, notarizes, verifies and packages; the Tauri CLI
+      # imports APPLE_CERTIFICATE into a keychain of its own.
+      #
+      # A missing or expired secret silently turns signing into a no-op, so on a
+      # v* tag — the only ref that can publish a Release — `--require-signing`
+      # makes the script's check of the real .app fatal. A QA build without the
+      # secrets only reports.
+      - name: Build and package (macOS)
+        if: matrix.platform == 'macos-latest'
         env:
-          # macOS code signing (Developer ID Application). Absent on Windows.
+          # macOS code signing (Developer ID Application).
           APPLE_CERTIFICATE: ${{ secrets.SS_APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.SS_APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.SS_APPLE_SIGNING_IDENTITY }}
           # macOS notarization via App Store Connect API key.
-          # APPLE_API_KEY_PATH is set by the "Prepare Apple API key" step.
           APPLE_API_ISSUER: ${{ secrets.SS_APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.SS_APPLE_API_KEY }}
-        with:
-          args: ${{ matrix.args }}
+        run: ./scripts/release-macos.sh ${{ startsWith(github.ref, 'refs/tags/v') && '--require-signing' || '' }}
 
-      # A missing, expired, or misnamed Apple secret silently turns the steps
-      # above into no-ops, which would ship an unsigned .app under a Release that
-      # advertises it as signed & notarized. Inspect the real artifact rather than
-      # trusting that the env was populated.
-      - name: Verify signature and notarization
-        if: matrix.platform == 'macos-latest'
-        shell: bash
-        env:
-          # Mandatory on a v* tag (the only ref that can publish a Release); a QA
-          # build may legitimately run without the secrets, so there it warns.
-          REQUIRED: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        run: |
-          # Deliberately no `set -e`: every check must run so the log shows all
-          # failures at once, not just the first.
-          set -uo pipefail
-          APP=$(ls -d src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app | head -1)
-          echo "Verifying ${APP}"
-          status=0
-          codesign --verify --deep --strict --verbose=2 "$APP" || {
-            echo "::error::code signature is missing or invalid"; status=1; }
-          codesign -dvv "$APP" 2>&1 | grep -q 'Authority=Developer ID Application' || {
-            echo "::error::not signed by a Developer ID Application certificate"; status=1; }
-          # A stapled ticket is what lets Gatekeeper clear the app offline; without
-          # it a notarized build still prompts users on a machine with no network.
-          xcrun stapler validate "$APP" || {
-            echo "::error::no stapled notarization ticket"; status=1; }
-          spctl --assess --type execute -vvv "$APP" || {
-            echo "::error::Gatekeeper rejected the app"; status=1; }
-          if [ "$status" -ne 0 ]; then
-            if [ "$REQUIRED" = "true" ]; then
-              echo "::error::a release build must be signed and notarized — check the SS_APPLE_* secrets"
-              exit 1
-            fi
-            echo "::warning::unsigned build — expected when the SS_APPLE_* secrets are unavailable"
-          fi
-
-      # The shipped binary statically links the whole Rust dependency graph, so
-      # its third-party license notices must ship with it. cargo-about (no
-      # `targets` in about.toml) evaluates the union of all targets, so the file
-      # is identical on each runner; it is regenerated here only so every archive
-      # is self-contained.
-      - name: Install cargo-about
-        uses: taiki-e/install-action@41049aa56687c35e0afa74eed4f09cec4f9afabf # v2
-        with:
-          tool: cargo-about
-
-      - name: Generate third-party license notices
-        shell: bash
-        run: |
-          cargo about generate -c about.toml about.hbs \
-            --manifest-path src-tauri/Cargo.toml \
-            -o THIRD_PARTY_NOTICES.md
-
-      # Tauri embeds the compiled frontend bundle in the same binary, so the npm
-      # packages whose code lands in `dist/` need their notices shipped alongside
-      # the Rust ones. Appends to the file cargo-about just wrote; fails loudly if
-      # a dependency's license text cannot be located.
-      - name: Append frontend (npm) license notices
-        shell: bash
-        run: node scripts/gen-npm-notices.mjs THIRD_PARTY_NOTICES.md
-
-      - name: Package macOS artifact (.app.tar.gz)
-        if: matrix.platform == 'macos-latest'
-        run: |
-          APP_DIR="src-tauri/target/universal-apple-darwin/release/bundle/macos"
-          APP_NAME=$(basename "$(ls -d "$APP_DIR"/*.app | head -1)")
-          # Ship the app alongside the license and third-party notices.
-          cp LICENSE.md THIRD_PARTY_NOTICES.md "$APP_DIR/"
-          tar -czf "SSConverterGUI_${VERSION}_universal.app.tar.gz" -C "$APP_DIR" "$APP_NAME" LICENSE.md THIRD_PARTY_NOTICES.md
-
-      - name: Package Windows artifact (.zip)
+      # The Windows exe is deliberately not code-signed, so this step needs no
+      # secrets. -Arch picks the host x64 build or the arm64 cross-build.
+      - name: Build and package (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
-        env:
-          ARCH: ${{ matrix.arch }}
-          RUST_TARGET: ${{ matrix.rust_targets }}
-        run: |
-          # A --target build lands under target/<triple>/release; the host build
-          # (x64, no --target) writes straight to target/release.
-          $releaseDir = if ($env:RUST_TARGET) {
-            "src-tauri/target/$env:RUST_TARGET/release"
-          } else {
-            "src-tauri/target/release"
-          }
-          $exe = Get-ChildItem "$releaseDir/*.exe" | Select-Object -First 1
-          $staging = "SSConverterGUI"
-          New-Item -ItemType Directory -Force -Path $staging | Out-Null
-          Copy-Item $exe.FullName -Destination "$staging/SSConverterGUI.exe"
-          Copy-Item "LICENSE.md" -Destination "$staging/LICENSE.md"
-          Copy-Item "THIRD_PARTY_NOTICES.md" -Destination "$staging/THIRD_PARTY_NOTICES.md"
-          Compress-Archive -Path "$staging/*" `
-            -DestinationPath "SSConverterGUI_${env:VERSION}_${env:ARCH}.zip"
+        run: ./scripts/release-windows.ps1 -Arch ${{ matrix.arch }}
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -250,9 +166,11 @@ jobs:
           # Both Windows entries run on windows-latest, so the arch is what
           # keeps their artifact names distinct.
           name: SSConverterGUI-${{ matrix.platform }}-${{ matrix.arch }}
+          # Globbing the archives, not the directory, keeps the Windows staging
+          # folder out of the artifact.
           path: |
-            *.app.tar.gz
-            *.zip
+            dist-release/*.app.tar.gz
+            dist-release/*.zip
           if-no-files-found: error
 
   package:

@@ -90,8 +90,9 @@ The archives land in `dist-release/`, which is git-ignored.
   `APPLE_API_KEY_PATH` or `APPLE_API_KEY_BASE64` to notarize and staple. The script then inspects
   the finished `.app` and **fails** if what you asked for did not actually happen — a missing or
   expired credential otherwise turns signing into a silent no-op. With none of the variables set
-  you get an unsigned app and only a note saying so. Unlike CI there is no `APPLE_CERTIFICATE`
-  import, so the identity has to be in your keychain already
+  you get an unsigned app and only a note saying so. Leave `APPLE_CERTIFICATE` unset locally: CI
+  uses it to hand the Tauri CLI a `.p12` to import into a temporary keychain, whereas locally the
+  identity is resolved from the keychains you already have
   (`security find-identity -v -p codesigning`).
 
 ## 📚 Building the documentation
