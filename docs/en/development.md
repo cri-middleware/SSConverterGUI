@@ -65,15 +65,15 @@ bundled in — use the release scripts. They mirror `.github/workflows/release.y
 so a local run catches a packaging or cross-compilation problem without dispatching a release.
 
 ```bash
-# macOS (universal: Apple silicon + Intel)
+# macOS (universal: Apple Silicon + Intel)
 scripts/release-macos.sh
 ```
 
 ```powershell
-# Windows x64 (host build)
+# Windows x86_64 (host build)
 ./scripts/release-windows.ps1
 
-# Windows arm64 (cross-compiled from an x64 host, exactly as CI does)
+# Windows arm64 (cross-compiled from an x86_64 host, exactly as CI does)
 ./scripts/release-windows.ps1 -Arch arm64
 ```
 
@@ -84,7 +84,7 @@ The archives land in `dist-release/`, which is git-ignored.
   quicker check — the archive then differs from the released one.
 - **Windows arm64**: needs the **MSVC v143 - VS 2022 C++ ARM64 build tools** component from the
   Visual Studio Installer. The script adds the Rust target itself. The result cannot be run on the
-  x64 host that built it — test it on an Arm device.
+  x86_64 host that built it — test it on an Arm device.
 - **macOS signing and notarization**: opt-in, via the same variables the workflow uses. Set
   `APPLE_SIGNING_IDENTITY` to sign, and add `APPLE_API_KEY` / `APPLE_API_ISSUER` plus either
   `APPLE_API_KEY_PATH` or `APPLE_API_KEY_BASE64` to notarize and staple. The script then inspects

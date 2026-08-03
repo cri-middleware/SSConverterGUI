@@ -36,7 +36,7 @@ jobs:
           - platform: macos-latest # Universal binary (arm64 + x86_64)
             arch: universal
           - platform: windows-latest # Portable exe only
-            arch: x64
+            arch: x86_64
           # arm64 cross-compiles from this x86_64 runner (MSVC ships the ARM64
           # toolchain), mirroring how the SDK builds its Windows arm64 CLI. The
           # script builds it with `--no-bundle`, so no installer generator has to
@@ -154,7 +154,7 @@ jobs:
         run: ./scripts/release-macos.sh ${{ startsWith(github.ref, 'refs/tags/v') && '--require-signing' || '' }}
 
       # The Windows exe is deliberately not code-signed, so this step needs no
-      # secrets. -Arch picks the host x64 build or the arm64 cross-build.
+      # secrets. -Arch picks the host x86_64 build or the arm64 cross-build.
       - name: Build and package (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
@@ -216,8 +216,8 @@ jobs:
           body: |
             Portable builds (no installer):
             - **macOS 10.15+**: `.app.tar.gz` (universal, signed & notarized) - unpack and move `SSConverterGUI.app` to Applications.
-            - **Windows 10/11 (x64)**: `_x64.zip` containing the portable `SSConverterGUI.exe` (requires the WebView2 runtime, preinstalled on Windows 10/11).
-            - **Windows 11 on Arm (arm64)**: `_arm64.zip`, a native arm64 build of the same portable exe. The x64 build also runs under emulation, but the arm64 one converts faster.
+            - **Windows 10/11 (x86_64)**: `_x86_64.zip` containing the portable `SSConverterGUI.exe` (requires the WebView2 runtime, preinstalled on Windows 10/11).
+            - **Windows 11 on Arm (arm64)**: `_arm64.zip`, a native arm64 build of the same portable exe. The x86_64 build also runs under emulation, but the arm64 one converts faster.
 
             > **Windows users:** the `.exe` is **not** code-signed, so SmartScreen shows
             > "Windows protected your PC" on first launch. Choose **More info → Run anyway**,

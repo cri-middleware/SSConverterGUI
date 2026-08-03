@@ -66,15 +66,15 @@ pnpm run tauri build
 なぞっているため、リリースを実行しなくてもパッケージングやクロスコンパイルの問題を検出できます。
 
 ```bash
-# macOS（ユニバーサル: Apple シリコン + Intel）
+# macOS（ユニバーサル: Apple Silicon + Intel）
 scripts/release-macos.sh
 ```
 
 ```powershell
-# Windows x64（ホストビルド）
+# Windows x86_64（ホストビルド）
 ./scripts/release-windows.ps1
 
-# Windows arm64（CI と同じく x64 ホストからクロスコンパイル）
+# Windows arm64（CI と同じく x86_64 ホストからクロスコンパイル）
 ./scripts/release-windows.ps1 -Arch arm64
 ```
 
@@ -84,7 +84,7 @@ scripts/release-macos.sh
   (`cargo install cargo-about`)。`--skip-notices` / `-SkipNotices` を渡すとこの手順を省略でき、
   素早く確認できますが、アーカイブの内容はリリース版と異なります。
 - **Windows arm64**: Visual Studio インストーラーの **MSVC v143 - VS 2022 C++ ARM64 build tools**
-  コンポーネントが必要です。Rust のターゲット追加はスクリプトが行います。生成物はビルドした x64 ホスト
+  コンポーネントが必要です。Rust のターゲット追加はスクリプトが行います。生成物はビルドした x86_64 ホスト
   上では実行できないため、動作確認は Arm 実機で行ってください。
 - **macOS の署名・公証**: 任意です。ワークフローと同じ環境変数で制御します。`APPLE_SIGNING_IDENTITY`
   を設定すると署名し、さらに `APPLE_API_KEY` / `APPLE_API_ISSUER` と、`APPLE_API_KEY_PATH` または

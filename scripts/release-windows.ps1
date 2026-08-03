@@ -4,20 +4,20 @@
 #
 # Output: dist-release\SSConverterGUI_<version>_<arch>.zip
 #
-# arm64 cross-compiles from an x64 host — what CI does, and the same approach as
+# arm64 cross-compiles from an x86_64 host — what CI does, and the same approach as
 # the SDK's scripts/release-windows-arm64.ps1. It needs the "MSVC v143 - VS 2022
 # C++ ARM64 build tools" component from the Visual Studio Installer; the Rust
 # target is added below.
 #
 # Usage:
-#   ./scripts/release-windows.ps1                # x64 (host build)
+#   ./scripts/release-windows.ps1                # x86_64 (host build)
 #   ./scripts/release-windows.ps1 -Arch arm64    # arm64 (cross-compiled)
 #   ./scripts/release-windows.ps1 -SkipNotices   # skip THIRD_PARTY_NOTICES.md
 
 [CmdletBinding()]
 param(
-    [ValidateSet('x64', 'arm64')]
-    [string]$Arch = 'x64',
+    [ValidateSet('x86_64', 'arm64')]
+    [string]$Arch = 'x86_64',
     # Quicker, but the archive then differs from the released one.
     [switch]$SkipNotices
 )
