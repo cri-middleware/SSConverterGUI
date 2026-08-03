@@ -3,13 +3,13 @@ name: Release
 # Run manually from the Actions tab. Matches the sibling repos' release flow
 # (SpriteStudio-SDK / SSPlayerForGodot / SSPlayerForRenPy): the default
 # (upload_release=false) only builds — for QA on a release/X.Y branch.
-# Creating the GitHub Release happens only on an explicit dispatch on a
-# v* tag ref with upload_release=true.
+# A draft GitHub Release is created only on an explicit dispatch on a
+# v* tag ref with upload_release=true; publishing it is a manual step.
 on:
   workflow_dispatch:
     inputs:
       upload_release:
-        description: 'Upload to GitHub Release (only effective on a v* tag ref)'
+        description: 'Create a draft GitHub Release (publish by hand afterwards; only effective on a v* tag ref)'
         required: false
         default: false
         type: boolean
@@ -232,9 +232,9 @@ jobs:
             Each archive includes `LICENSE.md` and `THIRD_PARTY_NOTICES.md`.
             See the [installation guide](https://cri-middleware.github.io/SSConverterGUI/install/) for details.
           generate_release_notes: true
-          # The explicit upload_release=true dispatch is itself the publish
-          # gate, so publish immediately instead of creating a draft.
-          draft: false
-          # SemVer pre-releases (e.g. v7.0.0-beta.1) contain '-' in the tag
-          # name and are marked prerelease automatically.
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          # Always a draft, as in the sibling repos: a human checks the assets
+          # and the generated notes, then publishes from the GitHub UI, choosing
+          # "Set as a pre-release" / "Set as the latest release" there. Hence no
+          # prerelease / make_latest here — the same decision, made once, in the
+          # place where the release is actually published.
+          draft: true
