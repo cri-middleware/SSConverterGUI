@@ -20,7 +20,7 @@ download the archive for your OS from the latest release.
 
 | OS | File |
 |---|---|
-| macOS (Apple Silicon / Intel) | `SSConverterGUI_<version>_universal.app.tar.gz` |
+| macOS (Apple Silicon / Intel) | `SSConverterGUI_<version>_universal.tar.gz` |
 | Windows (x86_64) | `SSConverterGUI_<version>_x86_64.zip` |
 | Windows on Arm | `SSConverterGUI_<version>_arm64.zip` |
 
@@ -53,8 +53,8 @@ Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
 
 ### macOS
 
-1. Double-click the `.app.tar.gz` to unpack it.
-2. Move `SSConverterGUI.app` into your **Applications** folder.
+1. Double-click the `.tar.gz` to unpack it into a folder.
+2. Move `SSConverterGUI.app` out of that folder into your **Applications** folder.
 3. Double-click it to launch.
 
 The application is code-signed with a CRI Middleware Developer ID certificate and notarized by

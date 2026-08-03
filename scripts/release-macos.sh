@@ -2,7 +2,7 @@
 # Builds the macOS release archive the way .github/workflows/release.yml does,
 # so a release build can be verified locally before one is dispatched.
 #
-# Output: dist-release/SSConverterGUI_<version>_universal.app.tar.gz
+# Output: dist-release/SSConverterGUI_<version>_universal.tar.gz
 #
 # Code signing and notarization are opt-in via the environment — see the block
 # below.
@@ -34,7 +34,14 @@ cd "$repo_root"
 version="$(node -p "require('./package.json').version")"
 out_dir="dist-release"
 app_dir="src-tauri/target/universal-apple-darwin/release/bundle/macos"
-archive="SSConverterGUI_${version}_universal.app.tar.gz"
+# The archive holds the app plus two notice files, so it cannot extract to a
+# single item. Finder therefore invents a containing folder named after the
+# archive — which is why the name must not end in `.app`: a folder with that
+# extension is an application bundle to LaunchServices, and double-clicking one
+# with no Contents/ fails with "damaged or incomplete". The tar carries its own
+# root directory of the same name so every extractor produces exactly this.
+stage_name="SSConverterGUI_${version}_universal"
+archive="${stage_name}.tar.gz"
 
 echo "==> SSConverterGUI ${version} — macOS universal"
 
@@ -94,7 +101,17 @@ pnpm install --frozen-lockfile
 pnpm exec tauri build --bundles app --target universal-apple-darwin
 
 app_name="$(basename "$(ls -d "$app_dir"/*.app | head -1)")"
-app_path="${app_dir}/${app_name}"
+
+# Stage the archive's contents first so the checks below run against exactly
+# what ships. `ditto` is what copies a bundle without dropping the extended
+# attributes a signature depends on.
+echo "==> Staging ${stage_name}/"
+stage="${out_dir}/${stage_name}"
+rm -rf "$stage"
+mkdir -p "$stage"
+ditto "${app_dir}/${app_name}" "${stage}/${app_name}"
+cp LICENSE.md "$stage/"
+app_path="${stage}/${app_name}"
 
 # Inspect what the build produced rather than trusting that the env was
 # populated: a missing or expired credential turns signing into a silent no-op.
@@ -127,13 +144,8 @@ if [ "$status" -ne 0 ]; then
   exit 1
 fi
 
-# Ship the app alongside the license and third-party notices, as the workflow does.
-staged_files=(LICENSE.md)
-cp LICENSE.md "$app_dir/"
-
 if [ "$skip_notices" -eq 1 ]; then
   echo "==> Skipping third-party license notices (--skip-notices)"
-  rm -f "$app_dir/THIRD_PARTY_NOTICES.md"
 else
   echo "==> Generating third-party license notices"
   if ! command -v cargo-about >/dev/null 2>&1; then
@@ -142,13 +154,11 @@ else
   fi
   cargo about generate -c about.toml about.hbs \
     --manifest-path src-tauri/Cargo.toml \
-    -o "$app_dir/THIRD_PARTY_NOTICES.md"
-  node scripts/gen-npm-notices.mjs "$app_dir/THIRD_PARTY_NOTICES.md"
-  staged_files+=(THIRD_PARTY_NOTICES.md)
+    -o "$stage/THIRD_PARTY_NOTICES.md"
+  node scripts/gen-npm-notices.mjs "$stage/THIRD_PARTY_NOTICES.md"
 fi
 
-mkdir -p "$out_dir"
-tar -czf "$out_dir/$archive" -C "$app_dir" "$app_name" "${staged_files[@]}"
+tar -czf "$out_dir/$archive" -C "$out_dir" "$stage_name"
 
 echo "==> ${out_dir}/${archive}"
 shasum -a 256 "$out_dir/$archive"

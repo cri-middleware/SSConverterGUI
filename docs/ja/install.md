@@ -19,7 +19,7 @@
 
 | OS | ファイル |
 |---|---|
-| macOS (Apple Silicon / Intel) | `SSConverterGUI_<version>_universal.app.tar.gz` |
+| macOS (Apple Silicon / Intel) | `SSConverterGUI_<version>_universal.tar.gz` |
 | Windows (x86_64) | `SSConverterGUI_<version>_x86_64.zip` |
 | Windows on Arm | `SSConverterGUI_<version>_arm64.zip` |
 
@@ -52,8 +52,8 @@ Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
 
 ### macOS
 
-1. `.app.tar.gz` をダブルクリックして展開します。
-2. `SSConverterGUI.app` を **アプリケーション** フォルダへ移動します。
+1. `.tar.gz` をダブルクリックすると、フォルダが作成され展開されます。
+2. その中の `SSConverterGUI.app` を **アプリケーション** フォルダへ移動します。
 3. ダブルクリックして起動します。
 
 本アプリケーションは株式会社 CRI・ミドルウェアの Developer ID 証明書で署名され、Apple の公証
