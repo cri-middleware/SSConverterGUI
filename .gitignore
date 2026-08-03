@@ -7,6 +7,10 @@
 # .github/workflows/release.yml) and bundled into the archives — not committed.
 /THIRD_PARTY_NOTICES.md
 
+# Archives produced by scripts/release-*.{sh,ps1} when reproducing a release
+# build locally. CI builds the shipped ones.
+/dist-release
+
 # Local-only notes (handoffs, scratch): never published.
 *.local.md
 

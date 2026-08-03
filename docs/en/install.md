@@ -7,11 +7,11 @@ knowledge. If you want to build from source instead, see [Development](developme
 
 | OS | Requirement |
 |---|---|
-| **macOS** | macOS 10.15 (Catalina) or later. Apple silicon and Intel are both covered by the same universal build. |
-| **Windows** | Windows 10 or 11 (64-bit) with the [WebView2 runtime](https://developer.microsoft.com/microsoft-edge/webview2/), which is preinstalled on current Windows 10 and 11. |
+| **macOS** | macOS 10.15 (Catalina) or later. Apple Silicon and Intel are both covered by the same universal build. |
+| **Windows** | Windows 10 or 11 (64-bit) with the [WebView2 runtime](https://developer.microsoft.com/microsoft-edge/webview2/), which is preinstalled on current Windows 10 and 11. x86_64 and Arm-based PCs each have their own build. |
 
-Both builds are portable: there is no installer, and nothing is written outside the folder you
-unpack them into.
+Every build is portable: there is no installer, and nothing is written outside the folder you
+unpack it into.
 
 ## Download
 
@@ -20,10 +20,17 @@ download the archive for your OS from the latest release.
 
 | OS | File |
 |---|---|
-| macOS | `SSConverterGUI_<version>_universal.app.tar.gz` |
-| Windows | `SSConverterGUI_<version>_x64.zip` |
+| macOS (Apple Silicon / Intel) | `SSConverterGUI_<version>_universal.app.tar.gz` |
+| Windows (x86_64) | `SSConverterGUI_<version>_x86_64.zip` |
+| Windows on Arm | `SSConverterGUI_<version>_arm64.zip` |
 
 Each archive also contains `LICENSE.md` and `THIRD_PARTY_NOTICES.md`.
+
+!!! tip "Which Windows archive do I need?"
+
+    Open **Settings → System → About** and look at **System type**. If it says *ARM-based
+    processor*, take the `arm64` archive; otherwise take `x86_64`. An Arm PC can also run the x86_64
+    build through emulation, but the arm64 build converts noticeably faster.
 
 ### Verifying your download (optional)
 
@@ -39,7 +46,7 @@ shasum -a 256 -c SHA256SUMS --ignore-missing
 On Windows (PowerShell) — compare the printed hash against the matching line in `SHA256SUMS`:
 
 ```powershell
-Get-FileHash .\SSConverterGUI_<version>_x64.zip -Algorithm SHA256
+Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
 ```
 
 ## Running the application

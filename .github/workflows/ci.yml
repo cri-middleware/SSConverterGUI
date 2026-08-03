@@ -28,10 +28,10 @@ jobs:
       # The frontend never touches the SpriteStudio-SDK submodule, so skip it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # No `version:` — it comes from package.json's `packageManager` field, so
+      # CI and a developer machine cannot drift apart.
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
-        with:
-          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -62,10 +62,10 @@ jobs:
           # The ssconverter SDK is a git submodule; it must be fetched to compile.
           submodules: recursive
 
+      # No `version:` — it comes from package.json's `packageManager` field, so
+      # CI and a developer machine cannot drift apart.
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
-        with:
-          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

@@ -57,6 +57,44 @@ This generates a standalone executable.
 pnpm run tauri build
 ```
 
+### 5. Build a release archive (optional)
+
+`pnpm run tauri build` gives you a bare executable. To reproduce what a release run actually
+uploads — the same archive name and layout, with `LICENSE.md` and `THIRD_PARTY_NOTICES.md`
+bundled in — use the release scripts. They mirror `.github/workflows/release.yml` step for step,
+so a local run catches a packaging or cross-compilation problem without dispatching a release.
+
+```bash
+# macOS (universal: Apple Silicon + Intel)
+scripts/release-macos.sh
+```
+
+```powershell
+# Windows x86_64 (host build)
+./scripts/release-windows.ps1
+
+# Windows arm64 (cross-compiled from an x86_64 host, exactly as CI does)
+./scripts/release-windows.ps1 -Arch arm64
+```
+
+The archives land in `dist-release/`, which is git-ignored.
+
+- **Notices**: generated with [cargo-about](https://github.com/EmbarkStudios/cargo-about)
+  (`cargo install cargo-about`). Pass `--skip-notices` / `-SkipNotices` to skip that step for a
+  quicker check — the archive then differs from the released one.
+- **Windows arm64**: needs the **MSVC v143 - VS 2022 C++ ARM64 build tools** component from the
+  Visual Studio Installer. The script adds the Rust target itself. The result cannot be run on the
+  x86_64 host that built it — test it on an Arm device.
+- **macOS signing and notarization**: opt-in, via the same variables the workflow uses. Set
+  `APPLE_SIGNING_IDENTITY` to sign, and add `APPLE_API_KEY` / `APPLE_API_ISSUER` plus either
+  `APPLE_API_KEY_PATH` or `APPLE_API_KEY_BASE64` to notarize and staple. The script then inspects
+  the finished `.app` and **fails** if what you asked for did not actually happen — a missing or
+  expired credential otherwise turns signing into a silent no-op. With none of the variables set
+  you get an unsigned app and only a note saying so. Leave `APPLE_CERTIFICATE` unset locally: CI
+  uses it to hand the Tauri CLI a `.p12` to import into a temporary keychain, whereas locally the
+  identity is resolved from the keychains you already have
+  (`security find-identity -v -p codesigning`).
+
 ## 📚 Building the documentation
 
 This site is built with [MkDocs](https://www.mkdocs.org/) and the
