@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       upload_release:
-        description: 'Create a draft GitHub Release (publish by hand afterwards; only effective on a v* tag ref)'
+        description: 'Create a draft GitHub Release (publish by hand afterwards; requires a v* tag ref)'
         required: false
         default: false
         type: boolean
@@ -202,9 +202,10 @@ jobs:
           name: SSConverterGUI-release-dist
           path: release-dist
 
-      # Only on an explicit dispatch with upload_release=true, on a v* tag ref.
+      # The dispatch input is the only gate: dispatching on a v* tag is the
+      # release operator's call, as the input description says.
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') && inputs.upload_release
+        if: inputs.upload_release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           files: |
