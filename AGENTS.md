@@ -25,13 +25,19 @@ This is a cross-platform GUI application built with Tauri v2 for converting Spri
 
 ## Documentation site
 
-Folder-based i18n (`mkdocs-static-i18n`, `docs_structure: folder`): every page exists as both `docs/en/<path>` and `docs/ja/<path>`, and `nav` is defined once in `mkdocs.yml` with Japanese labels from `nav_translations`. Three things do **not** follow that "everything twice" rule — check before duplicating:
+Built with [Zensical](https://zensical.org), the successor to MkDocs + Material for MkDocs. Zensical has no multi-locale build, so **each locale is built from its own config**: `mkdocs.yml` builds `docs/en` to `site/`, `mkdocs.ja.yml` builds `docs/ja` to `site/ja/`, and both inherit the shared settings from `mkdocs.base.yml`. Every page still exists as both `docs/en/<path>` and `docs/ja/<path>`; there is no fallback locale any more, so a page missing from one side is a nav entry pointing at nothing.
 
-*   **`overrides/main.html`** (`theme.custom_dir`) emits the Open Graph / Twitter Card tags Material omits. **One template serves both locales**: the i18n plugin substitutes `languages.ja.site_description` before rendering, so Japanese cards need no second copy. Localize by adding a per-locale config override, never by branching in the template. Keep it in sync with the copies in SpriteStudio-Docs and the sibling player repos.
-*   **Footer social icons are defined twice** — `extra.social` and the `ja` block's `extra` override, which *replaces* the whole `social` list rather than merging into it. Add or reorder an icon in both, or Japanese readers lose it. Keep `twitter:site` in `overrides/main.html` in sync with the X link.
+**The three-config split has one rule: a YAML sequence must be defined in exactly one of the three files.** Zensical's `INHERIT` *concatenates* parent and child sequences where MkDocs replaces them — put `nav` in the base as well as a locale config and the Japanese site renders the English navigation followed by the Japanese one. Shared sequences (`theme.palette`, `theme.features`, `plugins`, `markdown_extensions`, `extra.alternate`) live in `mkdocs.base.yml` and nowhere else; `nav` and `extra.social` live in the locale configs and never in the base.
+
+Things that do **not** follow the "everything twice" rule, or that changed with the migration — check before duplicating:
+
+*   **`overrides/main.html`** (`theme.custom_dir`) emits the Open Graph / Twitter Card tags the theme omits, **and repairs the page title**: Zensical never sets `page.is_homepage`, which its own `base.html` branches on, so the landing page would title itself "SSConverter GUI - SSConverter GUI". The override derives the flag from `page.url` and overrides the `htmltitle` block. **One template serves both locales** — everything is read from whichever locale config is building. Localize by adding a per-locale config override, never by branching in the template. Keep it in sync with the copies in SpriteStudio-Docs and the sibling player repos.
+*   **`overrides/partials/alternate.html`** rebuilds the header language selector so switching language keeps you on the same page. `mkdocs-static-i18n` used to rewrite those links per page; nothing does once the locales are separate builds, and the stock partial would send every reader to the other locale's home page. Driven by `extra.alternate[].link` (a locale subpath, not a URL) plus `extra.site_root_prefix` in each locale config — which also means the links are relative now, rather than hard-coding the `/SSConverterGUI/` prefix. Known gap: the `<link rel="alternate" hreflang>` tags in `<head>` still point at each locale root, because they sit inside the theme's `site_meta` block.
+*   **`site_url` is per locale** and the ja one keeps its `ja/` suffix — `page.canonical_url`, and therefore `og:url`, is built from it.
+*   **Footer social icons are defined twice** — in `mkdocs.yml` and `mkdocs.ja.yml` (translated labels, same icons and links). Add or reorder an icon in both, or the two footers diverge. Keep `twitter:site` in `overrides/main.html` in sync with the X link.
 *   **There is deliberately no `edit_uri`**, so no "edit this page" button renders. It is a branch name nothing validates, and it had drifted wrong in three of the five player repos. Do not reintroduce it.
 
-`mkdocs.yml` sets `strict: true`, so a plain `build` (and `serve`) fails on a broken link or nav mismatch. Nothing builds the docs on a pull request — `pages.yml` runs on `release: published` and dispatch — so the local build is the only gate: `.venv/bin/mkdocs build --strict`.
+`mkdocs.base.yml` sets `strict: true`, so a plain `build` fails on a broken link. `serve` validates nothing — `zensical serve --strict` is accepted and currently does nothing. Nothing builds the docs on a pull request — `pages.yml` runs on `release: published` and dispatch — so the local build is the only gate, and **both locales have to be built**, English first because it clears `site/`, which contains `site/ja`.
 
 ## Development Guidelines
 
@@ -55,13 +61,13 @@ Folder-based i18n (`mkdocs-static-i18n`, `docs_structure: folder`): every page e
 *   Record user-facing changes in `CHANGELOG.md` (Keep a Changelog + SemVer). Releases run from the manual `Release` workflow (`.github/workflows/release.yml`).
 
 ### Documentation
-*   The docs site is **MkDocs + Material**, matching the sibling repos (`SpriteStudio-Docs`, `SSPlayerForGodot`, `SSPlayerForUnity`, `SSPlayerForRenPy`). Config is `mkdocs.yml`; sources are under `docs/`.
-*   **Folder-based i18n** (`mkdocs-static-i18n`, `docs_structure: folder`). Every page exists twice: `docs/en/<path>` and `docs/ja/<path>`. When you add, move, or rename a page, do it in **both** locales, or the strict build breaks. English is the default/fallback locale.
-*   **Navigation is defined once** in `mkdocs.yml` under `nav:` using locale-relative paths (e.g. `usage.md`, no `en/` or `ja/` prefix). Japanese nav labels come from the `plugins.i18n.languages` → `nav_translations` map, **not** from the file tree — add a matching `nav_translations` entry whenever you introduce a new nav title.
+*   The docs site is **Zensical**, matching the sibling repos (`SpriteStudio-Docs`, `SSPlayerForGodot`, `SSPlayerForUnity`, `SSPlayerForRenPy`, `SSPlayerForFlutter`). Configs are `mkdocs.base.yml` plus one per locale; sources are under `docs/`. See §Documentation site above for the split and the rule that governs it.
+*   **One locale, one config.** Every page exists twice: `docs/en/<path>` and `docs/ja/<path>`. When you add, move, or rename a page, do it in **both** locales. There is no fallback locale, so a missing page is a nav entry pointing at nothing.
+*   **Navigation is defined twice**, once per locale config, using locale-relative paths (e.g. `usage.md`, no `en/` or `ja/` prefix). The two trees must stay structurally identical; only the labels differ, written directly in each language. `nav_translations` no longer exists.
 *   **Internal links are relative file paths** ending in `.md` (e.g. `install.md`), which is what `--strict` validates. Links to other repos' docs are absolute `https://…` URLs.
-*   **Pinned toolchain**: `docs/requirements.txt` versions are deliberately pinned and kept in sync with the sibling repos. Bump intentionally.
+*   **Pinned toolchain**: `docs/requirements.txt` pins `zensical` deliberately, in step with the sibling repos. Bump intentionally.
 *   The **README is an entry point, not a duplicate** of the site: it carries the feature list, a quick start, and links into `docs/`. Detailed walkthroughs belong in `docs/`, not the README.
-*   Always validate with `.venv/bin/mkdocs build --strict` before finishing — CI (`.github/workflows/pages.yml`) runs the same command on every PR touching `docs/` and blocks merge on any broken internal link or nav mismatch.
+*   Always validate with **both** locale builds before finishing. Nothing builds the docs on a pull request — `pages.yml` runs on `release: published` and dispatch only — so a broken internal link would otherwise surface at deploy time, not at review time.
 *   **Publishing is tied to releases**: the site deploys when a GitHub Release is published, or from a manual `workflow_dispatch` run. Merging to `main` does **not** publish — the site documents the released application, so it intentionally tracks releases rather than every merge.
 
     ```bash
@@ -69,8 +75,12 @@ Folder-based i18n (`mkdocs-static-i18n`, `docs_structure: folder`): every page e
     python3 -m venv .venv
     .venv/bin/python -m pip install -r docs/requirements.txt
 
-    .venv/bin/mkdocs serve           # live preview at http://127.0.0.1:8000
-    .venv/bin/mkdocs build --strict  # exactly what CI runs
+    .venv/bin/zensical serve                            # live preview of English
+    .venv/bin/zensical serve -f mkdocs.ja.yml           # ... or of Japanese
+
+    # The gate. English first: it clears site/, which contains site/ja.
+    .venv/bin/zensical build --strict
+    .venv/bin/zensical build -f mkdocs.ja.yml --strict
     ```
 
     ```powershell
@@ -78,8 +88,12 @@ Folder-based i18n (`mkdocs-static-i18n`, `docs_structure: folder`): every page e
     py -m venv .venv
     .\.venv\Scripts\python -m pip install -r docs/requirements.txt
 
-    .\.venv\Scripts\mkdocs serve           # live preview at http://127.0.0.1:8000
-    .\.venv\Scripts\mkdocs build --strict  # exactly what CI runs
+    .\.venv\Scripts\zensical serve                      # live preview of English
+    .\.venv\Scripts\zensical serve -f mkdocs.ja.yml     # ... or of Japanese
+
+    # The gate. English first: it clears site/, which contains site/ja.
+    .\.venv\Scripts\zensical build --strict
+    .\.venv\Scripts\zensical build -f mkdocs.ja.yml --strict
     ```
 
 ### Running & Building
