@@ -47,7 +47,8 @@ echo "==> SSConverterGUI ${version} — macOS universal"
 
 # --- Code signing & notarization (opt-in via env) -----------------------------
 # `tauri build` signs and notarizes in place when these are set, which is how the
-# release workflow does it. The names mirror the SS_APPLE_* GitHub secrets:
+# release workflow does it. The workflow feeds them from the APPLE_DEV_ID_APP_*
+# / ASC_API_* GitHub secrets:
 #
 #   APPLE_SIGNING_IDENTITY  "Developer ID Application: … (TEAMID)"
 #   APPLE_API_KEY_PATH      path to the App Store Connect .p8 private key
