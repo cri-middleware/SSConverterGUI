@@ -97,30 +97,39 @@ scripts/release-macos.sh
 
 ## 📚 ドキュメントのビルド
 
-本サイトは [MkDocs](https://www.mkdocs.org/) と [Material](https://squidfunk.github.io/mkdocs-material/)
-テーマで構築されており、他の SpriteStudio Player リポジトリと同じ構成です。ソースは `docs/en/` と
-`docs/ja/` にあります。
+本サイトは MkDocs と Material テーマの後継である [Zensical](https://zensical.org/) で構築されており、
+他の SpriteStudio Player リポジトリと同じ構成です。ソースは `docs/en/` と `docs/ja/` にあり、
+ビルドは 2 つのスクリプトが受け持ちます。
 
 ### macOS / Linux (bash)
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r docs/requirements.txt
+scripts/prepare-docs.sh          # 初回のみ。.venv を作成し docs/requirements.txt を導入
+scripts/build-docs.sh            # CI と同一。リンク切れや nav の不整合で失敗する
 
-.venv/bin/mkdocs serve           # http://127.0.0.1:8000 でライブプレビュー
-.venv/bin/mkdocs build --strict  # CI と同一。リンク切れや nav の不整合で失敗する
+.venv/bin/zensical serve                   # 英語を http://127.0.0.1:8000 でライブプレビュー
+.venv/bin/zensical serve -f mkdocs.ja.yml  # ... または日本語をプレビュー
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\python -m pip install -r docs/requirements.txt
+scripts\prepare-docs.ps1
+scripts\build-docs.ps1
 
-.\.venv\Scripts\mkdocs serve           # http://127.0.0.1:8000 でライブプレビュー
-.\.venv\Scripts\mkdocs build --strict  # CI と同一。リンク切れや nav の不整合で失敗する
+.\.venv\Scripts\zensical serve                   # 英語をライブプレビュー
+.\.venv\Scripts\zensical serve -f mkdocs.ja.yml  # ... または日本語をプレビュー
 ```
 
+いずれのスクリプトも `key=value` 形式のオプションと `--help` を受け付けます
+（`build-docs.sh locale=ja`、`prepare-docs.sh force=yes`）。`serve` にスクリプトが無いのは意図的です。
+リンクを検証せず、一度に 1 ロケールしか配信しないため、ビルドの代わりにはなりません。
+
+Zensical は **1 ロケールにつき 1 つの設定ファイル** でビルドするため、ビルドはロケールごとに実行され、
+`build-docs` はその順序を保証します。英語を先にビルドするのは、英語ビルドが出力先の `site/` を
+開始時に消去し、日本語サイトはその内側（`site/ja`）に出力されるためです。英語だけをビルドすると
+日本語サイトは残りません。
+
 すべてのページは `docs/en/` と `docs/ja/` に 1 つずつ存在します。ページを追加・移動・リネームする際は
-**両方のロケール**で行い、`mkdocs.yml` の `nav_translations` にも対応するエントリを追加してください。
-どちらかが欠けると strict ビルドが失敗します。
+**両方のロケール**で行い、`mkdocs.yml` と `mkdocs.ja.yml` の **両方** の `nav` にもエントリを
+追加してください。どちらかが欠けると strict ビルドが失敗します。

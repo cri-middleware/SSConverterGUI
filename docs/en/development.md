@@ -97,30 +97,39 @@ The archives land in `dist-release/`, which is git-ignored.
 
 ## 📚 Building the documentation
 
-This site is built with [MkDocs](https://www.mkdocs.org/) and the
-[Material](https://squidfunk.github.io/mkdocs-material/) theme, matching the other SpriteStudio
-player repositories. The sources live under `docs/en/` and `docs/ja/`.
+This site is built with [Zensical](https://zensical.org/), the successor to MkDocs and the
+Material theme, matching the other SpriteStudio player repositories. The sources live under
+`docs/en/` and `docs/ja/`, and two scripts do the whole job.
 
 ### macOS / Linux (bash)
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r docs/requirements.txt
+scripts/prepare-docs.sh          # once: .venv + docs/requirements.txt
+scripts/build-docs.sh            # exactly what CI runs; fails on broken links / missing nav
 
-.venv/bin/mkdocs serve           # live preview at http://127.0.0.1:8000
-.venv/bin/mkdocs build --strict  # exactly what CI runs; fails on broken links / missing nav
+.venv/bin/zensical serve                   # live preview of English at http://127.0.0.1:8000
+.venv/bin/zensical serve -f mkdocs.ja.yml  # ... or of Japanese
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\python -m pip install -r docs/requirements.txt
+scripts\prepare-docs.ps1
+scripts\build-docs.ps1
 
-.\.venv\Scripts\mkdocs serve           # live preview at http://127.0.0.1:8000
-.\.venv\Scripts\mkdocs build --strict  # exactly what CI runs; fails on broken links / missing nav
+.\.venv\Scripts\zensical serve                   # live preview of English
+.\.venv\Scripts\zensical serve -f mkdocs.ja.yml  # ... or of Japanese
 ```
 
+Both scripts take `key=value` options and `--help` — `build-docs.sh locale=ja`,
+`prepare-docs.sh force=yes`. `serve` has no script on purpose: it validates nothing and serves
+one locale at a time, so it is no substitute for the build.
+
+Zensical builds **one locale per configuration**, so there is one build per locale and
+`build-docs` runs them in the only safe order: English first, because it writes `site/` and
+clears it on the way in — and the Japanese site lives inside it at `site/ja`. Building only
+English therefore leaves no Japanese site at all.
+
 Every page exists twice — once under `docs/en/` and once under `docs/ja/`. When you add, move, or
-rename a page, do it in **both** locales and add a matching `nav_translations` entry in
-`mkdocs.yml`, or the strict build will fail.
+rename a page, do it in **both** locales and add the entry to the `nav` of **both**
+`mkdocs.yml` and `mkdocs.ja.yml`, or the strict build will fail.

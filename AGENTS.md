@@ -72,29 +72,29 @@ Things that do **not** follow the "everything twice" rule, or that changed with 
 
     ```bash
     # macOS / Linux (bash)
-    python3 -m venv .venv
-    .venv/bin/python -m pip install -r docs/requirements.txt
+    scripts/prepare-docs.sh                             # once: .venv + docs/requirements.txt
+    scripts/build-docs.sh                               # the gate: both locales, both --strict
 
     .venv/bin/zensical serve                            # live preview of English
     .venv/bin/zensical serve -f mkdocs.ja.yml           # ... or of Japanese
-
-    # The gate. English first: it clears site/, which contains site/ja.
-    .venv/bin/zensical build --strict
-    .venv/bin/zensical build -f mkdocs.ja.yml --strict
     ```
 
     ```powershell
     # Windows (PowerShell)
-    py -m venv .venv
-    .\.venv\Scripts\python -m pip install -r docs/requirements.txt
+    scripts\prepare-docs.ps1
+    scripts\build-docs.ps1
 
     .\.venv\Scripts\zensical serve                      # live preview of English
     .\.venv\Scripts\zensical serve -f mkdocs.ja.yml     # ... or of Japanese
-
-    # The gate. English first: it clears site/, which contains site/ja.
-    .\.venv\Scripts\zensical build --strict
-    .\.venv\Scripts\zensical build -f mkdocs.ja.yml --strict
     ```
+
+    `build-docs` owns the order — English first, because it clears `site/`, which contains
+    `site/ja` — and is what `pages.yml` runs too, so CI and the local gate cannot drift. Both
+    scripts take `key=value` options and `--help` (`build-docs.sh locale=ja`,
+    `prepare-docs.sh force=yes`), and wrap nothing more than `pip install -r` and the two
+    `zensical build` runs. `serve` is deliberately not wrapped: it validates nothing and
+    serves one locale at a time. Every repository in the family spells this pair the same way,
+    and the `-docs` suffix keeps it apart from the scripts that build the app.
 
 ### Running & Building
 *   **Prerequisites**: Node.js (v26+), `pnpm`, and the Rust toolchain (`rustup`). Clone with `--recursive` to fetch the `SpriteStudio-SDK` submodule.
