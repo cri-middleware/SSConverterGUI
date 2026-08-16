@@ -74,6 +74,7 @@ Things that do **not** follow the "everything twice" rule, or that changed with 
     # macOS / Linux (bash)
     scripts/prepare-docs.sh                             # once: .venv + docs/requirements.txt
     scripts/build-docs.sh                               # the gate: both locales, both --strict
+    scripts/build-pages.sh serve=yes                    # ... the published tree, on :8000
 
     .venv/bin/zensical serve                            # live preview of English
     .venv/bin/zensical serve -f mkdocs.ja.yml           # ... or of Japanese
@@ -89,12 +90,21 @@ Things that do **not** follow the "everything twice" rule, or that changed with 
     ```
 
     `build-docs` owns the order — English first, because it clears `site/`, which contains
-    `site/ja` — and is what `pages.yml` runs too, so CI and the local gate cannot drift. Both
-    scripts take `key=value` options and `--help` (`build-docs.sh locale=ja`,
-    `prepare-docs.sh force=yes`), and wrap nothing more than `pip install -r` and the two
-    `zensical build` runs. `serve` is deliberately not wrapped: it validates nothing and
-    serves one locale at a time. Every repository in the family spells this pair the same way,
-    and the `-docs` suffix keeps it apart from the scripts that build the app.
+    `site/ja`. All three scripts take `key=value` options and `--help` (`build-docs.sh
+    locale=ja`, `prepare-docs.sh force=yes`), and the first two wrap nothing more than
+    `pip install -r` and the two `zensical build` runs. `serve` is deliberately not wrapped:
+    it validates nothing and serves one locale at a time. Every repository in the family
+    spells this pair the same way, and the `-docs` suffix keeps it apart from the scripts
+    that build the app.
+
+    `build-pages` is the third: the published site, which here is the docs and nothing else
+    — the pair above run for you, then a static server over `site/`. That server is the
+    point of it, and the one thing `zensical serve` cannot do: both locales at once, so the
+    header language selector resolves. `pages.yml`'s build job **is** this script
+    (`prepare=no serve=no`, every option spelled out so a publish cannot change because a
+    default did), so CI and the local gate cannot drift, and the name means the same thing
+    in every repository in the family — including the ones whose site carries a demo or an
+    API reference as well.
 
 ### Running & Building
 *   **Prerequisites**: Node.js (v26+), `pnpm`, and the Rust toolchain (`rustup`). Clone with `--recursive` to fetch the `SpriteStudio-SDK` submodule.
