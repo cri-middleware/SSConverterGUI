@@ -55,9 +55,11 @@ jobs:
           # Full history so the converter's build script can embed the git SHA.
           fetch-depth: 0
 
+      # Through the script, so the version has one definition shared with
+      # build-release.sh and with anyone cutting a release by hand.
       - name: Resolve version from package.json
         shell: bash
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+        run: echo "VERSION=$(./scripts/release-version.sh)" >> "$GITHUB_ENV"
 
       # The artifacts embed the package.json version while the Release is
       # named after the tag — fail fast when the two disagree.
@@ -171,6 +173,9 @@ jobs:
             dist-release/*.tar.gz
             dist-release/*.zip
           if-no-files-found: error
+          # A week, not the 90-day default: this is the matrix's handoff to the
+          # package job, not something to keep. See the same setting there.
+          retention-days: 7
 
   package:
     needs: build
@@ -180,18 +185,37 @@ jobs:
       contents: write
 
     steps:
+      # scripts/build-release.sh reads package.json for the version the archives
+      # are named after, so the tree has to be here — the download alone is not
+      # enough any more.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
       - name: Download all artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: release-dist
           merge-multiple: true
 
-      # Canonical checksum manifest so a consumer can verify each downloaded
-      # file's integrity (`sha256sum -c SHA256SUMS --ignore-missing`).
-      - name: Generate SHA256SUMS
+      # A release is a tag that was pushed first and dispatched from second, so
+      # asking to upload from anything else is an operator error, not a mode.
+      # (build-release.sh separately refuses a tag that disagrees with the
+      # version in package.json, which is what the archives are named after.)
+      - name: Refuse to release from a non-tag ref
+        if: inputs.upload_release && !startsWith(github.ref, 'refs/tags/v')
         run: |
-          cd release-dist
-          sha256sum *.tar.gz *.zip > SHA256SUMS
+          echo "::error::upload_release=true needs a v* tag. Push the tag first, then dispatch this workflow from it (Use workflow from → the tag)."
+          exit 1
+
+      # scripts/build-release.sh checks the three archives the matrix produces
+      # are all present, named after this version and nothing else, then writes
+      # the checksum manifest over them. The build scripts already sign, notarize
+      # and archive their own platform, so there is nothing to lay out — what
+      # this adds is the check. Three jobs on two operating systems feed this
+      # directory, and a matrix entry that built nothing leaves a Release with no
+      # download for that platform, which nobody notices until somebody on it
+      # tries.
+      - name: Collect and check the release
+        run: ./scripts/build-release.sh in=release-dist verify=yes
 
       # Keep the bundle as a workflow artifact so a QA run
       # (upload_release=false) is useful without creating a Release.
@@ -200,9 +224,14 @@ jobs:
         with:
           name: SSConverterGUI-release-dist
           path: release-dist
+          if-no-files-found: error
+          # A week, not the 90-day default. What is meant to last is attached to
+          # the GitHub Release, which never expires; this is a copy for a run
+          # that uploaded nothing. Artifact storage is an org-wide quota, and a
+          # full one does not degrade — `upload-artifact` fails, so the release
+          # build fails, in a step that has nothing to do with the release.
+          retention-days: 7
 
-      # The dispatch input is the only gate: dispatching on a v* tag is the
-      # release operator's call, as the input description says.
       - name: Create GitHub Release
         if: inputs.upload_release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
