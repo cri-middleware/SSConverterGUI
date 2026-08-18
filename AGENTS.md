@@ -60,6 +60,14 @@ Things that do **not** follow the "everything twice" rule, or that changed with 
 *   `package.json`'s `version` drives the app/bundle version: `tauri.conf.json` reads it via `"version": "../package.json"`, and the `get_versions` command surfaces it at runtime. Keep `src-tauri/Cargo.toml`'s crate `version` in sync when bumping.
 *   Record user-facing changes in `CHANGELOG.md` (Keep a Changelog + SemVer). Releases run from the manual `Release` workflow (`.github/workflows/release.yml`).
 
+### Releases
+
+A release is a tag, pushed first and built second: push `v<version>`, then dispatch **Release** from that tag with `upload_release=true`. The tag names the Release; `upload_release=true` from anything else fails the run rather than silently producing none. The default dispatch (`upload_release=false`) is a QA build and creates no Release. Drafts are always drafts — a human checks the assets and the generated notes, then publishes from the UI, choosing pre-release / latest there.
+
+`scripts/release-macos.sh` and `scripts/release-windows.ps1` each build, sign, notarize and archive their own platform into `dist-release/`. `scripts/build-release.sh` is what comes after: it checks the three archives the matrix produces are all present, named after `package.json`'s version and nothing else, then writes `SHA256SUMS` over them. `release.yml`'s package job **is** this script (`in=release-dist verify=yes`), so CI and a local run cannot drift. Both it and `release-version` have `.ps1` twins, verified to write a byte-identical `SHA256SUMS`.
+
+The check is the part that was missing. Three jobs on two operating systems feed one directory, and the `*.zip` / `*.tar.gz` globs attach whatever is in it — so a matrix entry that built nothing leaves a Release with no download for that platform, and a stale archive from an earlier version gets attached alongside the current one. Neither is noticed until somebody downloads. It also refuses a tag that disagrees with `package.json`, since that is what every archive is named after (`scripts/release-version.sh` prints it; keep `src-tauri/Cargo.toml` in sync when bumping).
+
 ### Documentation
 *   The docs site is **Zensical**, matching the sibling repos (`SpriteStudio-Docs`, `SSPlayerForGodot`, `SSPlayerForUnity`, `SSPlayerForRenPy`, `SSPlayerForFlutter`). Configs are `mkdocs.base.yml` plus one per locale; sources are under `docs/`. See §Documentation site above for the split and the rule that governs it.
 *   **One locale, one config.** Every page exists twice: `docs/en/<path>` and `docs/ja/<path>`. When you add, move, or rename a page, do it in **both** locales. There is no fallback locale, so a missing page is a nav entry pointing at nothing.
