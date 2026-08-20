@@ -135,13 +135,16 @@ jobs:
           echo "$ASC_API_KEY_PASS" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
           echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple_api_key.p8" >> "$GITHUB_ENV"
 
-      # The script builds, signs, notarizes, verifies and packages; the Tauri CLI
-      # imports APPLE_CERTIFICATE into a keychain of its own.
+      # scripts/build-release.sh runs scripts/release-macos.sh — which builds,
+      # signs, notarizes, verifies and packages, the Tauri CLI importing
+      # APPLE_CERTIFICATE into a keychain of its own — and then checks the
+      # archive it produced. Signing is the environment's to decide: with none of
+      # the APPLE_* secrets set the app is simply unsigned.
       #
-      # A missing or expired secret silently turns signing into a no-op, so on a
-      # v* tag — the only ref that can publish a Release — `--require-signing`
-      # makes the script's check of the real .app fatal. A QA build without the
-      # secrets only reports.
+      # Except on a v* tag, the only ref that can publish a Release, where
+      # `sign=yes` makes the script's inspection of the real .app fatal. A
+      # missing or expired secret otherwise turns signing into a silent no-op,
+      # and looks exactly like "signing was never requested".
       - name: Build and package (macOS)
         if: matrix.platform == 'macos-latest'
         env:
@@ -152,14 +155,17 @@ jobs:
           # macOS notarization via App Store Connect API key.
           APPLE_API_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
           APPLE_API_KEY: ${{ secrets.ASC_API_KEY_ID }}
-        run: ./scripts/release-macos.sh ${{ startsWith(github.ref, 'refs/tags/v') && '--require-signing' || '' }}
+        run: ./scripts/build-release.sh sign=${{ startsWith(github.ref, 'refs/tags/v') && 'yes' || 'auto' }}
 
+      # The same script for the Windows half: it runs
+      # scripts/release-windows.ps1 for the arch this matrix entry builds — the
+      # host x86_64 build or the arm64 cross-build — and then checks the archive.
       # The Windows exe is deliberately not code-signed, so this step needs no
-      # secrets. -Arch picks the host x86_64 build or the arm64 cross-build.
+      # secrets and there is no sign= to pass.
       - name: Build and package (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
-        run: ./scripts/release-windows.ps1 -Arch ${{ matrix.arch }}
+        run: ./scripts/build-release.ps1 arch=${{ matrix.arch }}
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -206,16 +212,16 @@ jobs:
           echo "::error::upload_release=true needs a v* tag. Push the tag first, then dispatch this workflow from it (Use workflow from → the tag)."
           exit 1
 
-      # scripts/build-release.sh checks the three archives the matrix produces
-      # are all present, named after this version and nothing else, then writes
-      # the checksum manifest over them. The build scripts already sign, notarize
-      # and archive their own platform, so there is nothing to lay out — what
-      # this adds is the check. Three jobs on two operating systems feed this
-      # directory, and a matrix entry that built nothing leaves a Release with no
-      # download for that platform, which nobody notices until somebody on it
-      # tries.
+      # The same script again, with build=no: the phase after the matrix. It
+      # checks the three archives are all present, named after this version and
+      # nothing else, then writes the checksum manifest over them. The build jobs
+      # already signed, notarized and archived their own platform, so there is
+      # nothing to lay out — what this adds is the check that they all arrived.
+      # Three jobs on two operating systems feed this directory, and a matrix
+      # entry that built nothing leaves a Release with no download for that
+      # platform, which nobody notices until somebody on it tries.
       - name: Collect and check the release
-        run: ./scripts/build-release.sh in=release-dist verify=yes
+        run: ./scripts/build-release.sh build=no in=release-dist verify=yes
 
       # Keep the bundle as a workflow artifact so a QA run
       # (upload_release=false) is useful without creating a Release.

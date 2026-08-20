@@ -2,6 +2,11 @@
 # Builds a Windows release archive the way .github/workflows/release.yml does,
 # so a release build can be verified locally before one is dispatched.
 #
+# scripts\build-release.ps1 is the entry point: it runs this once per arch and
+# then checks the archives that came out of it, and that is what the workflow
+# calls. Running this directly is fine — it is the whole build for one arch —
+# but the checks are there.
+#
 # Output: dist-release\SSConverterGUI_<version>_<arch>.zip
 #
 # arm64 cross-compiles from an x86_64 host — what CI does, and the same approach as

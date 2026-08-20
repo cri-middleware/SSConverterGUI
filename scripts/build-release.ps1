@@ -1,28 +1,34 @@
-# Collect the release: check the per-platform archives the build matrix
-# produced, and write the checksum manifest over them.
+# Build the release: this machine's half of it -- the archives a consumer
+# downloads -- then check what is there and write the checksum manifest over it.
 #
-#   .\scripts\build-release.ps1                  # collect from release-dist\
-#   .\scripts\build-release.ps1 in=C:\tmp\dl
+#   .\scripts\build-release.ps1                             # build x86_64 and arm64, then check
+#   .\scripts\build-release.ps1 arch=x86_64                 # one of them, while iterating
+#   .\scripts\build-release.ps1 notices=no                  # quicker, but not what ships
+#   .\scripts\build-release.ps1 build=no in=release-dist    # check the matrix's three archives
 #
-# release.yml's package job runs the .sh twin for the assets it uploads, so CI
-# and a local run cannot drift. The workflow keeps only what is GitHub's -- the
-# artifact download, the artifact upload and the Release itself.
+# The Windows twin of scripts/build-release.sh, and the same shape: release.yml
+# runs the .ps1 for the Windows matrix entries and the .sh for macOS and for the
+# package job, so CI and a local run cannot drift. The workflow keeps only what
+# is GitHub's -- the checkout, the toolchain, the artifact download, the
+# artifact upload and the Release itself.
 #
-# There is less to do here than in the sibling repos, and that is the point:
-# scripts/release-macos.sh and scripts/release-windows.ps1 already build, sign,
-# notarize and archive their own platform, each writing a finished
-# dist-release/SSConverterGUI_<version>_<arch>.<ext>. Nothing needs to be laid
-# out afterwards. What was left in the workflow was two lines of sha256sum and
-# no check at all -- so what this adds is the check.
+# The build is delegated, not reimplemented: scripts/release-windows.ps1 builds
+# and archives one arch (arm64 cross-compiles from an x86_64 host, as CI does),
+# and this runs it once per arch and checks what came out.
 #
-# Which matters because the archives arrive from three separate jobs on two
-# operating systems, and the failure this catches is a quiet one: a matrix entry
-# that built nothing, or built something named after the wrong version, leaves a
-# Release that simply has no download for that platform. Nobody notices until
-# somebody on that platform tries.
+# There is no sign= here. The Windows executable is deliberately not
+# code-signed -- see docs/en/install.md -- so signing is the macOS half's, and
+# lives in build-release.sh.
 #
-# This is the phase AFTER it has been decided what is being released: the tag
-# comes from the checkout, not from an option, and it must match package.json.
+# One machine cannot produce a whole release -- the universal .app needs macOS
+# -- so a build run requires only what it built. Requiring all three archives is
+# what build=no means: the phase after the matrix, where every archive has
+# arrived and a missing one is a Release with no download for that platform.
+# Nobody notices that until somebody on that platform tries.
+#
+# This is also the phase AFTER it has been decided what is being released: the
+# tag comes from the checkout, not from an option, and it must match
+# package.json.
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]] $Arguments
@@ -33,34 +39,55 @@ $ErrorActionPreference = "Stop"
 $app = Split-Path -Leaf $PSCommandPath
 $rootDirectory = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 
-# The archives the matrix produces: one per entry, named by the arch the entry
-# builds. Adding a matrix entry means adding it here, which is deliberate -- the
-# list is what makes a missing platform an error rather than a smaller release.
+# The archives a release is made of: one per matrix entry, named by the arch the
+# entry builds. Adding a matrix entry means adding it here, which is deliberate
+# -- the list is what makes a missing platform an error rather than a smaller
+# release.
 $expected = @(
     @{ arch = "universal"; ext = "tar.gz" },
     @{ arch = "x86_64";    ext = "zip" },
     @{ arch = "arm64";     ext = "zip" }
 )
 
+# What a build run on this machine can produce. The universal .tar.gz is
+# build-release.sh's, on macOS.
+$buildable = @("x86_64", "arm64")
+
 # --- options ---------------------------------------------------------------
 
-$in = "release-dist"
+$build = "yes"
+$arch = "all"
+$in = "dist-release"
+$inGiven = $false
+$notices = "yes"
 $verify = "yes"
 
 function Show-Usage {
     Write-Host "Usage: $app [options]"
     Write-Host "$app options:"
-    Write-Host "  in=<dir>                Where the per-platform archives are (default:"
-    Write-Host "                          release-dist). The workflow downloads every build"
-    Write-Host "                          artifact into it with merge-multiple, so they all land"
-    Write-Host "                          side by side; locally that is what release-macos.sh and"
-    Write-Host "                          release-windows.ps1 write into dist-release."
+    Write-Host "  build=<yes|no>          Build this machine's archives before checking (default:"
+    Write-Host "                          yes) -- scripts/release-windows.ps1, once per arch. no is"
+    Write-Host "                          the phase after the build matrix: check the archives that"
+    Write-Host "                          are already in <in> and write SHA256SUMS over them."
+    Write-Host "  arch=<x86_64|arm64|all> Which Windows archives to build (default: all). arm64"
+    Write-Host "                          cross-compiles from an x86_64 host and needs the"
+    Write-Host "                          'MSVC v143 - VS 2022 C++ ARM64 build tools' component."
+    Write-Host "                          Ignored with build=no."
+    Write-Host "  in=<dir>                Where the archives are (default: dist-release, which is"
+    Write-Host "                          where release-windows.ps1 writes -- so build=yes cannot"
+    Write-Host "                          be pointed elsewhere). With build=no this is what to"
+    Write-Host "                          check: the workflow downloads every build artifact into"
+    Write-Host "                          release-dist with merge-multiple, so they land side by"
+    Write-Host "                          side."
+    Write-Host "  notices=<yes|no>        Generate THIRD_PARTY_NOTICES.md into the archive"
+    Write-Host "                          (default: yes, and it needs cargo-about). no is quicker,"
+    Write-Host "                          and the archive then differs from the released one."
     Write-Host "  verify=<yes|no>         Check the archives before writing SHA256SUMS (default:"
     Write-Host "                          yes). no writes the manifest over whatever is there,"
     Write-Host "                          which is not a thing to ship."
     Write-Host "  -h | --help             Show this help"
     Write-Host ""
-    Write-Host "Output: SHA256SUMS in <in>, beside the archives it covers -- the set release.yml"
+    Write-Host "Output: the archive(s) in <in>, and SHA256SUMS beside them -- the set release.yml"
     Write-Host "attaches to the draft Release."
     Write-Host ""
     Write-Host "There is no option for which release this is: the tag comes from the checkout"
@@ -71,22 +98,47 @@ function Show-Usage {
 foreach ($argument in $Arguments) {
     switch -Regex ($argument) {
         '^(-h|--help|help)$' { Show-Usage; exit 0 }
-        '^in='     { $in = $argument.Substring(3) }
-        '^verify=' { $verify = $argument.Substring(7).ToLower() }
+        '^build='   { $build = $argument.Substring(6).ToLower() }
+        '^arch='    { $arch = $argument.Substring(5).ToLower() }
+        '^in='      { $in = $argument.Substring(3); $inGiven = $true }
+        '^notices=' { $notices = $argument.Substring(8).ToLower() }
+        '^verify='  { $verify = $argument.Substring(7).ToLower() }
+        # Named rather than lumped in with the unknown options: it is the one
+        # option the .sh twin has and this does not, and the reason is worth a
+        # line rather than a shrug.
+        '^sign=' {
+            Write-Error "${app}: there is no sign= here -- the Windows executable is not code-signed. macOS signing is scripts/build-release.sh's."
+        }
         default {
             Write-Error "${app}: unknown argument '$argument' (options are key=value; see $app --help)"
         }
     }
 }
 
-if ($verify -notin @("yes", "no")) { Write-Error "${app}: verify must be yes or no (got '$verify')" }
+if ($build   -notin @("yes", "no"))                { Write-Error "${app}: build must be yes or no (got '$build')" }
+if ($arch    -notin @("x86_64", "arm64", "all"))   { Write-Error "${app}: arch must be x86_64, arm64 or all (got '$arch')" }
+if ($notices -notin @("yes", "no"))                { Write-Error "${app}: notices must be yes or no (got '$notices')" }
+if ($verify  -notin @("yes", "no"))                { Write-Error "${app}: verify must be yes or no (got '$verify')" }
 
+# A path that was given is relative to where it was typed; the default is
+# relative to the repo, so it means the same directory from anywhere.
 # GetFullPath(path, basePath) rather than Join-Path: Join-Path concatenates
 # unconditionally, so an in= that is already absolute would be appended to the
 # current directory instead of used as given.
-$in = [System.IO.Path]::GetFullPath($in, (Get-Location).Path)
+if ($inGiven) {
+    $in = [System.IO.Path]::GetFullPath($in, (Get-Location).Path)
+} else {
+    $in = [System.IO.Path]::GetFullPath($in, $rootDirectory)
+}
 
 Set-Location $rootDirectory
+
+# release-windows.ps1 writes into dist-release and offers no say in it, so a
+# build run cannot be pointed somewhere else: it would build one place and check
+# another, and report an empty directory as a platform that produced nothing.
+if (($build -eq "yes") -and ($in -ne [System.IO.Path]::GetFullPath("dist-release", $rootDirectory))) {
+    Write-Error "${app}: in=$in with build=yes -- release-windows.ps1 writes into $rootDirectory\dist-release. Drop in= to build there, or pass build=no to check archives somewhere else."
+}
 
 # --- what this release is called -------------------------------------------
 $version = (& "$rootDirectory/scripts/release-version.ps1").Trim()
@@ -107,7 +159,12 @@ if (($env:GITHUB_REF_TYPE -eq "tag") -and $env:GITHUB_REF_NAME) {
 }
 
 Write-Host "options"
+Write-Host "  build    => $build"
 Write-Host "  in       => $in"
+if ($build -eq "yes") {
+    Write-Host "  arch     => $arch"
+    Write-Host "  notices  => $notices"
+}
 Write-Host "  verify   => $verify"
 Write-Host "  version  => $version"
 if ($tag) { Write-Host "  tag      => $tag" } else { Write-Host "  tag      => (none)" }
@@ -121,16 +178,7 @@ if ($tag -and ($tag -ne $manifestTag)) {
     Write-Error "${app}: tag $tag does not match package.json ($manifestTag). Bump the version (and src-tauri/Cargo.toml with it), or retag -- the archives are named SSConverterGUI_${version}_*."
 }
 
-# --- preflight -------------------------------------------------------------
-
-if (-not (Test-Path -PathType Container $in)) {
-    Write-Error "${app}: $in does not exist. Populate it first -- 'gh run download <run-id> -D release-dist' -- or point in= at the archives (locally, dist-release)"
-}
-
-# Get-FileHash returns an upper-case hash; sha256sum writes lower-case. Emit the
-# lower-case form so SHA256SUMS is byte-identical to the one the shell twin (and
-# CI) writes, and so `sha256sum -c` accepts it.
-function Get-Sha256($file) { (Get-FileHash -Algorithm SHA256 -Path $file).Hash.ToLower() }
+# --- helpers ---------------------------------------------------------------
 
 function Write-Step($message) {
     Write-Host ""
@@ -139,16 +187,87 @@ function Write-Step($message) {
 
 $failed = New-Object System.Collections.Generic.List[string]
 
-# --- check the archives ----------------------------------------------------
 $names = foreach ($spec in $expected) { "SSConverterGUI_${version}_$($spec.arch).$($spec.ext)" }
 
+# Anything named like a release archive but not one of this release's is either
+# a stale build from an earlier version or a name nobody expects -- both end up
+# attached to the Release by the *.zip / *.tar.gz globs, so say so rather than
+# ship it.
+function Find-UnknownArchives {
+    foreach ($file in Get-ChildItem -Path $in -Include *.zip, *.tar.gz -File -Recurse -Depth 0) {
+        if ($names -notcontains $file.Name) {
+            $failed.Add("$($file.Name) is in $in but is not one of this release's archives")
+        }
+    }
+}
+
+# --- build -----------------------------------------------------------------
+# $IsWindows only exists in PowerShell 6+; Windows PowerShell 5.1 runs nowhere
+# else, so its absence is the answer.
+$onWindows = if ($null -ne $IsWindows) { $IsWindows } else { $true }
+
+if ($build -eq "yes") {
+    if (-not $onWindows) {
+        Write-Error "${app}: build=yes builds the Windows half of the release, and that needs Windows. On macOS run scripts/build-release.sh; anywhere else, build=no checks archives that are already here."
+    }
+
+    if ($arch -eq "all") { $building = $buildable } else { $building = @($arch) }
+
+    # Before the build, not after it: a stale archive from an earlier version is
+    # a one-line fix, and finding it at the end means finding it two Tauri
+    # builds later.
+    if (($verify -eq "yes") -and (Test-Path -PathType Container $in)) {
+        Find-UnknownArchives
+        if ($failed.Count -gt 0) {
+            Write-Host ""
+            Write-Error "${app}: $in holds archives that are not this release's:`n  $($failed -join "`n  ")`nRemove them first -- they would be attached to the Release alongside the current ones."
+        }
+    }
+
+    foreach ($target in $building) {
+        Write-Step "building SSConverterGUI $version -- Windows $target"
+        if ($notices -eq "no") {
+            & "$rootDirectory/scripts/release-windows.ps1" -Arch $target -SkipNotices
+        } else {
+            & "$rootDirectory/scripts/release-windows.ps1" -Arch $target
+        }
+    }
+}
+
+# --- preflight -------------------------------------------------------------
+
+if (-not (Test-Path -PathType Container $in)) {
+    Write-Error "${app}: $in does not exist. Populate it first -- 'gh run download <run-id> -D release-dist' -- or build it (drop build=no), or point in= at the archives"
+}
+
+# Get-FileHash returns an upper-case hash; sha256sum writes lower-case. Emit the
+# lower-case form so SHA256SUMS is byte-identical to the one the shell twin (and
+# CI) writes, and so `sha256sum -c` accepts it.
+function Get-Sha256($file) { (Get-FileHash -Algorithm SHA256 -Path $file).Hash.ToLower() }
+
+# What has to be here. A build run produced this platform's archives and cannot
+# have produced the others, so only those are required; collecting is the phase
+# where the whole release has arrived, and every archive is.
+if ($build -eq "yes") {
+    $required = foreach ($target in $building) { "SSConverterGUI_${version}_$target.zip" }
+} else {
+    $required = $names
+}
+
+# --- check the archives ----------------------------------------------------
 if ($verify -eq "yes") {
     Write-Step "checking $in"
 
-    foreach ($name in $names) {
+    $failed.Clear()
+
+    foreach ($name in $required) {
         $path = Join-Path $in $name
         if (-not (Test-Path $path)) {
-            $failed.Add("$name is missing (its matrix entry produced nothing, or named it differently)")
+            if ($build -eq "yes") {
+                $failed.Add("$name is missing (the build produced nothing, or named it differently)")
+            } else {
+                $failed.Add("$name is missing (its matrix entry produced nothing, or named it differently)")
+            }
         } elseif ((Get-Item $path).Length -eq 0) {
             $failed.Add("$name is empty")
         } else {
@@ -156,14 +275,7 @@ if ($verify -eq "yes") {
         }
     }
 
-    # Anything else named like a release archive is either a stale build from an
-    # earlier version or a name nobody expects -- both end up attached to the
-    # Release by the *.zip / *.tar.gz globs, so say so rather than ship it.
-    foreach ($file in Get-ChildItem -Path $in -Include *.zip, *.tar.gz -File -Recurse -Depth 0) {
-        if ($names -notcontains $file.Name) {
-            $failed.Add("$($file.Name) is in $in but is not one of this release's archives")
-        }
-    }
+    Find-UnknownArchives
 
     if ($failed.Count -gt 0) {
         Write-Host ""
@@ -203,4 +315,9 @@ if ($tag) {
     Write-Host "${app}: done -> $in  ($manifestTag)"
 }
 Write-Host ""
-Write-Host "${app}: this is what release.yml attaches to the draft Release."
+if ($build -eq "yes") {
+    Write-Host "${app}: this machine's half of the release. The macOS archive comes from"
+    Write-Host "${app}: scripts/build-release.sh on macOS; build=no checks the three together."
+} else {
+    Write-Host "${app}: this is what release.yml attaches to the draft Release."
+}

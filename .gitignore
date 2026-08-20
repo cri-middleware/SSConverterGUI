@@ -50,7 +50,8 @@ rustc-ice-*.txt
 __MACOSX/
 .AppleDouble
 .LSOverride
-Icon[]
+Icon[
+]
 
 # Resource forks
 ._*
@@ -71,7 +72,8 @@ Icon[]
 .file
 .disk_label*
 lost+found
-.HFS+ Private Directory Data[]
+.HFS+ Private Directory Data[
+]
 
 # Directories potentially created on remote AFP share
 .AppleDB
@@ -831,6 +833,6 @@ vite.config.ts.timestamp-*
 .vite/
 
 # Release collection: the workflow downloads every build artifact here and
-# scripts/build-release.sh writes SHA256SUMS beside them. dist-release/ (what
-# the per-platform scripts write locally) is already ignored above.
+# scripts/build-release.sh build=no writes SHA256SUMS beside them. dist-release/
+# (what a build run writes, locally and on the matrix) is already ignored above.
 /release-dist/

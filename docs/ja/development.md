@@ -62,38 +62,54 @@ pnpm run tauri build
 
 `pnpm run tauri build` で得られるのは実行ファイル単体です。リリース時に実際にアップロードされるもの
 —— 同じアーカイブ名・同じ構成で、`LICENSE.md` と `THIRD_PARTY_NOTICES.md` を同梱したもの —— を手元で
-再現するには、リリーススクリプトを使用してください。`.github/workflows/release.yml` の手順をそのまま
-なぞっているため、リリースを実行しなくてもパッケージングやクロスコンパイルの問題を検出できます。
+再現するには `build-release` を実行してください。`.github/workflows/release.yml` が実行するのは**この
+スクリプトそのもの**なので、リリースを実行しなくてもパッケージングや署名、クロスコンパイルの問題を
+検出できます。
 
 ```bash
 # macOS（ユニバーサル: Apple Silicon + Intel）
-scripts/release-macos.sh
+scripts/build-release.sh
+
+# 試行錯誤時に短縮する場合（アーカイブの内容はリリース版と異なります）
+scripts/build-release.sh sign=no notices=no
 ```
 
 ```powershell
-# Windows x86_64（ホストビルド）
-./scripts/release-windows.ps1
+# Windows（x86_64 と arm64 クロスビルド）
+./scripts/build-release.ps1
 
-# Windows arm64（CI と同じく x86_64 ホストからクロスコンパイル）
-./scripts/release-windows.ps1 -Arch arm64
+# 片方だけビルドする場合
+./scripts/build-release.ps1 arch=x86_64
 ```
 
-アーカイブは `dist-release/`（git 管理外）に出力されます。
+いずれもそのマシンで作れる分だけをビルドし —— プラットフォーム固有のビルド自体は
+`scripts/release-macos.sh` と `scripts/release-windows.ps1` が受け持ちます —— 続けてアーカイブを検査し、
+`SHA256SUMS` を隣に書き出します。アーカイブは `dist-release/`（git 管理外）に出力されます。
+
+両方のマシンのアーカイブが 1 つのディレクトリに揃ったら、`scripts/build-release.sh build=no` が 3 つを
+まとめて検査し、マニフェストを書き出します。これがワークフローの最終ステップであり、重要な検査でも
+あります。何も生成しなかったマトリクスエントリや、古いバージョンの残骸アーカイブは、そうでなければ
+気づかれないまま Release に添付されてしまうためです。
+
+オプションの一覧は `--help` で確認できます。主なものは次のとおりです。
 
 - **ライセンス表記**: [cargo-about](https://github.com/EmbarkStudios/cargo-about) で生成します
-  (`cargo install cargo-about`)。`--skip-notices` / `-SkipNotices` を渡すとこの手順を省略でき、
-  素早く確認できますが、アーカイブの内容はリリース版と異なります。
+  (`cargo install cargo-about`)。`notices=no` を渡すとこの手順を省略でき、素早く確認できますが、
+  アーカイブの内容はリリース版と異なります。
 - **Windows arm64**: Visual Studio インストーラーの **MSVC v143 - VS 2022 C++ ARM64 build tools**
   コンポーネントが必要です。Rust のターゲット追加はスクリプトが行います。生成物はビルドした x86_64 ホスト
-  上では実行できないため、動作確認は Arm 実機で行ってください。
+  上では実行できないため、動作確認は Arm 実機で行ってください。`arch=x86_64` を渡せばスキップできます。
 - **macOS の署名・公証**: 任意です。ワークフローと同じ環境変数で制御します。`APPLE_SIGNING_IDENTITY`
   を設定すると署名し、さらに `APPLE_API_KEY` / `APPLE_API_ISSUER` と、`APPLE_API_KEY_PATH` または
   `APPLE_API_KEY_BASE64` のいずれかを設定すると公証と staple まで行います。その後スクリプトは完成した
   `.app` を実際に検査し、指定したはずの処理が行われていなければ **エラーで終了** します（証明書の失効や
   設定漏れがあると、署名は黙って何もしないまま通過してしまうためです）。いずれも設定しなければ未署名の
-  アプリが生成され、その旨が表示されるだけです。ローカルでは `APPLE_CERTIFICATE` は設定しないでください。
-  CI ではこの変数で `.p12` を渡し、Tauri CLI が一時キーチェーンへ取り込みますが、ローカルでは既存の
-  キーチェーンから証明書が解決されるためです (`security find-identity -v -p codesigning`)。
+  アプリが生成され、その旨が表示されるだけです。`sign=yes` を渡すと環境変数の状態にかかわらず署名・公証・
+  staple 済みであることを必須にし（CI が `v*` タグで渡す指定です）、`sign=no` を渡すと環境変数を無視して
+  未署名でビルドします。ローカルでは `APPLE_CERTIFICATE` は設定しないでください。CI ではこの変数で
+  `.p12` を渡し、Tauri CLI が一時キーチェーンへ取り込みますが、ローカルでは既存のキーチェーンから証明書が
+  解決されるためです (`security find-identity -v -p codesigning`)。
+  なお Windows の実行ファイルは意図的に署名していないため、Windows 側に `sign=` はありません。
 
 ## 📚 ドキュメントのビルド
 
