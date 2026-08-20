@@ -2,6 +2,10 @@
 # Builds the macOS release archive the way .github/workflows/release.yml does,
 # so a release build can be verified locally before one is dispatched.
 #
+# scripts/build-release.sh is the entry point: it runs this and then checks the
+# archive that came out of it, and that is what the workflow calls. Running this
+# directly is fine — it is the whole macOS build — but the checks are there.
+#
 # Output: dist-release/SSConverterGUI_<version>_universal.tar.gz
 #
 # Code signing and notarization are opt-in via the environment — see the block

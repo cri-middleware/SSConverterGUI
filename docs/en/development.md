@@ -61,39 +61,54 @@ pnpm run tauri build
 
 `pnpm run tauri build` gives you a bare executable. To reproduce what a release run actually
 uploads — the same archive name and layout, with `LICENSE.md` and `THIRD_PARTY_NOTICES.md`
-bundled in — use the release scripts. They mirror `.github/workflows/release.yml` step for step,
-so a local run catches a packaging or cross-compilation problem without dispatching a release.
+bundled in — run `build-release`. It **is** what `.github/workflows/release.yml` runs, so a local
+run catches a packaging, signing or cross-compilation problem without dispatching a release.
 
 ```bash
 # macOS (universal: Apple Silicon + Intel)
-scripts/release-macos.sh
+scripts/build-release.sh
+
+# quicker while iterating — the archive then differs from the released one
+scripts/build-release.sh sign=no notices=no
 ```
 
 ```powershell
-# Windows x86_64 (host build)
-./scripts/release-windows.ps1
+# Windows (x86_64, plus the arm64 cross-build)
+./scripts/build-release.ps1
 
-# Windows arm64 (cross-compiled from an x86_64 host, exactly as CI does)
-./scripts/release-windows.ps1 -Arch arm64
+# just one of them
+./scripts/build-release.ps1 arch=x86_64
 ```
 
-The archives land in `dist-release/`, which is git-ignored.
+Each builds the half of the release its own machine can — through `scripts/release-macos.sh` and
+`scripts/release-windows.ps1`, which are where the platform build itself lives — then checks the
+archive and writes `SHA256SUMS` beside it. The archives land in `dist-release/`, which is
+git-ignored.
+
+Once the archives from both machines are in one directory, `scripts/build-release.sh build=no`
+checks all three together and writes the manifest over them. That is the workflow's last step,
+and the check that matters: a matrix entry that built nothing, or a stale archive from an earlier
+version, would otherwise be attached to the Release unnoticed.
+
+`--help` lists every option. The ones worth knowing:
 
 - **Notices**: generated with [cargo-about](https://github.com/EmbarkStudios/cargo-about)
-  (`cargo install cargo-about`). Pass `--skip-notices` / `-SkipNotices` to skip that step for a
-  quicker check — the archive then differs from the released one.
+  (`cargo install cargo-about`). Pass `notices=no` to skip that step for a quicker check — the
+  archive then differs from the released one.
 - **Windows arm64**: needs the **MSVC v143 - VS 2022 C++ ARM64 build tools** component from the
   Visual Studio Installer. The script adds the Rust target itself. The result cannot be run on the
-  x86_64 host that built it — test it on an Arm device.
+  x86_64 host that built it — test it on an Arm device. `arch=x86_64` skips it.
 - **macOS signing and notarization**: opt-in, via the same variables the workflow uses. Set
   `APPLE_SIGNING_IDENTITY` to sign, and add `APPLE_API_KEY` / `APPLE_API_ISSUER` plus either
   `APPLE_API_KEY_PATH` or `APPLE_API_KEY_BASE64` to notarize and staple. The script then inspects
   the finished `.app` and **fails** if what you asked for did not actually happen — a missing or
   expired credential otherwise turns signing into a silent no-op. With none of the variables set
-  you get an unsigned app and only a note saying so. Leave `APPLE_CERTIFICATE` unset locally: CI
-  uses it to hand the Tauri CLI a `.p12` to import into a temporary keychain, whereas locally the
-  identity is resolved from the keychains you already have
-  (`security find-identity -v -p codesigning`).
+  you get an unsigned app and only a note saying so. `sign=yes` requires a signed, notarized and
+  stapled app whatever the environment says (what CI passes on a `v*` tag) and `sign=no` ignores
+  the variables entirely. Leave `APPLE_CERTIFICATE` unset locally: CI uses it to hand the Tauri
+  CLI a `.p12` to import into a temporary keychain, whereas locally the identity is resolved from
+  the keychains you already have (`security find-identity -v -p codesigning`).
+  The Windows executable is deliberately **not** code-signed, so there is no `sign=` on that side.
 
 ## 📚 Building the documentation
 
