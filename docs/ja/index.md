@@ -32,7 +32,7 @@ SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) �
 
 ## 関連リンク
 
-- [SpriteStudio Docs](https://cri-middleware.github.io/SpriteStudio-Docs/) — SDK と公式 Player の
+- [SpriteStudio Docs](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と公式 Player の
   ドキュメントポータル。
 - [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) — 本アプリケーションが利用する
   `ssconverter` クレートを提供する SDK 本体。
