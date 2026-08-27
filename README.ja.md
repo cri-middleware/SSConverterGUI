@@ -60,6 +60,6 @@ pnpm run tauri dev
 
 ## 📄 ライセンス
 
-本リポジトリのソースコードおよび成果物は、[LICENSE.md](./LICENSE.md) (BSD-3-Clause) の条件下で提供されています。
+本リポジトリのソースコードおよび成果物は、[LICENSE.md](./LICENSE.md) (BSD-3-Clause) の条件下で提供されています。参考訳は [LICENSE.ja.md](./LICENSE.ja.md) にあります。
 
 同梱されている `SpriteStudio-SDK` サブモジュールの利用条件については、該当リポジトリのライセンスファイルを参照してください。

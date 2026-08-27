@@ -115,7 +115,7 @@ stage="${out_dir}/${stage_name}"
 rm -rf "$stage"
 mkdir -p "$stage"
 ditto "${app_dir}/${app_name}" "${stage}/${app_name}"
-cp LICENSE.md "$stage/"
+cp LICENSE.md LICENSE.ja.md "$stage/"
 app_path="${stage}/${app_name}"
 
 # Inspect what the build produced rather than trusting that the env was

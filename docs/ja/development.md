@@ -61,7 +61,7 @@ pnpm run tauri build
 ### 5. リリース用アーカイブのビルド（任意）
 
 `pnpm run tauri build` で得られるのは実行ファイル単体です。リリース時に実際にアップロードされるもの
-—— 同じアーカイブ名・同じ構成で、`LICENSE.md` と `THIRD_PARTY_NOTICES.md` を同梱したもの —— を手元で
+—— 同じアーカイブ名・同じ構成で、`LICENSE.md`、`LICENSE.ja.md`、`THIRD_PARTY_NOTICES.md` を同梱したもの —— を手元で
 再現するには `build-release` を実行してください。`.github/workflows/release.yml` が実行するのは**この
 スクリプトそのもの**なので、リリースを実行しなくてもパッケージングや署名、クロスコンパイルの問題を
 検出できます。

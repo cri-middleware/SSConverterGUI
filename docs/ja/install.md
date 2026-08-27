@@ -23,7 +23,7 @@
 | Windows (x86_64) | `SSConverterGUI_<version>_x86_64.zip` |
 | Windows on Arm | `SSConverterGUI_<version>_arm64.zip` |
 
-いずれのアーカイブにも `LICENSE.md` と `THIRD_PARTY_NOTICES.md` が同梱されています。
+いずれのアーカイブにも `LICENSE.md`、`LICENSE.ja.md`、`THIRD_PARTY_NOTICES.md` が同梱されています。
 
 !!! tip "Windows 版はどちらを選べばよいですか"
 
