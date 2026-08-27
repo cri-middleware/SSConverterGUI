@@ -60,7 +60,7 @@ pnpm run tauri build
 ### 5. Build a release archive (optional)
 
 `pnpm run tauri build` gives you a bare executable. To reproduce what a release run actually
-uploads — the same archive name and layout, with `LICENSE.md` and `THIRD_PARTY_NOTICES.md`
+uploads — the same archive name and layout, with `LICENSE.md`, `LICENSE.ja.md` and `THIRD_PARTY_NOTICES.md`
 bundled in — run `build-release`. It **is** what `.github/workflows/release.yml` runs, so a local
 run catches a packaging, signing or cross-compilation problem without dispatching a release.
 

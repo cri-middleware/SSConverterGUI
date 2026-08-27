@@ -24,7 +24,7 @@ download the archive for your OS from the latest release.
 | Windows (x86_64) | `SSConverterGUI_<version>_x86_64.zip` |
 | Windows on Arm | `SSConverterGUI_<version>_arm64.zip` |
 
-Each archive also contains `LICENSE.md` and `THIRD_PARTY_NOTICES.md`.
+Each archive also contains `LICENSE.md`, `LICENSE.ja.md` and `THIRD_PARTY_NOTICES.md`.
 
 !!! tip "Which Windows archive do I need?"
 

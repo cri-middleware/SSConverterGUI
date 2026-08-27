@@ -76,6 +76,7 @@ try {
 
     Copy-Item $exe.FullName -Destination (Join-Path $staging 'SSConverterGUI.exe')
     Copy-Item 'LICENSE.md' -Destination (Join-Path $staging 'LICENSE.md')
+    Copy-Item 'LICENSE.ja.md' -Destination (Join-Path $staging 'LICENSE.ja.md')
 
     if ($SkipNotices) {
         Write-Host '==> Skipping third-party license notices (-SkipNotices)'
