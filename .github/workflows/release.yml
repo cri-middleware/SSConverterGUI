@@ -116,7 +116,7 @@ jobs:
       # is identical on each runner; the release scripts regenerate it per build
       # only so every archive is self-contained.
       - name: Install cargo-about
-        uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 # v2
+        uses: taiki-e/install-action@5bf6ce016fd2e72eefc647cbca1e4213f65955b8 # v2
         with:
           tool: cargo-about
 
@@ -240,7 +240,7 @@ jobs:
 
       - name: Create GitHub Release
         if: inputs.upload_release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: |
             release-dist/*.tar.gz
