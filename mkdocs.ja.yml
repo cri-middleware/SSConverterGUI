@@ -51,4 +51,5 @@ nav:
   - 🏠 ホーム: index.md
   - 📥 インストール: install.md
   - ▶️ 使い方: usage.md
+  - ⚠️ 制限事項と対応範囲: limitations.md
   - 🛠️ 開発者向け: development.md

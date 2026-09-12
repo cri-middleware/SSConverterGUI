@@ -27,6 +27,7 @@ Comprehensive documentation is available in the `docs/` folder:
 
 - [Installation](./docs/en/install.md)
 - [Usage](./docs/en/usage.md)
+- [Limitations & Scope](./docs/en/limitations.md)
 - [Development](./docs/en/development.md)
 
 ## 🚀 Quick Start

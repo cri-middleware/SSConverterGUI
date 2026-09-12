@@ -45,4 +45,5 @@ nav:
   - 🏠 Home: index.md
   - 📥 Installation: install.md
   - ▶️ Usage: usage.md
+  - ⚠️ Limitations & Scope: limitations.md
   - 🛠️ Development: development.md
