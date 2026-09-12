@@ -2,7 +2,7 @@
 
 # SSConverter GUI
 
-SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) をバイナリ形式 (`.ssab`) に変換するための、クロスプラットフォーム対応のGUIアプリケーションです。
+SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) を、プレイヤーが読み込むバイナリ —— アニメーションの **`.ssab`** とシーケンスの **`.ssqb`** —— に変換するクロスプラットフォーム対応の GUI アプリケーションです。
 Tauri v2、Vite、TypeScript を使用して構築されており、効率的な変換作業のための直感的なインターフェースを提供します。
 
 ## ✨ 主な機能
@@ -18,7 +18,7 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 
 詳細なドキュメントは `docs/` フォルダにあります。
 
-- [**ドキュメントサイト (ホスト版)**](https://cri-middleware.github.io/SSConverterGUI/) — 🚧 初回リリース後に公開
+- [**ドキュメントサイト (ホスト版)**](https://cri-middleware.github.io/SSConverterGUI/ja/) — 🚧 初回リリース後に公開
 - [**ドキュメント (日本語)**](./docs/ja/index.md)
 - [**Documentation (English)**](./docs/en/index.md)
 - [**SpriteStudio Docs（ポータル）**](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と全公式 Player の入口 — 🚧 初回リリース後に公開
@@ -31,7 +31,12 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 
 ## 🚀 クイックスタート
 
-動作環境は **macOS 10.15 以降**（ユニバーサル）または **Windows 10 / 11**（x86_64 版と Arm 版を用意）です。いずれもポータブル版のため、インストーラはありません。
+**自分のプロジェクトを変換する場合**はこのまま下へ。ダウンロードして、`.sspj` を放り込んで、変換するだけです。
+**SSConverter GUI 自体を開発する場合**は下の[ソースからのビルド](#-ソースからのビルド)へ。
+
+動作環境は **macOS 10.15 以降**（ユニバーサル）または **Windows 10 / 11**（x86_64 版と Arm 版を用意）です。いずれもポータブル版のため、インストーラはありません。対応するのは **SpriteStudio 7.5 以上**で作成されたプロジェクトです（`.ssab` / `.ssqb` の形式がその版に対して定義されています）。
+
+> 🚧 **未リリースです。** 以下のダウンロードは初回リリースの公開後に有効になります。それまでは[ソースからのビルド](#-ソースからのビルド)が動かす方法です。
 
 1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS と CPU に合ったアーカイブを入手し、展開して起動します。Windows 版の `.exe` は未署名のため初回起動時に SmartScreen の警告が表示されます。詳しくは[インストール手順](./docs/ja/install.md)を参照してください。
 2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）をターゲットエリアにドラッグ＆ドロップします。
@@ -55,11 +60,18 @@ pnpm run tauri dev
 
 ## 🔗 関連リポジトリ
 
-- [SpriteStudio Docs](https://github.com/cri-middleware/SpriteStudio-Docs) — SDK と公式 Player のドキュメントポータル
-- [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) — `ssconverter` クレートを提供する SDK 本体
+このツールが書き出したものは、そのまま各公式 Player が読み込みます。同じ `.ssab` がすべての Player で動きます。
+
+- [SpriteStudio Docs](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と全公式 Player の入口。どれを使うかもここで選べます
+- [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) — 本アプリの土台である `ssconverter` クレートを提供する SDK 本体（GUI なしで同じ変換をするのが `ssconverter-cli`）
 
 ## 📄 ライセンス
 
 本リポジトリのソースコードおよび成果物は、[LICENSE.md](./LICENSE.md) (BSD-3-Clause) の条件下で提供されています。参考訳は [LICENSE.ja.md](./LICENSE.ja.md) にあります。
 
-同梱されている `SpriteStudio-SDK` サブモジュールの利用条件については、該当リポジトリのライセンスファイルを参照してください。
+本アプリは Rust の依存グラフ全体（Tauri/wry、`ssconverter` SDK とその推移的依存）を静的リンクしているため、
+**`THIRD_PARTY_NOTICES.md` は各リリースアーカイブに実行ファイルと並べて同梱されます**。リポジトリには commit せず
+リリース時に `cargo about` で生成しているので、ダウンロードしたバイナリと常に一致します。許容ライセンスの一覧は
+`about.toml` にあり、一覧に無いライセンスが入るとリリースビルドが失敗します（気づかないまま出荷されません）。
+
+同梱の `SpriteStudio-SDK` サブモジュールは、本リポジトリと同じ BSD-3-Clause です。

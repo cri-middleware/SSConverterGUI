@@ -836,3 +836,11 @@ vite.config.ts.timestamp-*
 # scripts/build-release.sh build=no writes SHA256SUMS beside them. dist-release/
 # (what a build run writes, locally and on the matrix) is already ignored above.
 /release-dist/
+
+# AI assistant configuration
+# AGENTS.md is the tracked canonical guide; per-tool entrypoints that developers
+# symlink to it (e.g. CLAUDE.md) stay local.
+GEMINI.md
+.gemini/
+CLAUDE.md
+.claude/
