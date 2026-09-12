@@ -28,6 +28,7 @@ SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) �
 
 - [インストール](install.md) — アプリケーションのダウンロードと起動。
 - [使い方](usage.md) — 最初の `.sspj` ファイルを変換する。
+- [制限事項と対応範囲](limitations.md) — 何を変換し、何を Player に委ねているか。
 - [開発者向け](development.md) — ソースコードからビルドする。
 
 ## 関連リンク

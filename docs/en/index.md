@@ -28,6 +28,7 @@ one that fits your workflow:
 
 - [Installation](install.md) — download and launch the application.
 - [Usage](usage.md) — convert your first `.sspj` file.
+- [Limitations & Scope](limitations.md) — what it converts, and what it leaves to the players.
 - [Development](development.md) — build the application from source.
 
 ## Related links

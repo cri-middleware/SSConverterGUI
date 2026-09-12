@@ -27,6 +27,7 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 
 - [インストール](./docs/ja/install.md)
 - [使い方](./docs/ja/usage.md)
+- [制限事項と対応範囲](./docs/ja/limitations.md)
 - [開発者向け](./docs/ja/development.md)
 
 ## 🚀 クイックスタート
