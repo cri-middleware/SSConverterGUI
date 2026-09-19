@@ -89,7 +89,10 @@ usage () {
   echo "  verify=<yes|no>         Check the archives before writing SHA256SUMS"
   echo "                          (default: $VERIFY). no writes the manifest over"
   echo "                          whatever is there, which is not a thing to ship."
-  echo "  -h | --help             Show this help"
+    echo "  out= clean= sdk= skip=  Accepted and ignored here. The family's build-release"
+  echo "                          scripts share out= clean= verify= in= sdk= skip=,"
+  echo "                          so one command line drives all of them."
+echo "  -h | --help             Show this help"
   echo ""
   echo "Output: the archive(s) in <in>, and SHA256SUMS beside them -- the set release.yml"
   echo "attaches to the draft Release."
@@ -117,6 +120,9 @@ while [ $# -gt 0 ]; do
         sign)    SIGN="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" ;;
         notices) NOTICES="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" ;;
         verify)  VERIFY="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" ;;
+        # Accepted so one command line drives build-release in every repository
+        # of the family; this one has no use for them (AGENTS.md).
+        out|clean|sdk|skip) echo "$APP: ${key}= does not apply here; ignored" >&2 ;;
         *)
           echo "$APP: unknown option '$key' (see $APP --help)" >&2
           exit 2
