@@ -85,7 +85,10 @@ function Show-Usage {
     Write-Host "  verify=<yes|no>         Check the archives before writing SHA256SUMS (default:"
     Write-Host "                          yes). no writes the manifest over whatever is there,"
     Write-Host "                          which is not a thing to ship."
-    Write-Host "  -h | --help             Show this help"
+        Write-Host "  out= clean= sdk= skip=  Accepted and ignored here. The family's build-release"
+    Write-Host "                          scripts share out= clean= verify= in= sdk= skip=,"
+    Write-Host "                          so one command line drives all of them."
+Write-Host "  -h | --help             Show this help"
     Write-Host ""
     Write-Host "Output: the archive(s) in <in>, and SHA256SUMS beside them -- the set release.yml"
     Write-Host "attaches to the draft Release."
@@ -109,8 +112,17 @@ foreach ($argument in $Arguments) {
         '^sign=' {
             Write-Error "${app}: there is no sign= here -- the Windows executable is not code-signed. macOS signing is scripts/build-release.sh's."
         }
+        # Accepted so one command line drives build-release in every repository
+        # of the family; this one has no use for them.
+        '^(out|clean|sdk|skip)=' {
+            [Console]::Error.WriteLine("${app}: " + ($argument -replace '=.*$', '') + "= does not apply here; ignored")
+        }
         default {
-            Write-Error "${app}: unknown argument '$argument' (options are key=value; see $app --help)"
+            # Plain stderr and the code, matching the .sh twin (2 = bad usage).
+            # Write-Error throws under $ErrorActionPreference = "Stop", so an
+            # `exit 2` after one never runs and the shell sees 1.
+            [Console]::Error.WriteLine("${app}: unknown argument '$argument' (options are key=value; see $app --help)")
+            exit 2
         }
     }
 }
