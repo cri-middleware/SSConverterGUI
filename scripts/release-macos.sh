@@ -160,7 +160,7 @@ else
   cargo about generate -c about.toml about.hbs \
     --manifest-path src-tauri/Cargo.toml \
     -o "$stage/THIRD_PARTY_NOTICES.md"
-  node scripts/gen-npm-notices.mjs "$stage/THIRD_PARTY_NOTICES.md"
+  node scripts/generate-npm-notices.mjs "$stage/THIRD_PARTY_NOTICES.md"
 fi
 
 tar -czf "$out_dir/$archive" -C "$out_dir" "$stage_name"

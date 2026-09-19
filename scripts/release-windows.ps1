@@ -88,7 +88,7 @@ try {
         $notices = Join-Path $staging 'THIRD_PARTY_NOTICES.md'
         Invoke-Checked cargo about generate -c about.toml about.hbs `
             --manifest-path src-tauri/Cargo.toml -o $notices
-        Invoke-Checked node scripts/gen-npm-notices.mjs $notices
+        Invoke-Checked node scripts/generate-npm-notices.mjs $notices
     }
 
     $zip = Join-Path $outDir "SSConverterGUI_${version}_${Arch}.zip"
