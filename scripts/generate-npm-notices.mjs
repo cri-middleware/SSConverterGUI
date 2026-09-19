@@ -9,7 +9,7 @@
 // located is a hard failure, not a silent omission — that is the signal to
 // review it and add a fallback under `licenses/<SPDX-ID>.txt`.
 //
-// Usage: node scripts/gen-npm-notices.mjs [output-file]
+// Usage: node scripts/generate-npm-notices.mjs [output-file]
 
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, readdirSync, readFileSync, existsSync } from 'node:fs'
