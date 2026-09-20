@@ -61,7 +61,10 @@ fn path_kind(path: String) -> Result<String, String> {
 struct VersionInfo {
     app_version: String,
     converter_version: String,
+    // Both emitted formats, because a conversion writes both and a bug report
+    // that names only one cannot say which side a Player disagreed with.
     ssab_schema_version: u32,
+    ssqb_schema_version: u32,
 }
 
 /// A single `.sspj` that failed to convert, reported alongside the successes so
@@ -90,6 +93,7 @@ fn get_versions(app: tauri::AppHandle) -> VersionInfo {
         app_version: app.package_info().version.to_string(),
         converter_version: ssconverter::version_string(),
         ssab_schema_version: ssconverter::ssab_schema_version(),
+        ssqb_schema_version: ssconverter::ssqb_schema_version(),
     }
 }
 
