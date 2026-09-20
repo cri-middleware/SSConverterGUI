@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, HistoryItem } from './utils';
+import { updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, historySummary, HistoryItem } from './utils';
 
 describe('updateHistory', () => {
     it('should add a new item to the beginning of the history', () => {
@@ -88,5 +88,24 @@ describe('defaultOutputName', () => {
 
     it('should not disturb a stem that already contains dots or spaces', () => {
         expect(defaultOutputName('my project.v2', true)).toBe('my project.v2_emb');
+    });
+});
+
+describe('historySummary', () => {
+    const base: HistoryItem = { inputPath: 'a.sspj', outputPath: null, embedded: false, timestamp: 1 };
+
+    it('should report only the count for a run with default settings', () => {
+        expect(historySummary({ ...base, count: 1 })).toBe('1 project');
+    });
+
+    it('should pluralise a batch and name what was unusual about it', () => {
+        expect(historySummary({ ...base, count: 12, outputPath: '/out', embedded: true }))
+            .toBe('12 projects · embedded · → /out');
+    });
+
+    // Entries written before a run was one entry recorded a single `.sspj`
+    // each, so they have no count to report and must not invent one.
+    it('should omit the count for an entry that has none', () => {
+        expect(historySummary(base)).toBe('');
     });
 });
