@@ -17,7 +17,7 @@ application yet, see [Installation](install.md).
    will be used.
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
 5. Click the **"⚡ Convert"** button to start the conversion.
-6. Check the status and logs at the bottom of the screen.
+6. The badge beside the button gives the status, and the log below it reports each project.
 
 ## Batch conversion
 

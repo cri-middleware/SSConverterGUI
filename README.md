@@ -41,7 +41,7 @@ Requires **macOS 10.15+** (universal) or **Windows 10/11** (x86_64 and Arm build
 
 1. **Download**: Get the archive for your OS and CPU from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases), unpack it, and run it. The Windows `.exe` is unsigned, so SmartScreen prompts on first launch — see the [Installation Guide](./docs/en/install.md).
 2. **Select**: Drag & drop a `.sspj` file — or a folder containing several — into the target area.
-3. **Convert**: Click the **"⚡ Convert"** button, then check the status and logs at the bottom of the screen.
+3. **Convert**: Click the **"⚡ Convert"** button. The badge beside it gives the status, and the log below reports each project.
 
 For the full walkthrough, including output folders and asset embedding, see the [Usage Guide](./docs/en/usage.md).
 
