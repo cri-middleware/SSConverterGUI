@@ -1,14 +1,17 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
-import { updateHistory, sanitizeHistory, defaultOutputName, HistoryItem } from './utils';
+import { updateHistory, sanitizeHistory, defaultOutputName, historySummary, HistoryItem } from './utils';
 import './style.css';
 
 // Mirrors the Rust `ConvertSummary` returned by the `convert_sspj` command.
 interface ConvertSummary {
     succeeded: string[];
     failed: { path: string; error: string }[];
+    // Every distinct directory the converter reported writing to, in order.
+    output_dirs: string[];
     // Already logged live via the `convert-warning` event; used here only to
     // decide the final status.
     warnings: string[];
@@ -61,6 +64,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         ⚡ Convert
       </button>
       <span class="status-badge badge-pending" id="convertStatus">Waiting</span>
+      <button class="btn btn-secondary" id="btnRevealOutput" style="display: none;" title="Show the output in the file manager">📂 Reveal Output</button>
     </div>
     
     <div style="display: flex; gap: 1.5rem; margin-top: 1.25rem; flex: 1 1 0; min-height: 160px;">
@@ -87,7 +91,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
     <span id="appVersionDisplay">App Version: Loading...</span>
     <span id="versionDisplay">Converter Version: Loading...</span>
-    <button class="btn" id="btnCopyVersion" style="margin-top: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); display: none;" title="Copy Versions">Copy Versions</button>
+    <button class="btn btn-secondary" id="btnCopyVersion" style="margin-top: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; display: none;" title="Copy Versions">Copy Versions</button>
   </div>
 
   <!-- Progress Modal -->
@@ -97,6 +101,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <div class="spinner" id="modalSpinner"></div>
         <span id="modalTitleText">Processing...</span>
       </h3>
+      <div id="modalProgress" style="display: none; margin-top: 0.75rem;">
+        <div class="progress-track"><div class="progress-fill" id="modalProgressFill"></div></div>
+        <div id="modalProgressText" style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted); text-align: right;"></div>
+      </div>
       <div id="modalLogArea" style="background: var(--bg-surface); padding: 0.75rem; border-radius: 8px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; margin: 1rem 0; color: var(--text-muted); border: 1px solid var(--border-color); white-space: pre-wrap;"></div>
       <div style="display: flex; justify-content: flex-end;">
         <button class="btn" id="btnCancelConvert" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">Stop / Cancel</button>
@@ -129,6 +137,10 @@ const modalTitleText = document.getElementById('modalTitleText')!;
 const modalSpinner = document.getElementById('modalSpinner')!;
 const modalLogArea = document.getElementById('modalLogArea')!;
 const btnCancelConvert = document.getElementById('btnCancelConvert') as HTMLButtonElement;
+const btnRevealOutput = document.getElementById('btnRevealOutput') as HTMLButtonElement;
+const modalProgress = document.getElementById('modalProgress')!;
+const modalProgressFill = document.getElementById('modalProgressFill')!;
+const modalProgressText = document.getElementById('modalProgressText')!;
 const themeToggle = document.getElementById('themeToggle') as HTMLButtonElement;
 
 let isDarkMode = localStorage.getItem('theme') !== 'light';
@@ -152,6 +164,10 @@ let selectedPath: string | null = null;
 let selectedKind: PathKind | null = null;
 let selectedOutPath: string | null = null;
 let isConverting = false;
+// What the Reveal Output button shows: for a single project the directory the
+// converter said it wrote to, for a batch the folder that was selected, since
+// a batch scatters its output through it. Null until a run produces something.
+let revealTarget: string | null = null;
 
 // Ask the backend what a path actually is. Every `.sspj`-vs-folder decision in
 // the UI goes through this, so the app never disagrees with itself (or with the
@@ -251,13 +267,8 @@ function loadHistory(): HistoryItem[] {
     }
 }
 
-function saveHistory(items: HistoryItem[]) {
-    let history: HistoryItem[] = loadHistory();
-
-    items.forEach(newItem => {
-        history = updateHistory(history, newItem, 100);
-    });
-
+function saveHistory(item: HistoryItem) {
+    const history = updateHistory(loadHistory(), item, 100);
     localStorage.setItem('convert_history', JSON.stringify(history));
     renderHistory();
 }
@@ -289,7 +300,14 @@ function renderHistory() {
 
         const metaSpan = document.createElement('span');
         metaSpan.style.cssText = 'font-size: 0.8rem; color: var(--text-muted);';
-        metaSpan.textContent = `Out: ${item.outputPath || 'Default'} | Emb: ${item.embedded ? 'Yes' : 'No'}`;
+        const when = new Date(item.timestamp);
+        const stamp = Number.isFinite(when.getTime())
+            ? when.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+            : '';
+        const meta = [historySummary(item), stamp].filter(Boolean).join(' · ');
+        metaSpan.textContent = meta;
+        // The column clips this line; the tooltip is where the whole of it is.
+        metaSpan.title = meta;
 
         info.append(pathSpan, metaSpan);
 
@@ -411,9 +429,31 @@ listen<{ paths: string[]; position?: { x: number; y: number } }>('tauri://drag-d
 // Converter progress from the backend. Failures and warnings arrive on their
 // own events so they keep their severity; the summary returned by
 // `convert_sspj` is used for counts only and never re-logs them.
+// A determinate bar: a spinner says nothing about how far into a fifty-project
+// batch a run is. The file being converted is already named in the log below.
+function showProgress(done: number, total: number) {
+    modalProgress.style.display = 'block';
+    const ratio = total > 0 ? done / total : 0;
+    modalProgressFill.style.width = `${Math.round(ratio * 100)}%`;
+    modalProgressText.textContent = `${done} / ${total}`;
+}
+
+listen<{ done: number; total: number }>('convert-progress', event => showProgress(event.payload.done, event.payload.total));
+
 listen<string>('convert-log', event => logFromBackend(event.payload));
 listen<string>('convert-warning', event => logFromBackend(event.payload, 'warning'));
 listen<string>('convert-error', event => logFromBackend(event.payload, 'error'));
+
+btnRevealOutput.addEventListener('click', async () => {
+    if (!revealTarget) return;
+    try {
+        // `revealItemInDir`, not `openPath`: it is what `opener:default` already
+        // grants, so this needs no widening of `capabilities/default.json`.
+        await revealItemInDir(revealTarget);
+    } catch (e) {
+        log(`Could not reveal ${revealTarget}: ${e}`, 'error');
+    }
+});
 
 btnCancelConvert.addEventListener('click', async () => {
     btnCancelConvert.disabled = true;
@@ -508,6 +548,7 @@ function setBusy(busy: boolean) {
     btnClearOut.disabled = busy;
     btnClearHistory.disabled = busy;
     chkEmbedded.disabled = busy;
+    btnRevealOutput.disabled = busy;
     historyArea.querySelectorAll<HTMLButtonElement>('.btn-history-retry')
         .forEach(retry => { retry.disabled = busy; });
 }
@@ -527,11 +568,16 @@ async function runConversion() {
         updateBadge(convertStatus, 'Converting...', 'active');
         log('Starting conversion...');
 
-        // Setup and show modal
+        // Setup and show modal. The bar stays hidden until the backend has
+        // counted the projects, which for a folder means after the scan.
         modalLogArea.replaceChildren();
         modalTitleText.textContent = isSingleFile ? 'Converting Project...' : 'Scanning & Converting...';
         modalSpinner.style.display = 'inline-block';
+        modalProgress.style.display = 'none';
+        modalProgressFill.style.width = '0%';
         btnCancelConvert.disabled = false;
+        btnRevealOutput.style.display = 'none';
+        revealTarget = null;
         progressModal.style.display = 'flex';
 
         const startTime = performance.now();
@@ -545,7 +591,7 @@ async function runConversion() {
 
         // Individual failures and warnings were already logged from their
         // backend events — only the totals are reported here.
-        const { succeeded, failed, warnings } = result;
+        const { succeeded, failed, warnings, output_dirs } = result;
         const plural = (n: number) => n === 1 ? '' : 's';
 
         if (failed.length > 0 && succeeded.length === 0) {
@@ -562,17 +608,23 @@ async function runConversion() {
             log(`Successfully converted ${succeeded.length} project${plural(succeeded.length)}.`, 'success');
         }
 
-        // Save one history entry per successfully converted sspj file.
-        const historyItems: HistoryItem[] = succeeded.map(sspjPath => ({
-            inputPath: sspjPath,
-            // In batch (folder) mode each output is placed automatically (null).
-            outputPath: isSingleFile ? outputPath : null,
-            embedded,
-            timestamp: Date.now()
-        }));
+        // One project: reveal the directory the converter reported. A batch
+        // scatters its output beside each `.sspj`, so the folder that was
+        // selected is the only place that holds all of it.
+        revealTarget = isSingleFile ? (output_dirs[0] ?? null) : inputPath;
+        btnRevealOutput.style.display = succeeded.length > 0 && revealTarget ? 'inline-flex' : 'none';
 
-        if (historyItems.length > 0) {
-            saveHistory(historyItems);
+        // One history entry per run, keyed by what was selected. Recording one
+        // per `.sspj` filled the list with rows nobody had chosen and left the
+        // folder of a batch — the thing you would want to run again — absent.
+        if (succeeded.length > 0) {
+            saveHistory({
+                inputPath,
+                outputPath,
+                embedded,
+                count: succeeded.length,
+                timestamp: Date.now(),
+            });
         }
     } catch (e: any) {
         log(`Error/Cancelled: ${e}`, 'error');

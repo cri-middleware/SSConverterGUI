@@ -43,6 +43,8 @@
   --glass-bg: rgba(30, 41, 59, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
   --input-bg: rgba(0, 0, 0, 0.2);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-hover: rgba(255, 255, 255, 0.18);
   --log-bg: rgba(0, 0, 0, 0.3);
   --modal-overlay: rgba(0, 0, 0, 0.5);
 
@@ -63,6 +65,8 @@
   --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(0, 0, 0, 0.1);
   --input-bg: rgba(0, 0, 0, 0.05);
+  --btn-secondary-bg: rgba(0, 0, 0, 0.05);
+  --btn-secondary-hover: rgba(0, 0, 0, 0.1);
   --log-bg: rgba(0, 0, 0, 0.05);
   --modal-overlay: rgba(0, 0, 0, 0.2);
 }
@@ -186,6 +190,21 @@ body {
 .btn:active {
   transform: translateY(0);
 }
+
+/* A button that is not the primary action. `color` is the point: `.btn` sets
+   `color: white`, so overriding only the background — which the Copy Versions
+   button did inline — leaves white text on a white pill in the light theme.
+   The surface is a token so it flips with the theme instead of being a fixed
+   translucent white that only reads on a dark panel. */
+.btn-secondary {
+  background-color: var(--btn-secondary-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+}
+
+.btn-secondary:hover {
+  background-color: var(--btn-secondary-hover);
+}
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -277,6 +296,32 @@ body {
   min-width: 9rem;
   text-align: center;
   white-space: nowrap;
+}
+
+/* Reveal Output: present only after a run that wrote something, and never at
+   the cost of the primary button's width. Its colours come from
+   `.btn-secondary`. */
+.action-row .btn:not(.btn-full) {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* How far a batch has got, under the modal's title. */
+.progress-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--input-bg);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.2s ease;
 }
 
 .status-badge {

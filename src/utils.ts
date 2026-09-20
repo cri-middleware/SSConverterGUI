@@ -1,8 +1,14 @@
 export interface HistoryItem {
+    /** What was selected for that run: a `.sspj`, or the folder of a batch. */
     inputPath: string;
     outputPath: string | null;
     embedded: boolean;
     timestamp: number;
+    /**
+     * Projects converted in that run. Absent on entries written before a run
+     * was one entry — those recorded a single `.sspj` each and cannot say.
+     */
+    count?: number;
 }
 
 /** Whether an arbitrary parsed value has every field `HistoryItem` promises. */
@@ -12,7 +18,8 @@ export function isHistoryItem(value: unknown): value is HistoryItem {
     return typeof item.inputPath === 'string'
         && (typeof item.outputPath === 'string' || item.outputPath === null)
         && typeof item.embedded === 'boolean'
-        && typeof item.timestamp === 'number';
+        && typeof item.timestamp === 'number'
+        && (item.count === undefined || typeof item.count === 'number');
 }
 
 // localStorage is user-writable and may hold entries from an older format, so
@@ -33,6 +40,29 @@ export function sanitizeHistory(value: unknown): HistoryItem[] {
  */
 export function defaultOutputName(stem: string, embedded: boolean): string {
     return embedded ? `${stem}_emb` : stem;
+}
+
+/**
+ * What re-running a history entry would do, for the line under its path.
+ *
+ * Only what is true of that run: the history column is narrow, and spelling
+ * out the defaults ("Emb: No", "Out: Default") pushed the timestamp past the
+ * edge. An entry from before runs were recorded whole has no count, and must
+ * not claim one; a run with nothing unusual about it returns an empty string
+ * and the caller is left with just the date.
+ */
+export function historySummary(item: HistoryItem): string {
+    const parts: string[] = [];
+    if (item.count !== undefined) {
+        parts.push(`${item.count} project${item.count === 1 ? '' : 's'}`);
+    }
+    if (item.embedded) {
+        parts.push('embedded');
+    }
+    if (item.outputPath) {
+        parts.push(`→ ${item.outputPath}`);
+    }
+    return parts.join(' · ');
 }
 
 export function updateHistory(history: HistoryItem[], newItem: HistoryItem, maxItems: number = 100): HistoryItem[] {

@@ -17,7 +17,10 @@ application yet, see [Installation](install.md).
    will be used.
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
 5. Click the **"⚡ Convert"** button to start the conversion.
-6. The badge beside the button gives the status, and the log below it reports each project.
+6. While it runs, a bar counts the projects off — `12 / 50` — over the log of what each one is
+   doing. When it finishes, the badge beside the button gives the status, and **"📂 Reveal
+   Output"** appears next to it: for one project that shows the folder the converter wrote to,
+   for a batch the folder you selected, since a batch spreads its output through it.
 
 ## Batch conversion
 
@@ -26,5 +29,7 @@ to add the files one by one.
 
 ## Conversion history
 
-Previous conversions are kept in the history, so you can re-run one with the same settings without
-selecting the input and output again.
+Each run is kept as **one entry**, under whatever you selected: a `.sspj` for a single conversion,
+the folder for a batch. Re-running one repeats it with the settings it used, without selecting the
+input and output again. The line under the path says what those settings were and when it last
+ran.

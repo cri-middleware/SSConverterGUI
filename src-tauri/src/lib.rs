@@ -27,6 +27,14 @@ fn scan_limit_label(visited: usize) -> String {
     }
 }
 
+/// The converter announces the directory it is about to write to with this
+/// prefix. Taking the path from its own message keeps the naming rule
+/// (`<name>/`, or `<name>_emb/` when assets are embedded) where it belongs:
+/// `get_ssab_output_directory` is private to `ssconverter`, so recomputing it
+/// here would be a second copy that could drift. If the wording ever changes,
+/// no directory is captured and the frontend simply offers nothing to reveal.
+const OUTPUT_DIR_LOG_PREFIX: &str = "Writing output to: ";
+
 struct CancelState(Arc<AtomicBool>);
 
 #[tauri::command]
@@ -75,10 +83,22 @@ struct ConvertFailure {
     error: String,
 }
 
+/// How far a batch has got. Emitted once before the first file and again
+/// after each one, so the modal can show a determinate bar instead of a
+/// spinner that says nothing about a fifty-project run.
+#[derive(Clone, serde::Serialize)]
+struct ConvertProgress {
+    done: usize,
+    total: usize,
+}
+
 #[derive(serde::Serialize)]
 struct ConvertSummary {
     succeeded: Vec<String>,
     failed: Vec<ConvertFailure>,
+    /// Every distinct directory the converter reported writing to, in the
+    /// order it reported them. Empty when nothing was written.
+    output_dirs: Vec<String>,
     /// Non-fatal problems that make the run incomplete (currently only a
     /// truncated directory scan). Already emitted live as `convert-warning`;
     /// repeated here so the final status can say the batch was not exhaustive.
@@ -181,8 +201,12 @@ async fn convert_sspj(
 
         let mut succeeded = vec![];
         let mut failed = vec![];
+        let mut output_dirs: Vec<String> = vec![];
 
-        for file in files_to_convert {
+        let total = files_to_convert.len();
+        let _ = app.emit("convert-progress", ConvertProgress { done: 0, total });
+
+        for (index, file) in files_to_convert.iter().enumerate() {
             if should_stop.load(Ordering::Relaxed) {
                 return Err("Conversion cancelled by user.".into());
             }
@@ -192,12 +216,25 @@ async fn convert_sspj(
             // Owned handle for the progress callback, which outlives this scope
             // only as far as the call below.
             let app_clone = app.clone();
-            let result = convert_sspj_to_ssab_files_cancellable(&file, &config, &|msg: &str| {
+            let reported_dir = std::sync::Mutex::new(None::<String>);
+            let result = convert_sspj_to_ssab_files_cancellable(file, &config, &|msg: &str| {
+                if let Some(dir) = msg.strip_prefix(OUTPUT_DIR_LOG_PREFIX)
+                    && let Ok(mut slot) = reported_dir.lock()
+                {
+                    *slot = Some(dir.to_string());
+                }
                 let _ = app_clone.emit("convert-log", msg);
             }, &should_stop);
 
             match result {
-                Ok(()) => succeeded.push(file.to_string_lossy().into_owned()),
+                Ok(()) => {
+                    succeeded.push(file.to_string_lossy().into_owned());
+                    if let Ok(Some(dir)) = reported_dir.into_inner()
+                        && !output_dirs.contains(&dir)
+                    {
+                        output_dirs.push(dir);
+                    }
+                }
                 Err(err) => {
                     // Cancellation surfaces as an error on the in-flight file;
                     // treat that as cancelling the whole batch rather than as a
@@ -219,9 +256,11 @@ async fn convert_sspj(
                     });
                 }
             }
+
+            let _ = app.emit("convert-progress", ConvertProgress { done: index + 1, total });
         }
 
-        Ok(ConvertSummary { succeeded, failed, warnings })
+        Ok(ConvertSummary { succeeded, failed, output_dirs, warnings })
     })
     .await
     .map_err(|e| format!("Task panicked: {}", e))?
