@@ -56,18 +56,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </label>
     </div>
 
-    <div class="status-area">
-      <div class="status-item">
-        <span class="status-title">Status</span>
-        <span class="status-badge badge-pending" id="convertStatus">Waiting</span>
-      </div>
+    <div class="action-row">
+      <button class="btn btn-success btn-full" id="btnConvert" disabled>
+        ⚡ Convert
+      </button>
+      <span class="status-badge badge-pending" id="convertStatus">Waiting</span>
     </div>
     
-    <button class="btn btn-success btn-full" id="btnConvert" disabled>
-      ⚡ Convert
-    </button>
-    
-    <div style="display: flex; gap: 1.5rem; margin-top: 2rem; height: 240px;">
+    <div style="display: flex; gap: 1.5rem; margin-top: 1.25rem; flex: 1 1 0; min-height: 160px;">
       <!-- History Area -->
       <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -88,7 +84,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </div>
   </div>
 
-  <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+  <div style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
     <span id="appVersionDisplay">App Version: Loading...</span>
     <span id="versionDisplay">Converter Version: Loading...</span>
     <button class="btn" id="btnCopyVersion" style="margin-top: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); display: none;" title="Copy Versions">Copy Versions</button>

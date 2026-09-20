@@ -43,7 +43,6 @@
   --glass-bg: rgba(30, 41, 59, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
   --input-bg: rgba(0, 0, 0, 0.2);
-  --status-bg: rgba(255, 255, 255, 0.05);
   --log-bg: rgba(0, 0, 0, 0.3);
   --modal-overlay: rgba(0, 0, 0, 0.5);
 
@@ -64,7 +63,6 @@
   --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(0, 0, 0, 0.1);
   --input-bg: rgba(0, 0, 0, 0.05);
-  --status-bg: rgba(0, 0, 0, 0.03);
   --log-bg: rgba(0, 0, 0, 0.05);
   --modal-overlay: rgba(0, 0, 0, 0.2);
 }
@@ -88,20 +86,28 @@ body {
   background-attachment: fixed;
 }
 
+/* The page fills the window: the panel grows into whatever height is left, so
+   a tall window gives the history and log more room instead of empty space
+   below them, and the default window fits without scrolling. `min-height`
+   rather than `height`, so a window dragged below the configured minimum
+   scrolls instead of clipping. */
 #app {
   max-width: 800px;
   margin: 0 auto;
-  padding: 4rem 2rem;
+  padding: 1.5rem 2rem;
   width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
 }
 
 .header h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   background: linear-gradient(to right, #818cf8, #34d399);
   -webkit-background-clip: text;
@@ -111,7 +117,7 @@ body {
 
 .header p {
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .panel {
@@ -120,9 +126,19 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   border-radius: 1rem;
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* `1 0 auto`: never shorter than its controls, but takes the spare height. */
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Only the history/log row absorbs that spare height; every control above it
+   keeps the size its content asks for rather than being squeezed. */
+.panel > * {
+  flex-shrink: 0;
 }
 
 .drop-zone {
@@ -239,22 +255,28 @@ body {
   background-color: #059669;
 }
 
-.status-area {
-  margin-top: 2rem;
-}
-
-.status-item {
+/* The status badge sits beside the action it describes rather than in a boxed
+   row of its own, which spent 81px of the panel on one word. */
+.action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  background: var(--status-bg);
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
-.status-title {
-  font-weight: 600;
+.action-row .btn-full {
+  flex: 1;
+  width: auto;
+  margin-top: 0;
+}
+
+/* Wide enough that the longest status ("12 ok (incomplete)") does not resize
+   the button next to it. */
+.action-row .status-badge {
+  flex: 0 0 auto;
+  min-width: 9rem;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .status-badge {
@@ -290,7 +312,7 @@ body {
 }
 
 .options-group {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   display: flex;
   gap: 1.5rem;
   justify-content: center;
