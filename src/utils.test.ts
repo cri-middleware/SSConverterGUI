@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { updateHistory, sanitizeHistory, isHistoryItem, HistoryItem } from './utils';
+import { updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, HistoryItem } from './utils';
 
 describe('updateHistory', () => {
     it('should add a new item to the beginning of the history', () => {
@@ -73,5 +73,20 @@ describe('sanitizeHistory', () => {
         expect(sanitizeHistory(null)).toEqual([]);
         expect(sanitizeHistory({ inputPath: 'a.sspj' })).toEqual([]);
         expect(sanitizeHistory('[]')).toEqual([]);
+    });
+});
+
+describe('defaultOutputName', () => {
+    it('should use the project stem unchanged for a plain conversion', () => {
+        expect(defaultOutputName('character', false)).toBe('character');
+    });
+
+    // The suffix is what keeps an embedded build from overwriting a plain one.
+    it('should append _emb when assets are embedded', () => {
+        expect(defaultOutputName('character', true)).toBe('character_emb');
+    });
+
+    it('should not disturb a stem that already contains dots or spaces', () => {
+        expect(defaultOutputName('my project.v2', true)).toBe('my project.v2_emb');
     });
 });

@@ -22,6 +22,19 @@ export function sanitizeHistory(value: unknown): HistoryItem[] {
     return Array.isArray(value) ? value.filter(isHistoryItem) : [];
 }
 
+/**
+ * The converter's output directory name for a project with the given `.sspj`
+ * file stem. `ssconverter` appends `_emb` when assets are embedded, so the two
+ * builds of one project never overwrite each other.
+ *
+ * Nothing is written to a path built from this: the app leaves the output
+ * directory unset so the converter resolves it, and this only fills the
+ * placeholder that says where the files will land.
+ */
+export function defaultOutputName(stem: string, embedded: boolean): string {
+    return embedded ? `${stem}_emb` : stem;
+}
+
 export function updateHistory(history: HistoryItem[], newItem: HistoryItem, maxItems: number = 100): HistoryItem[] {
     // Remove if already exists to move to top
     let newHistory = history.filter(h => h.inputPath !== newItem.inputPath);
