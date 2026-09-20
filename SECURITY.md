@@ -13,8 +13,9 @@ channels below so the problem can be fixed before it becomes widely known.
 
 1. **GitHub Security Advisory (preferred)** — [report it privately here](https://github.com/cri-middleware/SSConverterGUI/security/advisories/new).
    The report stays private to you and the maintainers until an advisory is published.
-2. **CRI Middleware Help Center** — [inquiry form](https://www.webtech.co.jp/help/en/spritestudio7/inquiries/ssplayer_tool/),
-   if you would rather not use GitHub or need to attach large reproduction data.
+2. **CRI Middleware inquiry form** — [English](https://www.webtech.co.jp/contact/en.html) or
+   [Japanese](https://www.webtech.co.jp/help/ja/spritestudio7/inquiries/ssplayer_tool/), if you would rather not use
+   GitHub. Only the Japanese form takes an attachment (zip, up to 8 MB).
 
 Please include, as far as you can:
 
@@ -30,7 +31,7 @@ a reasonable window to release a fix before disclosing the issue publicly.
 This repository covers the **GUI application** — its Tauri commands, file handling, and bundled
 frontend. Vulnerabilities in the conversion engine itself (the `ssconverter` crate) belong to the
 [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) repository; please report
-those there, or through the Help Center form above.
+those there, or through the inquiry form above.
 
 Note that the Windows executable is distributed unsigned, which is a known and documented property
 of our releases rather than a vulnerability — see the
