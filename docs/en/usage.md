@@ -8,11 +8,13 @@ application yet, see [Installation](install.md).
 1. Launch the application.
 2. Drag and drop a `.sspj` file, or a folder containing `.sspj` files, into the
    **"📥 Target .sspj File or Folder"** area. Alternatively, use the **"File..."** or
-   **"Folder..."** buttons to browse.
-3. *(Optional)* Specify a different output folder in the **"📤 Output Directory"** area. Left
-   empty, the output goes next to the original `.sspj`, into a `<name>/` folder — or
-   `<name>_emb/` when step 4 is checked, so an embedded build never overwrites a plain one. The
-   field's placeholder shows the folder that will be used.
+   **"Folder..."** buttons to browse. One item per drop: the outlined box tells you where the
+   drop will land, and anything past the first is reported and ignored.
+3. *(Optional)* Specify a different output folder in the **"📤 Output Directory"** area, with
+   **"Browse..."** or by dropping a folder onto it. Left empty, the output goes next to the
+   original `.sspj`, into a `<name>/` folder — or `<name>_emb/` when step 4 is checked, so an
+   embedded build never overwrites a plain one. The field's placeholder shows the folder that
+   will be used.
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
 5. Click the **"⚡ Convert"** button to start the conversion.
 6. Check the status and logs at the bottom of the screen.

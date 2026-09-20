@@ -117,6 +117,7 @@ const btnConvert = document.getElementById('btnConvert') as HTMLButtonElement;
 const btnClearLog = document.getElementById('btnClearLog') as HTMLButtonElement;
 const btnClearHistory = document.getElementById('btnClearHistory') as HTMLButtonElement;
 const dropZoneIn = document.getElementById('dropZoneIn')!;
+const dropZoneOut = document.getElementById('dropZoneOut')!;
 const inDirDisplay = document.getElementById('inDirDisplay') as HTMLInputElement;
 const outDirDisplay = document.getElementById('outDirDisplay') as HTMLInputElement;
 const convertStatus = document.getElementById('convertStatus')!;
@@ -335,23 +336,33 @@ function renderHistory() {
     });
 }
 
-// Highlight the input drop zone while a file/folder is dragged over it.
-// Native drag-drop suppresses HTML5 dragover/drop, so use Tauri's window events.
-function isOverDropZone(pos?: { x: number; y: number }): boolean {
-    if (!pos) return true; // No position info: highlight anyway.
-    const rect = dropZoneIn.getBoundingClientRect();
+// Which field a drop lands in. Both boxes are drawn as drop zones, so both
+// have to accept one; anywhere else on the window goes to the input, which is
+// the forgiving reading of a drop that missed. Native drag-drop suppresses
+// HTML5 dragover/drop, so this rides Tauri's window events, and the same
+// function decides the highlight and the drop — the outline always predicts
+// where the path will go.
+type DropZone = 'in' | 'out';
+
+function zoneAt(pos?: { x: number; y: number }): DropZone {
+    if (!pos) return 'in'; // No position info: fall back to the input.
     const dpr = window.devicePixelRatio || 1;
     const x = pos.x / dpr;
     const y = pos.y / dpr;
-    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    const rect = dropZoneOut.getBoundingClientRect();
+    const overOut = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    return overOut ? 'out' : 'in';
 }
 
 function updateDragHighlight(pos?: { x: number; y: number }) {
-    dropZoneIn.classList.toggle('dragover', isOverDropZone(pos));
+    const zone = zoneAt(pos);
+    dropZoneIn.classList.toggle('dragover', zone === 'in');
+    dropZoneOut.classList.toggle('dragover', zone === 'out');
 }
 
 function clearDragHighlight() {
     dropZoneIn.classList.remove('dragover');
+    dropZoneOut.classList.remove('dragover');
 }
 
 listen<{ position?: { x: number; y: number } }>('tauri://drag-enter', event => updateDragHighlight(event.payload.position));
@@ -360,17 +371,37 @@ listen('tauri://drag-leave', clearDragHighlight);
 
 // Handle a dropped path, classifying it by its real filesystem type rather than
 // guessing from the path string (a folder can be named `assets.bak`, a file can
-// have no extension), then accept a `.sspj` file or any directory.
-async function handleDrop(paths: string[] | undefined) {
+// have no extension).
+async function handleDrop(paths: string[] | undefined, pos?: { x: number; y: number }) {
+    const zone = zoneAt(pos);
     clearDragHighlight();
     if (isConverting) {
         log('A conversion is already running — dropped item ignored.', 'warning');
         return;
     }
     if (!paths || paths.length === 0) return;
+    // Only one path can be acted on: `convert_sspj` takes a single input and
+    // the output is a single directory. Say so rather than letting the rest of
+    // a multiple selection look accepted.
+    if (paths.length > 1) {
+        log(`Dropped ${paths.length} items; using only the first. Drop one at a time, or drop a folder that contains them.`, 'warning');
+    }
     const path = paths[0];
     const kind = await classifyPath(path);
     if (!kind) return;
+
+    if (zone === 'out') {
+        if (kind !== 'dir') {
+            log(`The output must be a folder, and this is not one: ${path}`, 'error');
+            return;
+        }
+        selectedOutPath = path;
+        outDirDisplay.value = path;
+        await refreshOutputPlaceholder();
+        log(`Dropped Output: ${path}`);
+        return;
+    }
+
     if (kind !== 'dir' && kind !== 'sspj') {
         log(`Dropped item is not a .sspj file or a folder: ${path}`, 'error');
         return;
@@ -379,7 +410,7 @@ async function handleDrop(paths: string[] | undefined) {
     log(`Dropped Input: ${path}`);
 }
 
-listen<{ paths: string[] }>('tauri://drag-drop', event => handleDrop(event.payload.paths));
+listen<{ paths: string[]; position?: { x: number; y: number } }>('tauri://drag-drop', event => handleDrop(event.payload.paths, event.payload.position));
 
 // Converter progress from the backend. Failures and warnings arrive on their
 // own events so they keep their severity; the summary returned by
@@ -570,13 +601,14 @@ btnClearHistory.addEventListener('click', () => {
 
 async function loadVersions() {
     try {
-        const info = await invoke<{ app_version: string; converter_version: string; ssab_schema_version: number }>('get_versions');
+        const info = await invoke<{ app_version: string; converter_version: string; ssab_schema_version: number; ssqb_schema_version: number }>('get_versions');
+        const schemas = `ssab v${info.ssab_schema_version}, ssqb v${info.ssqb_schema_version}`;
         appVersionDisplay.textContent = `App Version: ${info.app_version}`;
-        versionDisplay.textContent = `Converter Version: ${info.converter_version} (ssab v${info.ssab_schema_version})`;
+        versionDisplay.textContent = `Converter Version: ${info.converter_version} (${schemas})`;
         btnCopyVersion.style.display = 'inline-flex';
         btnCopyVersion.onclick = async () => {
             try {
-                const textToCopy = `App Version: ${info.app_version}\nConverter Version: ${info.converter_version} (ssab v${info.ssab_schema_version})`;
+                const textToCopy = `App Version: ${info.app_version}\nConverter Version: ${info.converter_version} (${schemas})`;
                 await navigator.clipboard.writeText(textToCopy);
                 const orig = btnCopyVersion.textContent;
                 btnCopyVersion.textContent = 'Copied!';
