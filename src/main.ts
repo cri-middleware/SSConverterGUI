@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
-import { updateHistory, sanitizeHistory, HistoryItem } from './utils';
+import { updateHistory, sanitizeHistory, defaultOutputName, HistoryItem } from './utils';
 import './style.css';
 
 // Mirrors the Rust `ConvertSummary` returned by the `convert_sspj` command.
@@ -168,30 +168,43 @@ async function classifyPath(path: string): Promise<PathKind | null> {
     }
 }
 
+// Show where the converter will write, without deciding it here. The
+// destination of a default run depends on `embedded` — `<name>/` or
+// `<name>_emb/` — so pinning it when the input is selected would silently
+// ignore the checkbox and let an embedded build overwrite a plain one. The
+// path goes in the placeholder; `selectedOutPath` stays null, which sends no
+// output directory to the backend and leaves `ssconverter` to resolve it.
+async function refreshOutputPlaceholder() {
+    if (selectedOutPath !== null) {
+        outDirDisplay.placeholder = '';
+        return;
+    }
+    if (selectedKind === 'sspj' && selectedPath) {
+        try {
+            const dir = await dirname(selectedPath);
+            const stem = await basename(selectedPath, '.sspj');
+            outDirDisplay.placeholder = await join(dir, defaultOutputName(stem, chkEmbedded.checked));
+            return;
+        } catch (e) {
+            log(`Failed to resolve default output: ${e}`, 'error');
+        }
+    }
+    outDirDisplay.placeholder = selectedKind === 'dir'
+        ? "Batch Mode: Output placed next to each .sspj"
+        : selectedKind === 'file'
+            ? "Leave empty to output next to the source file"
+            : "Leave empty to output next to .sspj";
+}
+
 async function onInputSelected(path: string, kind: PathKind) {
     selectedPath = path;
     selectedKind = kind;
     inDirDisplay.value = path;
     btnConvert.disabled = false;
 
-    if (kind === 'sspj') {
-        try {
-            const dir = await dirname(path);
-            const base = await basename(path, '.sspj');
-            const defaultOut = await join(dir, base);
-            selectedOutPath = defaultOut;
-            outDirDisplay.value = defaultOut;
-            outDirDisplay.placeholder = "";
-        } catch (e) {
-            log(`Failed to resolve default output: ${e}`, 'error');
-        }
-    } else {
-        selectedOutPath = null;
-        outDirDisplay.value = '';
-        outDirDisplay.placeholder = kind === 'dir'
-            ? "Batch Mode: Output placed next to each .sspj"
-            : "Leave empty to output next to the source file";
-    }
+    selectedOutPath = null;
+    outDirDisplay.value = '';
+    await refreshOutputPlaceholder();
 }
 
 const MAX_LOG_LINES = 500;
@@ -303,14 +316,14 @@ function renderHistory() {
             selectedPath = item.inputPath;
             selectedKind = kind;
             inDirDisplay.value = selectedPath;
-            // Replay exactly what the recorded run used. A batch entry stores
-            // `outputPath: null`, which means "next to the .sspj" — recomputing
-            // the default here would write into a `<name>/` subdirectory
-            // instead, so the retry would not reproduce the original run.
+            // Replay exactly what the recorded run used. `outputPath: null`
+            // means the run chose no directory and let the converter resolve
+            // one; substituting a path here — even the one the converter would
+            // pick — would pin it and stop the retry reproducing the original.
             selectedOutPath = item.outputPath;
             outDirDisplay.value = selectedOutPath || '';
-            outDirDisplay.placeholder = selectedOutPath ? '' : 'Leave empty to output next to .sspj';
             chkEmbedded.checked = item.embedded;
+            await refreshOutputPlaceholder();
             btnConvert.disabled = false;
 
             log(`Re-converting from history: ${selectedPath}`);
@@ -436,6 +449,7 @@ btnSelectOut.addEventListener('click', async () => {
         if (dir) {
             selectedOutPath = dir as string;
             outDirDisplay.value = selectedOutPath;
+            await refreshOutputPlaceholder();
             log(`Selected Output: ${selectedOutPath}`);
         }
     } catch (e: any) {
@@ -446,8 +460,13 @@ btnSelectOut.addEventListener('click', async () => {
 btnClearOut.addEventListener('click', () => {
     selectedOutPath = null;
     outDirDisplay.value = '';
+    void refreshOutputPlaceholder();
     log('Cleared output directory. Will use default location.');
 });
+
+// The default output directory gains an `_emb` suffix when assets are
+// embedded, so the placeholder has to follow the checkbox.
+chkEmbedded.addEventListener('change', () => { void refreshOutputPlaceholder(); });
 
 // Lock every control that feeds a conversion. The backend keeps a single
 // cancel flag shared by all runs, so two concurrent conversions would cancel
