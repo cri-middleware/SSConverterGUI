@@ -88,7 +88,7 @@ jobs:
 
       # No `version:` — it comes from package.json's `packageManager` field.
       - name: Install pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -116,7 +116,7 @@ jobs:
       # is identical on each runner; the release scripts regenerate it per build
       # only so every archive is self-contained.
       - name: Install cargo-about
-        uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 # v2
+        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2
         with:
           tool: cargo-about
 
@@ -240,7 +240,7 @@ jobs:
 
       - name: Create GitHub Release
         if: inputs.upload_release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: |
             release-dist/*.tar.gz
