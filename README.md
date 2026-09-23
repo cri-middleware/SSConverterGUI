@@ -33,11 +33,11 @@ Comprehensive documentation is available in the `docs/` folder:
 ## 🚀 Quick Start
 
 **Converting your projects?** Read on — download, drop a `.sspj` in, convert.
-**Working on SSConverter GUI itself?** [Building from Source](#-building-from-source) below.
+**Working on SSConverter GUI itself?** [Building from Source](#%EF%B8%8F-building-from-source) below.
 
 Requires **macOS 10.15+** (universal) or **Windows 10/11** (x86_64 and Arm builds). Every build is portable — no installer. Projects have to be authored in **SpriteStudio 7.5 or later**, which is what the `.ssab` / `.ssqb` formats are defined against.
 
-> 🚧 **Not released yet.** The download below goes live once the first release is published. Until then, [Building from Source](#-building-from-source) is the way to run it.
+> 🚧 **Not released yet.** The download below goes live once the first release is published. Until then, [Building from Source](#%EF%B8%8F-building-from-source) is the way to run it.
 
 1. **Download**: Get the archive for your OS and CPU from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases), unpack it, and run it. The Windows `.exe` is unsigned, so SmartScreen prompts on first launch — see the [Installation Guide](./docs/en/install.md).
 2. **Select**: Drag & drop a `.sspj` file — or a folder containing several — into the target area.
