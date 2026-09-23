@@ -25,7 +25,9 @@ If you find a bug, please check if it relates to the GUI (e.g. file selection, U
 ### Pull Requests
 1. Fork the repository.
 2. Clone your fork with `--recursive` to ensure the SDK submodule is initialized.
-3. Test your changes locally by running `pnpm run tauri dev`.
+3. Run `pnpm test`, then check your change in the running app with `pnpm run tauri dev`. `pnpm test` covers
+   the frontend's helpers only — it reaches neither the Rust backend nor a conversion — so also convert a
+   real `.sspj` in the app.
 4. Submit a Pull Request.
 
 ## Development Environment
@@ -33,7 +35,8 @@ Please refer to the [Development Guide](./docs/en/development.md) for detailed p
 
 ## Coding Standards
 - **Frontend**: Use strict TypeScript. Avoid inline styles; use the central `style.css`.
-- **Backend (Rust)**: Use `cargo clippy` and `cargo fmt`.
+- **Backend (Rust)**: in `src-tauri/`, `cargo fmt --all -- --check` and
+  `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings` — what CI runs.
 
 <br>
 <br>
@@ -67,7 +70,7 @@ SSConverter GUI にご関心をお寄せいただき、ありがとうござい�
 ### プルリクエスト
 1. リポジトリをフォークしてください。
 2. サブモジュールを取得するため、必ず `--recursive` オプションを付けてクローンしてください。
-3. `pnpm run tauri dev` でローカルでの動作確認を行ってください。
+3. `pnpm test` を実行し、`pnpm run tauri dev` で起動したアプリで変更を確認してください。`pnpm test` が見るのはフロントエンドの補助関数だけで、Rust バックエンドにも変換処理にも届きません。実際の `.sspj` もアプリで変換してください。
 4. プルリクエストを送信してください。
 
 ## 開発環境のセットアップ
@@ -75,4 +78,4 @@ SSConverter GUI にご関心をお寄せいただき、ありがとうござい�
 
 ## コーディング規約
 - **フロントエンド**: Strict な TypeScript を記述してください。インラインスタイルは避け、`style.css` を活用してください。
-- **バックエンド (Rust)**: `cargo clippy` および `cargo fmt` に準拠してください。
+- **バックエンド (Rust)**: `src-tauri/` で `cargo fmt --all -- --check` と `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings` を通してください（CI と同じコマンドです）。
