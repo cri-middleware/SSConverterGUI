@@ -47,8 +47,7 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 
 ## 🛠️ ソースからのビルド
 
-変換のコア機能として `SpriteStudio-SDK` をサブモジュールとして使用しているため、クローンの際は `--recursive` を付けてください。
-ビルドには Node.js (v26 以上)、`pnpm`、Rust ツールチェーンが必要です。
+変換のコア機能として `SpriteStudio-SDK` をサブモジュールとして使用しているため、クローンの際は `--recursive` を付けてください。ビルドには Node.js (v26 以上)、`pnpm`、Rust ツールチェーンが必要です。
 
 ```bash
 git clone --recursive https://github.com/cri-middleware/SSConverterGUI.git
@@ -71,8 +70,7 @@ pnpm run tauri dev
 本リポジトリのソースコードおよび成果物は、[LICENSE.md](./LICENSE.md) (BSD-3-Clause) の条件下で提供されています。参考訳は [LICENSE.ja.md](./LICENSE.ja.md) にあります。
 
 本アプリは Rust の依存グラフ全体（Tauri/wry、`ssconverter` SDK とその推移的依存）を静的リンクしているため、
-**`THIRD_PARTY_NOTICES.md` は各リリースアーカイブに実行ファイルと並べて同梱されます**。リポジトリには commit せず
-リリース時に `cargo about` で生成しているので、ダウンロードしたバイナリと常に一致します。許容ライセンスの一覧は
+**`THIRD_PARTY_NOTICES.md` は各リリースアーカイブに実行ファイルと並べて同梱されます**。リポジトリには commit せずリリース時に `cargo about` で生成しているので、ダウンロードしたバイナリと常に一致します。許容ライセンスの一覧は
 `about.toml` にあり、一覧に無いライセンスが入るとリリースビルドが失敗します（気づかないまま出荷されません）。
 
 同梱の `SpriteStudio-SDK` サブモジュールは、本リポジトリと同じ BSD-3-Clause です。
