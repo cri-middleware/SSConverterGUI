@@ -44,19 +44,15 @@ of our releases rather than a vulnerability — see the
 ## サポート対象バージョン
 
 セキュリティ修正は最新リリースに対して行います。ご報告の前に、
-[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページの最新版で再現するか
-をご確認ください。
+[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページの最新版で再現するかをご確認ください。
 
 ## 脆弱性の報告方法
 
-**セキュリティ上の問題を公開の GitHub Issue に投稿しないでください。** 修正前に問題が広く知られる
-ことを防ぐため、以下の非公開の窓口をご利用ください。
+**セキュリティ上の問題を公開の GitHub Issue に投稿しないでください。** 修正前に問題が広く知られることを防ぐため、以下の非公開の窓口をご利用ください。
 
 1. **GitHub Security Advisory（推奨）** — [こちらから非公開で報告](https://github.com/cri-middleware/SSConverterGUI/security/advisories/new)
    できます。アドバイザリを公開するまで、報告内容は報告者と開発者のみが閲覧できます。
-2. **CRI・ミドルウェア ヘルプセンター** — GitHub をご利用にならない場合や、サイズの大きい再現データを
-   添付する必要がある場合は[お問い合わせフォーム](https://www.webtech.co.jp/help/ja/spritestudio7/inquiries/ssplayer_tool/)
-   をご利用ください。
+2. **CRI・ミドルウェア ヘルプセンター** — GitHub をご利用にならない場合や、サイズの大きい再現データを添付する必要がある場合は[お問い合わせフォーム](https://www.webtech.co.jp/help/ja/spritestudio7/inquiries/ssplayer_tool/)をご利用ください。
 
 可能な範囲で、以下の情報をお知らせください。
 
@@ -64,19 +60,14 @@ of our releases rather than a vulnerability — see the
 - 攻撃者が何を行えるか、およびその成立条件。
 - 再現手順。入力ファイルが起因する場合は、再現可能な最小限の `.sspj` など。
 
-ご報告を受領した旨と、調査状況および修正の見通しをご連絡いたします。修正版のリリースまで、公開での
-開示はお控えいただけますようお願いいたします。
+ご報告を受領した旨と、調査状況および修正の見通しをご連絡いたします。修正版のリリースまで、公開での開示はお控えいただけますようお願いいたします。
 
 ## 対象範囲
 
-本リポジトリが対象とするのは **GUI アプリケーション**（Tauri コマンド、ファイル処理、同梱フロント
-エンド）です。変換エンジン自体（`ssconverter` クレート）の脆弱性は
-[SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) リポジトリの対象範囲となり
-ますので、同リポジトリまたは上記ヘルプセンターへご報告ください。
+本リポジトリが対象とするのは **GUI アプリケーション**（Tauri コマンド、ファイル処理、同梱フロントエンド）です。変換エンジン自体（`ssconverter` クレート）の脆弱性は
+[SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) リポジトリの対象範囲となりますので、同リポジトリまたは上記ヘルプセンターへご報告ください。
 
-なお、Windows 版の実行ファイルを未署名で配布している点は、脆弱性ではなく既知かつ文書化された仕様
-です。詳しくは[インストール手順](https://cri-middleware.github.io/SSConverterGUI/ja/install/)を
-参照してください。
+なお、Windows 版の実行ファイルを未署名で配布している点は、脆弱性ではなく既知かつ文書化された仕様です。詳しくは[インストール手順](https://cri-middleware.github.io/SSConverterGUI/ja/install/)を参照してください。
 
 ---
 

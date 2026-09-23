@@ -1,8 +1,6 @@
 # 🖥️ SSConverter GUI
 
-SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) をバイナリ形式 (`.ssab`) に変換する
-ための、クロスプラットフォーム対応の**デスクトップアプリケーション**です。Tauri v2、Vite、TypeScript を
-使用して構築されており、コマンドラインの知識がなくても効率的に変換作業を行えます。
+SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) をバイナリ形式 (`.ssab`) に変換するための、クロスプラットフォーム対応の**デスクトップアプリケーション**です。Tauri v2、Vite、TypeScript を使用して構築されており、コマンドラインの知識がなくても効率的に変換作業を行えます。
 
 ## ✨ 主な機能
 
@@ -15,8 +13,7 @@ SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) �
 
 ## どのコンバータを使うか
 
-3 つのコンバータはいずれも同じ `libssconverter` を利用しており、生成される `.ssab` は同じです。
-作業スタイルに合わせて選んでください。
+3 つのコンバータはいずれも同じ `libssconverter` を利用しており、生成される `.ssab` は同じです。作業スタイルに合わせて選んでください。
 
 | ツール | こんなときに |
 |---|---|
@@ -33,7 +30,6 @@ SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) �
 
 ## 関連リンク
 
-- [SpriteStudio Docs](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と公式 Player の
-  ドキュメントポータル。
+- [SpriteStudio Docs](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と公式 Player のドキュメントポータル。
 - [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) — 本アプリケーションが利用する
   `ssconverter` クレートを提供する SDK 本体。
