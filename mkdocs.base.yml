@@ -108,6 +108,8 @@ extra:
   # dropping them on the other locale's home page. `extra.site_root_prefix` in each locale
   # config is the other half of that calculation. It also means the links are relative, so
   # they no longer hard-code the `/SSConverterGUI/` path prefix the way the old list did.
+  #
+  # overrides/main.html builds the page head's hreflang links from the same `link`s.
   alternate:
     - name: English
       link: ""
