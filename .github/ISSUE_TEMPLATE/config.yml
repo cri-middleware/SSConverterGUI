@@ -1,14 +1,14 @@
-# Questions, private reports, and conversion-engine bugs each have a better home
-# than this tracker — send them there before an issue is opened, not after.
+# Questions and private reports each have a better home than this tracker —
+# send them there before an issue is opened, not after.
+#
+# Conversion-engine bugs are reported here too, and routed from here. The
+# engine lives in SpriteStudio-SDK, which is not public, so its tracker would
+# 404 for exactly the people who would follow a link to it.
 blank_issues_enabled: false
 contact_links:
   - name: ❓ How do I use the app? / 使い方の質問
     url: https://spritestudio.jp/community/
     about: Questions and tips belong in the SpriteStudio Community forum. / 使い方のご質問や情報交換は公式コミュニティへ。
-
-  - name: 🔁 Conversion problem (wrong .ssab, crash while converting) / 変換処理そのものの問題
-    url: https://github.com/cri-middleware/SpriteStudio-SDK/issues
-    about: The conversion engine lives in SpriteStudio-SDK — report it there. / 変換エンジンは SpriteStudio-SDK 側です。
 
   - name: 🔒 Private inquiry (English)
     url: https://www.webtech.co.jp/contact/en.html
@@ -19,5 +19,5 @@ contact_links:
     about: 非公開のご相談と再現データの送付（zip・8MB まで）は公式ヘルプセンターへ。
 
   - name: 🛡️ Security vulnerability / 脆弱性の報告
-    url: https://github.com/cri-middleware/SSConverterGUI/security/advisories/new
-    about: Report privately via a GitHub Security Advisory — never a public issue. / 公開 Issue ではなく非公開でご報告ください。
+    url: https://github.com/cri-middleware/SSConverterGUI/blob/HEAD/SECURITY.md
+    about: Do not open a public issue. See the security policy for how to report privately. / 公開 Issue ではなく非公開でご報告ください。

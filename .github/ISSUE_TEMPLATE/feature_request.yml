@@ -30,5 +30,5 @@ body:
     attributes:
       label: Alternatives considered / 検討した代替案
       description: >
-        Would [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/tree/main/cli)
+        Would `ssconverter-cli`, the command-line converter in SpriteStudio-SDK,
         already cover this? / CLI 版で代替できるかもあわせてご検討ください。

@@ -1,5 +1,5 @@
 name: 🐛 Bug report / 不具合の報告
-description: Something in the application misbehaves (file selection, UI, history, logs). / アプリの動作に問題がある場合
+description: Something in the application or the conversion misbehaves (file selection, UI, history, logs, output). / アプリの動作や変換結果に問題がある場合
 labels: [bug]
 body:
   - type: markdown
@@ -8,12 +8,10 @@ body:
         Thanks for taking the time to report this. / ご報告ありがとうございます。
 
         **Is the problem in the conversion itself** — a wrong `.ssab`, or a crash while converting
-        a `.sspj`? That belongs to the conversion engine: please report it to
-        [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK/issues) instead.
+        a `.sspj`? That belongs to the shared conversion engine. Report it here all the same and
+        say so; we will route it.
 
-        **変換処理そのものの問題**（出力される `.ssab` がおかしい、`.sspj` の変換中にクラッシュする等）
-        は変換エンジン側の課題です。[SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK/issues)
-        へご報告ください。
+        **変換処理そのものの問題**（出力される `.ssab` がおかしい、`.sspj` の変換中にクラッシュする等）は共通の変換エンジン側の課題です。こちらにその旨を添えてご報告ください。こちらで振り分けます。
 
   - type: input
     id: version
@@ -68,8 +66,7 @@ body:
     attributes:
       label: Logs / ログ
       description: >
-        Paste the log shown at the bottom of the application window. / アプリ画面下部に表示されている
-        ログを貼り付けてください。
+        Paste the log shown at the bottom of the application window. / アプリ画面下部に表示されているログを貼り付けてください。
       render: text
 
   - type: textarea
@@ -80,5 +77,4 @@ body:
         Single file or a folder? Roughly how many `.sspj`? Was "Embedded Assets" checked?
         Please do **not** attach confidential data here — ask through the
         [inquiry form](https://www.webtech.co.jp/contact/en.html)
-        instead. / 単一ファイルかフォルダか、`.sspj` の概数、"Embedded Assets" の有無。機密データは
-        添付せず、ヘルプセンターをご利用ください。
+        instead. / 単一ファイルかフォルダか、`.sspj` の概数、"Embedded Assets" の有無。機密データは添付せず、ヘルプセンターをご利用ください。
