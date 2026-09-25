@@ -11,7 +11,7 @@ For Bug Reports and Feature Requests, please use [GitHub Issues](https://github.
 
 Before opening a new issue, please search existing issues to see if your topic has already been discussed.
 
-**Is it a GUI issue or a conversion issue?** If the problem is in the conversion itself (e.g. incorrect binary output, a crash while converting a `.sspj`), it belongs to the conversion engine — please report it to the [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) repository instead.
+**Is it a GUI issue or a conversion issue?** If the problem is in the conversion itself (e.g. incorrect binary output, a crash while converting a `.sspj`), it belongs to the shared conversion engine — say so in your issue, and we will route it.
 
 ## ❓ Questions on How to Use the App
 If you have questions about how to use the application, need advice, or want to share tips with other developers, please use our official community forum:
@@ -43,7 +43,7 @@ SSConverter GUI をご利用いただきありがとうございます。ご質�
 
 投稿前に、同様の内容が既に報告されていないか、既存の Issue を検索してください。
 
-**GUI の問題か、変換の問題か:** 変換処理自体の問題（出力バイナリがおかしい、`.sspj` の変換中にクラッシュする等）は変換エンジン側の課題です。[SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) リポジトリへご報告ください。
+**GUI の問題か、変換の問題か:** 変換処理自体の問題（出力バイナリがおかしい、`.sspj` の変換中にクラッシュする等）は共通の変換エンジン側の課題です。その旨を Issue にお書きください。こちらで振り分けます。
 
 ### ❓ 使い方のご質問
 アプリの使い方に関するご質問、相談、または他の開発者との情報共有には、公式コミュニティをご利用ください。
@@ -51,16 +51,11 @@ SSConverter GUI をご利用いただきありがとうございます。ご質�
 👉 [**SpriteStudio コミュニティ**](https://spritestudio.jp/community/)
 
 ### 🔒 個別のお問い合わせ・データの送付
-非公開でのご相談、再現データ（`.sspj` プロジェクトなど）を送付いただく必要がある場合、または契約に基づくサポートが必要な場合は、公式の**ヘルプセンター**をご利用ください。
+非公開でのご相談、機微な内容の報告、大容量の再現データ（`.sspj` プロジェクト等）の送付、契約に基づくサポートは、公式の **ヘルプセンター** をご利用ください。
 
 👉 [**ヘルプセンター（お問い合わせフォーム）**](https://www.webtech.co.jp/help/ja/spritestudio7/inquiries/ssplayer_tool/)
 
+*注: 再現データの送付には、フォーム内のファイルアップロード機能をご利用ください。*
+
 ### 🛡️ 脆弱性のご報告
 セキュリティ上の脆弱性は、公開の GitHub Issues では**報告しないでください**。非公開の報告窓口については [SECURITY.md](./SECURITY.md) を参照してください。
-
----
-
-### Company Info
-**CRI Middleware Co., Ltd.**  
-[https://www.cri-mw.co.jp/](https://www.cri-mw.co.jp/)  
-Copyright © CRI Middleware Co., Ltd.
