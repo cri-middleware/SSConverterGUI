@@ -47,7 +47,7 @@ of our releases rather than a vulnerability — see the
 
 ## 脆弱性の報告方法
 
-**セキュリティ上の問題を公開の GitHub Issue に投稿しないでください。** 修正前に問題が広く知られることを防ぐため、再現データの添付も可能なヘルプセンターより、非公開でご報告ください。
+**セキュリティ上の問題を公開の GitHub Issue に投稿しないでください。** 修正前に問題が広く知られることを防ぐため、再現データ（8 MB までの zip ファイル）の添付も可能なヘルプセンターより、非公開でご報告ください。
 
 👉 [**ヘルプセンター（お問い合わせフォーム）**](https://www.webtech.co.jp/help/ja/spritestudio7/inquiries/ssplayer_tool/)
 
