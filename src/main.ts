@@ -3,7 +3,10 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
-import { updateHistory, sanitizeHistory, defaultOutputName, historySummary, HistoryItem } from './utils';
+import {
+    updateHistory, sanitizeHistory, defaultOutputName, historySummary, HistoryItem,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, ThemeChoice, RunTone,
+} from './utils';
 import './style.css';
 
 // Mirrors the Rust `ConvertSummary` returned by the `convert_sspj` command.
@@ -49,7 +52,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <input type="text" id="outDirDisplay" readonly placeholder="Leave empty to output next to .sspj" style="flex: 1;">
         <button class="btn" id="btnSelectOut">Browse...</button>
       </div>
-      <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">Note: Ignored during Folder batch conversion.</small>
+      <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">Note: Not used when converting a folder — each project is written next to its own .sspj.</small>
     </div>
 
     <div class="options-group">
@@ -99,6 +102,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div style="background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid var(--border-color);">
       <h3 style="margin-top: 0; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;" id="modalTitle">
         <div class="spinner" id="modalSpinner"></div>
+        <span id="modalIcon" style="display: none;"></span>
         <span id="modalTitleText">Processing...</span>
       </h3>
       <div id="modalProgress" style="display: none; margin-top: 0.75rem;">
@@ -106,8 +110,17 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <div id="modalProgressText" style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted); text-align: right;"></div>
       </div>
       <div id="modalLogArea" style="background: var(--bg-surface); padding: 0.75rem; border-radius: 8px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; margin: 1rem 0; color: var(--text-muted); border: 1px solid var(--border-color); white-space: pre-wrap;"></div>
-      <div style="display: flex; justify-content: flex-end;">
+      <div id="modalRunActions" style="display: flex; justify-content: flex-end;">
         <button class="btn" id="btnCancelConvert" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">Stop / Cancel</button>
+      </div>
+      <!-- What the dialog turns into when the run ends. -->
+      <div id="modalResult" style="display: none;">
+        <div class="result-output" id="resultOutput"></div>
+        <div class="result-issues" id="resultIssues"></div>
+        <div class="result-actions">
+          <button class="btn btn-secondary" id="btnResultReveal" title="Show the output in the file manager">📂 Reveal Output</button>
+          <button class="btn" id="btnResultClose">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -141,23 +154,49 @@ const btnRevealOutput = document.getElementById('btnRevealOutput') as HTMLButton
 const modalProgress = document.getElementById('modalProgress')!;
 const modalProgressFill = document.getElementById('modalProgressFill')!;
 const modalProgressText = document.getElementById('modalProgressText')!;
+const modalIcon = document.getElementById('modalIcon')!;
+const modalRunActions = document.getElementById('modalRunActions')!;
+const modalResult = document.getElementById('modalResult')!;
+const resultOutput = document.getElementById('resultOutput')!;
+const resultIssues = document.getElementById('resultIssues')!;
+const btnResultReveal = document.getElementById('btnResultReveal') as HTMLButtonElement;
+const btnResultClose = document.getElementById('btnResultClose') as HTMLButtonElement;
 const themeToggle = document.getElementById('themeToggle') as HTMLButtonElement;
 
-let isDarkMode = localStorage.getItem('theme') !== 'light';
+// The theme follows the system until the button is used; a stored `light` or
+// `dark` is that choice, and `auto` is the button's way back to the system.
+// The icon shows the current choice, not the one a click would switch to.
+const THEME_ICON: Record<ThemeChoice, string> = { auto: '🖥️', light: '☀️', dark: '🌙' };
+const THEME_LABEL: Record<ThemeChoice, string> = {
+    auto: 'Theme: follow system',
+    light: 'Theme: light',
+    dark: 'Theme: dark',
+};
+const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)');
+let themeChoice = parseThemeChoice(localStorage.getItem('theme'));
 function applyTheme() {
-    if (isDarkMode) {
-        document.documentElement.removeAttribute('data-theme');
-        themeToggle.textContent = '☀️';
-    } else {
+    if (resolveTheme(themeChoice, systemPrefersLight.matches) === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
-        themeToggle.textContent = '🌙';
+    } else {
+        document.documentElement.removeAttribute('data-theme');
     }
+    const label = `${THEME_LABEL[themeChoice]} (click to change)`;
+    themeToggle.textContent = THEME_ICON[themeChoice];
+    themeToggle.title = label;
+    themeToggle.setAttribute('aria-label', label);
 }
 themeToggle.addEventListener('click', () => {
-    isDarkMode = !isDarkMode;
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    themeChoice = nextThemeChoice(themeChoice);
+    if (themeChoice === 'auto') {
+        localStorage.removeItem('theme');
+    } else {
+        localStorage.setItem('theme', themeChoice);
+    }
     applyTheme();
 });
+// The system switching (a scheduled dark mode, say) matters only while `auto`,
+// and `applyTheme` already resolves a chosen theme back to itself.
+systemPrefersLight.addEventListener('change', applyTheme);
 applyTheme();
 
 let selectedPath: string | null = null;
@@ -181,6 +220,22 @@ async function classifyPath(path: string): Promise<PathKind | null> {
     }
 }
 
+// An output folder is for one project. A folder batch writes each project next
+// to its own `.sspj` and `convert_sspj` ignores `output_path` for it, so the
+// output controls are off then instead of taking a path that would be dropped.
+// Everything that can change the selection or the busy state ends up here, so
+// `selectedOutPath` is null whenever the input is a folder.
+function outputApplies(): boolean {
+    return selectedKind !== 'dir';
+}
+
+function syncOutputAvailability() {
+    const applies = outputApplies();
+    btnSelectOut.disabled = isConverting || !applies;
+    btnClearOut.disabled = isConverting || !applies;
+    dropZoneOut.classList.toggle('is-disabled', !applies);
+}
+
 // Show where the converter will write, without deciding it here. The
 // destination of a default run depends on `embedded` — `<name>/` or
 // `<name>_emb/` — so pinning it when the input is selected would silently
@@ -188,6 +243,7 @@ async function classifyPath(path: string): Promise<PathKind | null> {
 // path goes in the placeholder; `selectedOutPath` stays null, which sends no
 // output directory to the backend and leaves `ssconverter` to resolve it.
 async function refreshOutputPlaceholder() {
+    syncOutputAvailability();
     if (selectedOutPath !== null) {
         outDirDisplay.placeholder = '';
         return;
@@ -215,8 +271,17 @@ async function onInputSelected(path: string, kind: PathKind) {
     inDirDisplay.value = path;
     btnConvert.disabled = false;
 
-    selectedOutPath = null;
-    outDirDisplay.value = '';
+    // A chosen output folder stays for the next project, so it can be set once
+    // and several projects dropped in turn. The default is not kept here
+    // (`selectedOutPath` stays null and the converter resolves it), so nothing
+    // held over is derived from the previous input. A folder batch has no
+    // output folder, so the choice cannot follow it; say so rather than
+    // dropping it silently.
+    if (kind === 'dir' && selectedOutPath !== null) {
+        log(`Output folder cleared: a folder batch writes each project next to its own .sspj (was ${selectedOutPath}).`);
+        selectedOutPath = null;
+        outDirDisplay.value = '';
+    }
     await refreshOutputPlaceholder();
 }
 
@@ -335,7 +400,8 @@ function renderHistory() {
             // means the run chose no directory and let the converter resolve
             // one; substituting a path here — even the one the converter would
             // pick — would pin it and stop the retry reproducing the original.
-            selectedOutPath = item.outputPath;
+            // A folder never used one, whatever an older entry recorded.
+            selectedOutPath = kind === 'dir' ? null : item.outputPath;
             outDirDisplay.value = selectedOutPath || '';
             chkEmbedded.checked = item.embedded;
             await refreshOutputPlaceholder();
@@ -371,7 +437,8 @@ function zoneAt(pos?: { x: number; y: number }): DropZone {
 function updateDragHighlight(pos?: { x: number; y: number }) {
     const zone = zoneAt(pos);
     dropZoneIn.classList.toggle('dragover', zone === 'in');
-    dropZoneOut.classList.toggle('dragover', zone === 'out');
+    // No outline on an output box that is switched off: nothing will land there.
+    dropZoneOut.classList.toggle('dragover', zone === 'out' && outputApplies());
 }
 
 function clearDragHighlight() {
@@ -389,11 +456,20 @@ listen('tauri://drag-leave', clearDragHighlight);
 async function handleDrop(paths: string[] | undefined, pos?: { x: number; y: number }) {
     const zone = zoneAt(pos);
     clearDragHighlight();
+    // The result dialog covers the window; a drop behind it would change the
+    // selection where nobody can see it.
+    if (isResultOpen()) return;
     if (isConverting) {
         log('A conversion is already running — dropped item ignored.', 'warning');
         return;
     }
     if (!paths || paths.length === 0) return;
+    // Refused rather than redirected to the input: a folder meant as the output
+    // would otherwise become the folder that gets converted.
+    if (zone === 'out' && !outputApplies()) {
+        log('A folder batch writes each project next to its own .sspj, so there is no output folder to set. Select a single .sspj to choose one.', 'warning');
+        return;
+    }
     // Only one path can be acted on: `convert_sspj` takes a single input and
     // the output is a single directory. Say so rather than letting the rest of
     // a multiple selection look accepted.
@@ -444,7 +520,7 @@ listen<string>('convert-log', event => logFromBackend(event.payload));
 listen<string>('convert-warning', event => logFromBackend(event.payload, 'warning'));
 listen<string>('convert-error', event => logFromBackend(event.payload, 'error'));
 
-btnRevealOutput.addEventListener('click', async () => {
+async function revealOutput() {
     if (!revealTarget) return;
     try {
         // `revealItemInDir`, not `openPath`: it is what `opener:default` already
@@ -453,9 +529,107 @@ btnRevealOutput.addEventListener('click', async () => {
     } catch (e) {
         log(`Could not reveal ${revealTarget}: ${e}`, 'error');
     }
+}
+
+btnRevealOutput.addEventListener('click', revealOutput);
+btnResultReveal.addEventListener('click', revealOutput);
+
+// The dialog has two faces. While a run is going it is the progress view above;
+// when the run ends it becomes the result, so what happened — above all which
+// projects failed, and why — is in front of the user rather than only in a log
+// that keeps scrolling. Failures and warnings were already logged live; this is
+// where they are listed.
+const TONE_ICON: Record<RunTone, string> = { success: '✅', warning: '⚠️', error: '❌' };
+
+interface ResultIssue {
+    // The project a failure belongs to; absent for a message about the run.
+    label?: string;
+    detail: string;
+    tone: 'warning' | 'error';
+}
+
+interface ResultView {
+    tone: RunTone;
+    headline: string;
+    output: string | null;
+    issues: ResultIssue[];
+    canReveal: boolean;
+}
+
+function isResultOpen(): boolean {
+    return modalResult.style.display !== 'none';
+}
+
+function showRunView() {
+    modalResult.style.display = 'none';
+    modalIcon.style.display = 'none';
+    modalSpinner.style.display = 'inline-block';
+    modalProgress.style.display = 'none';
+    modalProgressFill.style.width = '0%';
+    modalLogArea.style.display = 'block';
+    modalRunActions.style.display = 'flex';
+    btnCancelConvert.disabled = false;
+}
+
+// Paths and converter messages are arbitrary text, so rows are built with
+// textContent, like the history list.
+function renderIssue(issue: ResultIssue): HTMLElement {
+    const row = document.createElement('div');
+    row.className = `result-issue result-issue-${issue.tone}`;
+    if (issue.label) {
+        const label = document.createElement('div');
+        label.className = 'result-issue-label';
+        label.textContent = issue.label;
+        row.appendChild(label);
+    }
+    const detail = document.createElement('div');
+    detail.className = 'result-issue-detail';
+    detail.textContent = issue.detail;
+    row.appendChild(detail);
+    return row;
+}
+
+function showResult(view: ResultView) {
+    modalSpinner.style.display = 'none';
+    modalIcon.textContent = TONE_ICON[view.tone];
+    modalIcon.style.display = 'inline';
+    modalTitleText.textContent = view.headline;
+    modalProgress.style.display = 'none';
+    modalLogArea.style.display = 'none';
+    modalRunActions.style.display = 'none';
+
+    resultOutput.textContent = view.output ?? '';
+    resultOutput.style.display = view.output ? 'block' : 'none';
+    resultIssues.replaceChildren(...view.issues.map(renderIssue));
+    resultIssues.style.display = view.issues.length > 0 ? 'block' : 'none';
+    btnResultReveal.style.display = view.canReveal ? 'inline-flex' : 'none';
+
+    modalResult.style.display = 'block';
+    btnResultClose.focus();
+}
+
+function closeModal() {
+    progressModal.style.display = 'none';
+    modalResult.style.display = 'none';
+}
+
+// Focus goes back to Convert, where the run was started from, so Enter can go again.
+function dismissResult() {
+    closeModal();
+    btnConvert.focus();
+}
+
+btnResultClose.addEventListener('click', dismissResult);
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && isResultOpen()) dismissResult();
 });
 
+// Set when Stop is pressed, so a run that ends in an error can be told apart
+// from one the user cut short: the backend reports both as an `Err`.
+let cancelRequested = false;
+
 btnCancelConvert.addEventListener('click', async () => {
+    cancelRequested = true;
     btnCancelConvert.disabled = true;
     modalTitleText.textContent = 'Cancelling... Please wait.';
     modalSpinner.style.display = 'none';
@@ -544,8 +718,7 @@ function setBusy(busy: boolean) {
     btnConvert.disabled = busy || !selectedPath;
     btnSelectInFile.disabled = busy;
     btnSelectInDir.disabled = busy;
-    btnSelectOut.disabled = busy;
-    btnClearOut.disabled = busy;
+    syncOutputAvailability();
     btnClearHistory.disabled = busy;
     chkEmbedded.disabled = busy;
     btnRevealOutput.disabled = busy;
@@ -570,12 +743,10 @@ async function runConversion() {
 
         // Setup and show modal. The bar stays hidden until the backend has
         // counted the projects, which for a folder means after the scan.
+        cancelRequested = false;
         modalLogArea.replaceChildren();
         modalTitleText.textContent = isSingleFile ? 'Converting Project...' : 'Scanning & Converting...';
-        modalSpinner.style.display = 'inline-block';
-        modalProgress.style.display = 'none';
-        modalProgressFill.style.width = '0%';
-        btnCancelConvert.disabled = false;
+        showRunView();
         btnRevealOutput.style.display = 'none';
         revealTarget = null;
         progressModal.style.display = 'flex';
@@ -590,29 +761,32 @@ async function runConversion() {
         log(`Conversion finished in ${(endTime - startTime).toFixed(2)} ms.`);
 
         // Individual failures and warnings were already logged from their
-        // backend events — only the totals are reported here.
+        // backend events — only the totals are logged here.
         const { succeeded, failed, warnings, output_dirs } = result;
-        const plural = (n: number) => n === 1 ? '' : 's';
 
-        if (failed.length > 0 && succeeded.length === 0) {
-            updateBadge(convertStatus, 'Failed', 'error');
-            log(`Conversion failed for ${failed.length} project${plural(failed.length)}.`, 'error');
-        } else if (failed.length > 0) {
-            updateBadge(convertStatus, `${succeeded.length} ok / ${failed.length} failed`, 'warning');
-            log(`Converted ${succeeded.length}, failed ${failed.length}.`, 'warning');
-        } else if (warnings.length > 0) {
-            updateBadge(convertStatus, `${succeeded.length} ok (incomplete)`, 'warning');
-            log(`Converted ${succeeded.length} project${plural(succeeded.length)}, but the scan was incomplete.`, 'warning');
-        } else {
-            updateBadge(convertStatus, 'Success', 'success');
-            log(`Successfully converted ${succeeded.length} project${plural(succeeded.length)}.`, 'success');
-        }
+        const outcome = describeRun(succeeded.length, failed.length, warnings.length > 0);
+        updateBadge(convertStatus, outcome.badge, outcome.tone);
+        log(outcome.message, outcome.tone);
 
         // One project: reveal the directory the converter reported. A batch
         // scatters its output beside each `.sspj`, so the folder that was
         // selected is the only place that holds all of it.
         revealTarget = isSingleFile ? (output_dirs[0] ?? null) : inputPath;
-        btnRevealOutput.style.display = succeeded.length > 0 && revealTarget ? 'inline-flex' : 'none';
+        const canReveal = succeeded.length > 0 && revealTarget !== null;
+        btnRevealOutput.style.display = canReveal ? 'inline-flex' : 'none';
+
+        showResult({
+            tone: outcome.tone,
+            headline: outcome.message,
+            output: !canReveal ? null
+                : isSingleFile ? `Output: ${revealTarget}`
+                : `Output: next to each .sspj under ${revealTarget}`,
+            issues: [
+                ...failed.map(f => ({ label: f.path, detail: f.error, tone: 'error' as const })),
+                ...warnings.map(w => ({ detail: w, tone: 'warning' as const })),
+            ],
+            canReveal,
+        });
 
         // One history entry per run, keyed by what was selected. Recording one
         // per `.sspj` filled the list with rows nobody had chosen and left the
@@ -627,11 +801,26 @@ async function runConversion() {
             });
         }
     } catch (e: any) {
-        log(`Error/Cancelled: ${e}`, 'error');
-        updateBadge(convertStatus, 'Failed/Cancelled', 'error');
+        if (cancelRequested) {
+            // The user asked for this; there is nothing to report but that it stopped.
+            log(`${e}`, 'warning');
+            updateBadge(convertStatus, 'Cancelled', 'warning');
+            closeModal();
+        } else {
+            log(`Error: ${e}`, 'error');
+            updateBadge(convertStatus, 'Failed', 'error');
+            showResult({
+                tone: 'error',
+                headline: 'Conversion failed.',
+                output: null,
+                issues: [{ detail: `${e}`, tone: 'error' }],
+                canReveal: false,
+            });
+        }
     } finally {
-        progressModal.style.display = 'none';
         setBusy(false);
+        // A cancelled run leaves no dialog to hand focus back from.
+        if (progressModal.style.display === 'none') btnConvert.focus();
     }
 }
 

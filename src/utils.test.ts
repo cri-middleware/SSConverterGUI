@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, historySummary, HistoryItem } from './utils';
+import {
+    updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, historySummary, HistoryItem,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun,
+} from './utils';
 
 describe('updateHistory', () => {
     it('should add a new item to the beginning of the history', () => {
@@ -107,5 +110,74 @@ describe('historySummary', () => {
     // each, so they have no count to report and must not invent one.
     it('should omit the count for an entry that has none', () => {
         expect(historySummary(base)).toBe('');
+    });
+});
+
+describe('parseThemeChoice', () => {
+    it('should keep a stored light or dark choice', () => {
+        expect(parseThemeChoice('light')).toBe('light');
+        expect(parseThemeChoice('dark')).toBe('dark');
+    });
+
+    // Nothing stored is the state of everyone who never touched the button.
+    it('should follow the system when nothing valid is stored', () => {
+        expect(parseThemeChoice(null)).toBe('auto');
+        expect(parseThemeChoice('auto')).toBe('auto');
+        expect(parseThemeChoice('sepia')).toBe('auto');
+    });
+});
+
+describe('nextThemeChoice', () => {
+    it('should cycle through all three and come back to the system', () => {
+        expect(nextThemeChoice('auto')).toBe('light');
+        expect(nextThemeChoice('light')).toBe('dark');
+        expect(nextThemeChoice('dark')).toBe('auto');
+    });
+});
+
+describe('resolveTheme', () => {
+    it('should take the system theme only when auto', () => {
+        expect(resolveTheme('auto', true)).toBe('light');
+        expect(resolveTheme('auto', false)).toBe('dark');
+    });
+
+    it('should ignore the system theme once a theme is chosen', () => {
+        expect(resolveTheme('dark', true)).toBe('dark');
+        expect(resolveTheme('light', false)).toBe('light');
+    });
+});
+
+describe('describeRun', () => {
+    it('should report a clean run as a success and pluralise the count', () => {
+        expect(describeRun(1, 0, false)).toEqual({
+            tone: 'success', badge: 'Success', message: 'Successfully converted 1 project.',
+        });
+        expect(describeRun(3, 0, false).message).toBe('Successfully converted 3 projects.');
+    });
+
+    it('should report a run where everything failed as an error', () => {
+        expect(describeRun(0, 1, false)).toEqual({
+            tone: 'error', badge: 'Failed', message: 'Conversion failed for 1 project.',
+        });
+        expect(describeRun(0, 4, true).message).toBe('Conversion failed for 4 projects.');
+    });
+
+    it('should report a mixed run with both counts', () => {
+        expect(describeRun(2, 1, false)).toEqual({
+            tone: 'warning', badge: '2 ok / 1 failed', message: 'Converted 2, failed 1.',
+        });
+    });
+
+    // A truncated scan is not a plain success: the folder was not fully read.
+    it('should not call an incomplete scan a success', () => {
+        expect(describeRun(12, 0, true)).toEqual({
+            tone: 'warning',
+            badge: '12 ok (incomplete)',
+            message: 'Converted 12 projects, but the scan was incomplete.',
+        });
+    });
+
+    it('should let failures take precedence over an incomplete scan', () => {
+        expect(describeRun(2, 1, true).badge).toBe('2 ok / 1 failed');
     });
 });
