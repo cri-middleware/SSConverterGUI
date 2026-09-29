@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, historySummary, HistoryItem,
-    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, shortcutAction, KeyLike,
 } from './utils';
 
 describe('updateHistory', () => {
@@ -179,5 +179,44 @@ describe('describeRun', () => {
 
     it('should let failures take precedence over an incomplete scan', () => {
         expect(describeRun(2, 1, true).badge).toBe('2 ok / 1 failed');
+    });
+});
+
+describe('shortcutAction', () => {
+    const press = (key: string, mods: Partial<KeyLike> = {}): KeyLike => ({
+        key, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, repeat: false, ...mods,
+    });
+
+    it('should open a file on Cmd+O or Ctrl+O', () => {
+        expect(shortcutAction(press('o', { metaKey: true }))).toBe('open-file');
+        expect(shortcutAction(press('o', { ctrlKey: true }))).toBe('open-file');
+    });
+
+    // Shift makes the key report an upper-case letter.
+    it('should open a folder on Shift+Cmd/Ctrl+O whatever case the key reports', () => {
+        expect(shortcutAction(press('O', { metaKey: true, shiftKey: true }))).toBe('open-folder');
+        expect(shortcutAction(press('o', { ctrlKey: true, shiftKey: true }))).toBe('open-folder');
+    });
+
+    it('should convert on Cmd+Enter or Ctrl+Enter', () => {
+        expect(shortcutAction(press('Enter', { metaKey: true }))).toBe('convert');
+        expect(shortcutAction(press('Enter', { ctrlKey: true }))).toBe('convert');
+    });
+
+    it('should ignore the same keys without Cmd or Ctrl', () => {
+        expect(shortcutAction(press('o'))).toBeNull();
+        expect(shortcutAction(press('Enter'))).toBeNull();
+        expect(shortcutAction(press('O', { shiftKey: true }))).toBeNull();
+    });
+
+    it('should ignore other keys and combinations that mean something else', () => {
+        expect(shortcutAction(press('p', { metaKey: true }))).toBeNull();
+        expect(shortcutAction(press('o', { metaKey: true, altKey: true }))).toBeNull();
+        expect(shortcutAction(press('Enter', { metaKey: true, shiftKey: true }))).toBeNull();
+    });
+
+    it('should not repeat while a key is held', () => {
+        expect(shortcutAction(press('o', { metaKey: true, repeat: true }))).toBeNull();
+        expect(shortcutAction(press('Enter', { ctrlKey: true, repeat: true }))).toBeNull();
     });
 });

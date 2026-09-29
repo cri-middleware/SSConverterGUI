@@ -4,7 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
 import {
     updateHistory, sanitizeHistory, defaultOutputName, historySummary, HistoryItem,
-    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, ThemeChoice, RunTone,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, shortcutAction, ThemeChoice, RunTone,
 } from './utils';
 import './style.css';
 
@@ -24,7 +24,6 @@ interface ConvertSummary {
 type PathKind = 'sspj' | 'file' | 'dir' | 'missing';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme" title="Toggle Theme">☀️</button>
   <div class="header">
     <h1>SSConverter GUI</h1>
     <p>Convert SpriteStudio projects (.sspj) to binaries (.ssab)</p>
@@ -96,33 +95,33 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button class="btn btn-secondary" id="btnCopyVersion" style="margin-top: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; display: none;" title="Copy Versions">Copy Versions</button>
   </div>
 
-  <!-- Progress Modal -->
-  <div id="progressModal" style="display: none; position: fixed; inset: 0; background: var(--modal-overlay); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
-    <div style="background: var(--bg-panel); padding: 1.5rem; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid var(--border-color);">
-      <h3 style="margin-top: 0; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;" id="modalTitle">
-        <div class="spinner" id="modalSpinner"></div>
-        <span id="modalIcon" style="display: none;"></span>
-        <span id="modalTitleText">Processing...</span>
-      </h3>
-      <div id="modalProgress" style="display: none; margin-top: 0.75rem;">
-        <div class="progress-track"><div class="progress-fill" id="modalProgressFill"></div></div>
-        <div id="modalProgressText" style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted); text-align: right;"></div>
-      </div>
-      <div id="modalLogArea" style="background: var(--bg-surface); padding: 0.75rem; border-radius: 8px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; margin: 1rem 0; color: var(--text-muted); border: 1px solid var(--border-color); white-space: pre-wrap;"></div>
-      <div id="modalRunActions" style="display: flex; justify-content: flex-end;">
-        <button class="btn" id="btnCancelConvert" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">Stop / Cancel</button>
-      </div>
-      <!-- What the dialog turns into when the run ends. -->
-      <div id="modalResult" style="display: none;">
-        <div class="result-output" id="resultOutput"></div>
-        <div class="result-issues" id="resultIssues"></div>
-        <div class="result-actions">
-          <button class="btn btn-secondary" id="btnResultReveal" title="Show the output in the file manager">📂 Reveal Output</button>
-          <button class="btn" id="btnResultClose">Close</button>
-        </div>
+  <!-- Progress, then result. A modal <dialog>: the rest of the window is inert while it is open, Tab stays inside it, and Esc arrives as a \`cancel\` event. -->
+  <dialog id="progressModal" class="modal" data-view="run" aria-labelledby="modalTitleText" tabindex="-1">
+    <h3 class="modal-title">
+      <div class="spinner view-run" id="modalSpinner"></div>
+      <span class="view-result" id="modalIcon" aria-hidden="true"></span>
+      <span id="modalTitleText">Processing...</span>
+    </h3>
+    <div class="modal-progress view-run" id="modalProgress" hidden>
+      <div class="progress-track"><div class="progress-fill" id="modalProgressFill"></div></div>
+      <div class="modal-progress-text" id="modalProgressText"></div>
+    </div>
+    <div class="modal-log view-run" id="modalLogArea"></div>
+    <div class="modal-actions view-run" id="modalRunActions">
+      <button class="btn btn-danger" id="btnCancelConvert">Stop / Cancel</button>
+    </div>
+    <!-- What the dialog turns into when the run ends. -->
+    <div class="view-result" id="modalResult">
+      <div class="result-output" id="resultOutput" hidden></div>
+      <div class="result-issues" id="resultIssues" hidden></div>
+      <div class="result-actions">
+        <button class="btn btn-secondary" id="btnResultReveal" title="Show the output in the file manager">📂 Reveal Output</button>
+        <button class="btn" id="btnResultClose">Close</button>
       </div>
     </div>
-  </div>
+  </dialog>
+
+  <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme" title="Toggle Theme">☀️</button>
 `;
 
 const btnSelectInFile = document.getElementById('btnSelectInFile') as HTMLButtonElement;
@@ -144,7 +143,7 @@ const appVersionDisplay = document.getElementById('appVersionDisplay')!;
 const versionDisplay = document.getElementById('versionDisplay')!;
 const btnCopyVersion = document.getElementById('btnCopyVersion') as HTMLButtonElement;
 
-const progressModal = document.getElementById('progressModal')!;
+const progressModal = document.getElementById('progressModal') as HTMLDialogElement;
 const modalTitleText = document.getElementById('modalTitleText')!;
 const modalSpinner = document.getElementById('modalSpinner')!;
 const modalLogArea = document.getElementById('modalLogArea')!;
@@ -154,8 +153,6 @@ const modalProgress = document.getElementById('modalProgress')!;
 const modalProgressFill = document.getElementById('modalProgressFill')!;
 const modalProgressText = document.getElementById('modalProgressText')!;
 const modalIcon = document.getElementById('modalIcon')!;
-const modalRunActions = document.getElementById('modalRunActions')!;
-const modalResult = document.getElementById('modalResult')!;
 const resultOutput = document.getElementById('resultOutput')!;
 const resultIssues = document.getElementById('resultIssues')!;
 const btnResultReveal = document.getElementById('btnResultReveal') as HTMLButtonElement;
@@ -282,6 +279,8 @@ async function onInputSelected(path: string, kind: PathKind) {
         outDirDisplay.value = '';
     }
     await refreshOutputPlaceholder();
+    // The next thing to do is Convert, so Enter is one key away.
+    btnConvert.focus();
 }
 
 const MAX_LOG_LINES = 500;
@@ -507,7 +506,7 @@ listen<{ paths: string[]; position?: { x: number; y: number } }>('tauri://drag-d
 // A determinate bar: a spinner says nothing about how far into a fifty-project
 // batch a run is. The file being converted is already named in the log below.
 function showProgress(done: number, total: number) {
-    modalProgress.style.display = 'block';
+    modalProgress.hidden = false;
     const ratio = total > 0 ? done / total : 0;
     modalProgressFill.style.width = `${Math.round(ratio * 100)}%`;
     modalProgressText.textContent = `${done} / ${total}`;
@@ -555,18 +554,29 @@ interface ResultView {
     canReveal: boolean;
 }
 
+// The views are switched by `data-view` on the dialog (see `.view-run` and
+// `.view-result` in style.css), so the state lives in one place.
 function isResultOpen(): boolean {
-    return modalResult.style.display !== 'none';
+    return progressModal.open && progressModal.dataset.view === 'result';
+}
+
+// True while a run owns the dialog: it cannot be dismissed, only stopped.
+let modalPinned = false;
+
+function openModal() {
+    progressModal.showModal();
+    // `showModal` focuses the first control, which is Stop. An Enter still held
+    // down from pressing Convert would repeat onto it and cancel the run at
+    // once, so focus the dialog itself; Tab reaches Stop from there.
+    progressModal.focus();
 }
 
 function showRunView() {
-    modalResult.style.display = 'none';
-    modalIcon.style.display = 'none';
-    modalSpinner.style.display = 'inline-block';
-    modalProgress.style.display = 'none';
+    progressModal.dataset.view = 'run';
+    modalPinned = true;
+    modalSpinner.hidden = false;
+    modalProgress.hidden = true;
     modalProgressFill.style.width = '0%';
-    modalLogArea.style.display = 'block';
-    modalRunActions.style.display = 'flex';
     btnCancelConvert.disabled = false;
 }
 
@@ -589,38 +599,51 @@ function renderIssue(issue: ResultIssue): HTMLElement {
 }
 
 function showResult(view: ResultView) {
-    modalSpinner.style.display = 'none';
+    progressModal.dataset.view = 'result';
+    modalPinned = false;
     modalIcon.textContent = TONE_ICON[view.tone];
-    modalIcon.style.display = 'inline';
     modalTitleText.textContent = view.headline;
-    modalProgress.style.display = 'none';
-    modalLogArea.style.display = 'none';
-    modalRunActions.style.display = 'none';
 
     resultOutput.textContent = view.output ?? '';
-    resultOutput.style.display = view.output ? 'block' : 'none';
+    resultOutput.hidden = !view.output;
     resultIssues.replaceChildren(...view.issues.map(renderIssue));
-    resultIssues.style.display = view.issues.length > 0 ? 'block' : 'none';
-    btnResultReveal.style.display = view.canReveal ? 'inline-flex' : 'none';
+    resultIssues.hidden = view.issues.length === 0;
+    btnResultReveal.hidden = !view.canReveal;
 
-    modalResult.style.display = 'block';
     btnResultClose.focus();
 }
 
 function closeModal() {
-    progressModal.style.display = 'none';
-    modalResult.style.display = 'none';
+    modalPinned = false;
+    if (progressModal.open) progressModal.close();
 }
 
-// Focus goes back to Convert, where the run was started from, so Enter can go again.
-function dismissResult() {
-    closeModal();
+btnResultClose.addEventListener('click', closeModal);
+
+// A run owns the dialog until it ends: put it back if something closed it.
+function keepOpen() {
+    if (modalPinned && !progressModal.open) openModal();
+}
+
+// Esc asks to close the dialog. While a run owns it that would leave the run
+// going with nothing on screen, so it is refused; Stop is the way out. Once
+// the result is up, Esc closes it like Close does.
+progressModal.addEventListener('cancel', event => {
+    if (!modalPinned) return;
+    event.preventDefault();
+    // Chrome makes `cancel` uncancelable on a second Esc with no click between,
+    // and closes the dialog anyway; this puts it back once that has happened.
+    setTimeout(keepOpen, 0);
+});
+
+// Focus returns to Convert when the dialog closes, where the run was started
+// from, so Enter can go again. A run that still owns it is put back instead.
+progressModal.addEventListener('close', () => {
+    if (modalPinned) {
+        keepOpen();
+        return;
+    }
     btnConvert.focus();
-}
-
-btnResultClose.addEventListener('click', dismissResult);
-document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && isResultOpen()) dismissResult();
 });
 
 // Set when Stop is pressed, so a run that ends in an error can be told apart
@@ -631,7 +654,7 @@ btnCancelConvert.addEventListener('click', async () => {
     cancelRequested = true;
     btnCancelConvert.disabled = true;
     modalTitleText.textContent = 'Cancelling... Please wait.';
-    modalSpinner.style.display = 'none';
+    modalSpinner.hidden = true;
     await invoke('cancel_conversion');
 });
 
@@ -748,7 +771,7 @@ async function runConversion() {
         showRunView();
         btnRevealOutput.style.display = 'none';
         revealTarget = null;
-        progressModal.style.display = 'flex';
+        openModal();
 
         const startTime = performance.now();
         const result = await invoke<ConvertSummary>('convert_sspj', {
@@ -819,11 +842,30 @@ async function runConversion() {
     } finally {
         setBusy(false);
         // A cancelled run leaves no dialog to hand focus back from.
-        if (progressModal.style.display === 'none') btnConvert.focus();
+        if (!progressModal.open) btnConvert.focus();
     }
 }
 
 btnConvert.addEventListener('click', runConversion);
+
+// Keyboard shortcuts for the three things done every time. They press the
+// button, so a disabled one (a run in progress) ignores them exactly as a click
+// is ignored. Not while the dialog is open: the window behind it is inert.
+const isMac = /Mac/.test(navigator.platform);
+const modKey = isMac ? '⌘' : 'Ctrl+';
+const shiftKey = isMac ? '⇧' : 'Shift+';
+btnSelectInFile.title = `Choose a .sspj (${modKey}O)`;
+btnSelectInDir.title = `Choose a folder (${modKey}${shiftKey}O)`;
+btnConvert.title = `Convert (${modKey}Enter)`;
+
+document.addEventListener('keydown', event => {
+    if (progressModal.open) return;
+    const action = shortcutAction(event);
+    if (!action) return;
+    event.preventDefault();
+    const button = { 'open-file': btnSelectInFile, 'open-folder': btnSelectInDir, 'convert': btnConvert }[action];
+    button.click();
+});
 
 btnClearLog.addEventListener('click', () => {
     logArea.replaceChildren();
