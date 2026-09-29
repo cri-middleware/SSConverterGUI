@@ -41,6 +41,18 @@ the folder for a batch. Re-running one repeats it with the settings it used, wit
 input and output again. The line under the path says what those settings were and when it last
 ran.
 
+## Keyboard
+
+| Keys (Windows / macOS) | Does |
+|---|---|
+| `Ctrl+O` / `⌘O` | Choose a `.sspj`, like **File...** |
+| `Ctrl+Shift+O` / `⇧⌘O` | Choose a folder, like **Folder...** |
+| `Ctrl+Enter` / `⌘Enter` | Convert |
+
+Once an input is chosen, focus moves to **Convert**, so Enter starts the run. While a run is going,
+the progress dialog holds the keyboard: Tab stays inside it, and Esc does not stop the run — use
+**Stop / Cancel**. Once the result is showing, Esc closes it like **Close** does.
+
 ## Appearance
 
 The button at the top right sets the theme. By default the application follows the system's light

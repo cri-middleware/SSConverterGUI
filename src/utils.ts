@@ -131,3 +131,28 @@ export function describeRun(succeeded: number, failed: number, incomplete: boole
     }
     return { tone: 'success', badge: 'Success', message: `Successfully converted ${succeeded} project${plural(succeeded)}.` };
 }
+
+export type ShortcutAction = 'open-file' | 'open-folder' | 'convert';
+
+/** The parts of a `KeyboardEvent` that decide a shortcut. */
+export interface KeyLike {
+    key: string;
+    metaKey: boolean;
+    ctrlKey: boolean;
+    shiftKey: boolean;
+    altKey: boolean;
+    repeat: boolean;
+}
+
+/**
+ * What a key press asks for: Cmd/Ctrl+O chooses a `.sspj`, with Shift a folder,
+ * and Cmd/Ctrl+Enter converts. Either modifier works on either platform. A
+ * held key (`repeat`) asks once, not once per repeat, so a held Cmd+O cannot
+ * stack file dialogs; Alt is left alone because it makes other characters.
+ */
+export function shortcutAction(e: KeyLike): ShortcutAction | null {
+    if (e.repeat || e.altKey || !(e.metaKey || e.ctrlKey)) return null;
+    if (e.key === 'Enter') return e.shiftKey ? null : 'convert';
+    if (e.key.toLowerCase() === 'o') return e.shiftKey ? 'open-folder' : 'open-file';
+    return null;
+}

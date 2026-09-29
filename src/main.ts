@@ -4,7 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
 import {
     updateHistory, sanitizeHistory, defaultOutputName, historySummary, HistoryItem,
-    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, ThemeChoice, RunTone,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, shortcutAction, ThemeChoice, RunTone,
 } from './utils';
 import './style.css';
 
@@ -279,6 +279,8 @@ async function onInputSelected(path: string, kind: PathKind) {
         outDirDisplay.value = '';
     }
     await refreshOutputPlaceholder();
+    // The next thing to do is Convert, so Enter is one key away.
+    btnConvert.focus();
 }
 
 const MAX_LOG_LINES = 500;
@@ -845,6 +847,25 @@ async function runConversion() {
 }
 
 btnConvert.addEventListener('click', runConversion);
+
+// Keyboard shortcuts for the three things done every time. They press the
+// button, so a disabled one (a run in progress) ignores them exactly as a click
+// is ignored. Not while the dialog is open: the window behind it is inert.
+const isMac = /Mac/.test(navigator.platform);
+const modKey = isMac ? '⌘' : 'Ctrl+';
+const shiftKey = isMac ? '⇧' : 'Shift+';
+btnSelectInFile.title = `Choose a .sspj (${modKey}O)`;
+btnSelectInDir.title = `Choose a folder (${modKey}${shiftKey}O)`;
+btnConvert.title = `Convert (${modKey}Enter)`;
+
+document.addEventListener('keydown', event => {
+    if (progressModal.open) return;
+    const action = shortcutAction(event);
+    if (!action) return;
+    event.preventDefault();
+    const button = { 'open-file': btnSelectInFile, 'open-folder': btnSelectInDir, 'convert': btnConvert }[action];
+    button.click();
+});
 
 btnClearLog.addEventListener('click', () => {
     logArea.replaceChildren();
