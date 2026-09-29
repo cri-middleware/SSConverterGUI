@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, confirm } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
 import {
@@ -31,26 +31,21 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   
   <div class="panel">
     <div class="form-group drop-zone" id="dropZoneIn">
-      <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-        <span style="font-size: 1.1rem; color: #818cf8;">📥 Target .sspj File or Folder</span>
+      <label class="zone-label">
+        <span class="zone-title">📥 Target .sspj File or Folder</span>
       </label>
-      <div class="input-row" style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-        <input type="text" id="inDirDisplay" readonly placeholder="Select or drop a SpriteStudio Project / Folder..." style="flex: 1;">
+      <div class="input-row">
+        <input type="text" id="inDirDisplay" readonly placeholder="Select or drop a SpriteStudio Project / Folder...">
         <button class="btn" id="btnSelectInFile">File...</button>
         <button class="btn" id="btnSelectInDir">Folder...</button>
       </div>
     </div>
 
-    <div class="form-group drop-zone" id="dropZoneOut" style="margin-top: 0.5rem;">
-      <label style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-        <span style="font-size: 1.1rem; color: #818cf8;">📤 Output Directory</span>
-        <button class="btn" id="btnClearOut" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear</button>
-      </label>
-      <div class="input-row" style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-        <input type="text" id="outDirDisplay" readonly placeholder="Leave empty to output next to .sspj" style="flex: 1;">
-        <button class="btn" id="btnSelectOut">Browse...</button>
-      </div>
-      <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">Note: Not used when converting a folder — each project is written next to its own .sspj.</small>
+    <div class="input-row output-row" id="dropZoneOut">
+      <span class="output-label">📤 Output</span>
+      <input type="text" id="outDirDisplay" readonly aria-label="Output folder" placeholder="Leave empty to output next to .sspj">
+      <button class="btn btn-secondary btn-small" id="btnSelectOut">Change...</button>
+      <button class="btn btn-secondary btn-small" id="btnClearOut" hidden>Reset</button>
     </div>
 
     <div class="options-group">
@@ -65,34 +60,34 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         ⚡ Convert
       </button>
       <span class="status-badge badge-pending" id="convertStatus">Waiting</span>
-      <button class="btn btn-secondary" id="btnRevealOutput" style="display: none;" title="Show the output in the file manager">📂 Reveal Output</button>
+      <button class="btn btn-secondary" id="btnRevealOutput" hidden title="Show the output in the file manager">📂 Reveal Output</button>
     </div>
-    
-    <div style="display: flex; gap: 1.5rem; margin-top: 1.25rem; flex: 1 1 0; min-height: 160px;">
+
+    <div class="panes">
       <!-- History Area -->
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <span style="color: var(--text-muted); font-weight: 600;">History</span>
-          <button class="btn" id="btnClearHistory" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear History</button>
+      <div class="pane">
+        <div class="pane-head">
+          <span class="pane-title">History</span>
+          <button class="btn btn-secondary btn-small" id="btnClearHistory">Clear History</button>
         </div>
-        <div id="historyArea" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; padding-right: 0.5rem; min-height: 0;"></div>
+        <div class="history-list" id="historyArea"></div>
       </div>
 
       <!-- Logs Area -->
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <span style="color: var(--text-muted); font-weight: 600;">Logs</span>
-          <button class="btn" id="btnClearLog" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #f87171;">Clear Logs</button>
+      <div class="pane">
+        <div class="pane-head">
+          <span class="pane-title">Logs</span>
+          <button class="btn btn-secondary btn-small" id="btnClearLog">Clear Logs</button>
         </div>
-        <div class="log-area" id="logArea" style="flex: 1; margin-top: 0; max-height: none; min-height: 0;"></div>
+        <div class="log-area log-area-fill" id="logArea"></div>
       </div>
     </div>
   </div>
 
-  <div style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+  <div class="app-footer">
     <span id="appVersionDisplay">App Version: Loading...</span>
     <span id="versionDisplay">Converter Version: Loading...</span>
-    <button class="btn btn-secondary" id="btnCopyVersion" style="margin-top: 0.25rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; display: none;" title="Copy Versions">Copy Versions</button>
+    <button class="btn btn-secondary btn-tiny" id="btnCopyVersion" hidden title="Copy Versions">Copy Versions</button>
   </div>
 
   <!-- Progress, then result. A modal <dialog>: the rest of the window is inert while it is open, Tab stays inside it, and Esc arrives as a \`cancel\` event. -->
@@ -229,6 +224,7 @@ function syncOutputAvailability() {
     const applies = outputApplies();
     btnSelectOut.disabled = isConverting || !applies;
     btnClearOut.disabled = isConverting || !applies;
+    btnClearOut.hidden = selectedOutPath === null;
     dropZoneOut.classList.toggle('is-disabled', !applies);
 }
 
@@ -255,7 +251,7 @@ async function refreshOutputPlaceholder() {
         }
     }
     outDirDisplay.placeholder = selectedKind === 'dir'
-        ? "Batch Mode: Output placed next to each .sspj"
+        ? "Batch: each project is written next to its own .sspj"
         : selectedKind === 'file'
             ? "Leave empty to output next to the source file"
             : "Leave empty to output next to .sspj";
@@ -341,28 +337,28 @@ function renderHistory() {
     historyArea.innerHTML = '';
     if (history.length === 0) {
         // Static markup only (no user-controlled data) — safe.
-        historyArea.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">No history yet.</div>';
+        historyArea.innerHTML = '<div class="history-empty">No history yet.</div>';
         return;
     }
 
     history.forEach(item => {
         const div = document.createElement('div');
-        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.9rem;';
+        div.className = 'history-item';
 
         // Paths are arbitrary and may contain HTML metacharacters (`"`, `<`, `>`
         // are all legal in file/dir names on macOS/Linux), so build the row with
         // textContent / property assignment — never string-interpolated
         // innerHTML — to avoid DOM injection from a maliciously named path.
         const info = document.createElement('div');
-        info.style.cssText = 'display: flex; flex-direction: column; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+        info.className = 'history-info';
 
         const pathSpan = document.createElement('span');
-        pathSpan.style.cssText = 'font-weight: 500; color: var(--text-primary);';
+        pathSpan.className = 'history-path';
         pathSpan.title = item.inputPath;
         pathSpan.textContent = item.inputPath.length > 40 ? '...' + item.inputPath.slice(-37) : item.inputPath;
 
         const metaSpan = document.createElement('span');
-        metaSpan.style.cssText = 'font-size: 0.8rem; color: var(--text-muted);';
+        metaSpan.className = 'history-meta';
         const when = new Date(item.timestamp);
         const stamp = Number.isFinite(when.getTime())
             ? when.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
@@ -376,7 +372,6 @@ function renderHistory() {
 
         const btn = document.createElement('button');
         btn.className = 'btn btn-history-retry';
-        btn.style.cssText = 'padding: 0.4rem 0.75rem; font-size: 0.85rem; background: var(--primary-color); color: white;';
         btn.textContent = '⚡ Convert';
         // A conversion may finish and re-render the list while the previous one
         // is still tearing down, so honour the current busy state here too.
@@ -769,7 +764,7 @@ async function runConversion() {
         modalLogArea.replaceChildren();
         modalTitleText.textContent = isSingleFile ? 'Converting Project...' : 'Scanning & Converting...';
         showRunView();
-        btnRevealOutput.style.display = 'none';
+        btnRevealOutput.hidden = true;
         revealTarget = null;
         openModal();
 
@@ -795,20 +790,27 @@ async function runConversion() {
         // selected is the only place that holds all of it.
         revealTarget = isSingleFile ? (output_dirs[0] ?? null) : inputPath;
         const canReveal = succeeded.length > 0 && revealTarget !== null;
-        btnRevealOutput.style.display = canReveal ? 'inline-flex' : 'none';
+        btnRevealOutput.hidden = !canReveal;
 
-        showResult({
-            tone: outcome.tone,
-            headline: outcome.message,
-            output: !canReveal ? null
-                : isSingleFile ? `Output: ${revealTarget}`
-                : `Output: next to each .sspj under ${revealTarget}`,
-            issues: [
-                ...failed.map(f => ({ label: f.path, detail: f.error, tone: 'error' as const })),
-                ...warnings.map(w => ({ detail: w, tone: 'warning' as const })),
-            ],
-            canReveal,
-        });
+        // A clean run needs no dialog: the badge says Success and Reveal Output
+        // is beside it. The dialog stays for what needs reading, which is a
+        // failure or a scan that stopped early.
+        if (outcome.tone === 'success') {
+            closeModal();
+        } else {
+            showResult({
+                tone: outcome.tone,
+                headline: outcome.message,
+                output: !canReveal ? null
+                    : isSingleFile ? `Output: ${revealTarget}`
+                    : `Output: next to each .sspj under ${revealTarget}`,
+                issues: [
+                    ...failed.map(f => ({ label: f.path, detail: f.error, tone: 'error' as const })),
+                    ...warnings.map(w => ({ detail: w, tone: 'warning' as const })),
+                ],
+                canReveal,
+            });
+        }
 
         // One history entry per run, keyed by what was selected. Recording one
         // per `.sspj` filled the list with rows nobody had chosen and left the
@@ -871,7 +873,22 @@ btnClearLog.addEventListener('click', () => {
     logArea.replaceChildren();
 });
 
-btnClearHistory.addEventListener('click', () => {
+btnClearHistory.addEventListener('click', async () => {
+    const count = loadHistory().length;
+    if (count === 0) return;
+    // Every entry goes at once and there is no getting one back, so ask. The
+    // native sheet is the plugin's `message` command, which `dialog:default`
+    // already grants.
+    try {
+        const ok = await confirm(
+            `Remove ${count === 1 ? 'the 1 entry' : `all ${count} entries`} from the history? This cannot be undone.`,
+            { title: 'Clear History', kind: 'warning', okLabel: 'Clear', cancelLabel: 'Cancel' },
+        );
+        if (!ok) return;
+    } catch (e) {
+        log(`Could not ask before clearing the history: ${e}`, 'error');
+        return;
+    }
     localStorage.removeItem('convert_history');
     renderHistory();
     log('Cleared history.');
@@ -883,7 +900,7 @@ async function loadVersions() {
         const schemas = `ssab v${info.ssab_schema_version}, ssqb v${info.ssqb_schema_version}`;
         appVersionDisplay.textContent = `App Version: ${info.app_version}`;
         versionDisplay.textContent = `Converter Version: ${info.converter_version} (${schemas})`;
-        btnCopyVersion.style.display = 'inline-flex';
+        btnCopyVersion.hidden = false;
         btnCopyVersion.onclick = async () => {
             try {
                 const textToCopy = `App Version: ${info.app_version}\nConverter Version: ${info.converter_version} (${schemas})`;

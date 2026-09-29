@@ -48,6 +48,7 @@
   --log-bg: rgba(0, 0, 0, 0.3);
   --modal-overlay: rgba(0, 0, 0, 0.5);
   --focus-ring: #818cf8;
+  color-scheme: dark;
 
   /* Aliases for tokens referenced by inline styles in index.html / main.ts.
      Defined once here, resolving through the theme-aware base tokens above so
@@ -71,6 +72,7 @@
   --log-bg: rgba(0, 0, 0, 0.05);
   --modal-overlay: rgba(0, 0, 0, 0.2);
   --focus-ring: #4F46E5;
+  color-scheme: light;
 }
 
 /* `hidden` has to win over the `display` any of these elements set for
@@ -238,11 +240,16 @@ body {
   background: rgba(79, 70, 229, 0.05);
 }
 
-/* An output box that does not apply (a folder batch writes next to each
-   project). The note under it stays at full strength: it is the reason. */
-.drop-zone.is-disabled > label,
-.drop-zone.is-disabled .input-row {
-  opacity: 0.5;
+.form-group .zone-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.zone-title {
+  font-size: 1.1rem;
+  color: #818cf8;
 }
 
 .form-group label {
@@ -255,6 +262,7 @@ body {
 .input-row {
   display: flex;
   gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .input-row input {
@@ -274,6 +282,46 @@ body {
 
 .input-row input::placeholder {
   color: rgba(148, 163, 184, 0.5);
+}
+
+/* The output row: where the files will go, on one line, with the folder picker
+   beside it. It is also where a folder can be dropped, so it takes the drag
+   highlight; when a folder batch makes it not apply, the whole row dims and the
+   field says why. */
+.output-row {
+  align-items: center;
+  /* Padding and border are pulled back out, so the row's contents line up with
+     the input above and the highlight reaches into the panel's margin. */
+  margin-inline: calc(-0.75rem - 2px);
+  padding: 0.5rem 0.75rem;
+  border: 2px dashed transparent;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.output-row.dragover {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.output-row.is-disabled > * {
+  opacity: 0.5;
+}
+
+.output-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.output-row input {
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.output-row input::placeholder {
+  color: var(--text-muted);
 }
 
 .btn-full {
@@ -301,6 +349,17 @@ body {
 .btn-danger:disabled {
   background-color: rgba(239, 68, 68, 0.2);
   opacity: 0.6;
+}
+
+.btn-small {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.btn-tiny {
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
 }
 
 .btn-success {
@@ -342,6 +401,107 @@ body {
   white-space: nowrap;
   padding: 0.6rem 1rem;
   font-size: 0.9rem;
+}
+
+/* History and Logs, side by side. Only this row absorbs the panel's spare
+   height, so it sits after the `.panel > *` rule that stops everything else
+   from shrinking. */
+.panes {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.25rem;
+  flex: 1 1 0;
+  min-height: 160px;
+}
+
+.pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pane-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pane-title {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.history-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  min-height: 0;
+}
+
+.history-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.history-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-path {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.history-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.btn-history-retry {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Two classes, because `.log-area` is defined further down and would win. */
+.log-area.log-area-fill {
+  flex: 1;
+  margin-top: 0;
+  max-height: none;
+  min-height: 0;
+}
+
+.app-footer {
+  text-align: center;
+  margin-top: 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* The progress-and-result dialog. It is a modal <dialog>, so the rest of the
