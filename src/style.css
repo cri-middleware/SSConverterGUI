@@ -245,6 +245,28 @@ body {
   opacity: 0.5;
 }
 
+.form-group.drop-zone.zone-next {
+  margin-top: 0.5rem;
+}
+
+.form-group .zone-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.zone-title {
+  font-size: 1.1rem;
+  color: #818cf8;
+}
+
+.zone-note {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+}
+
 .form-group label {
   display: block;
   font-weight: 600;
@@ -255,6 +277,7 @@ body {
 .input-row {
   display: flex;
   gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .input-row input {
@@ -303,6 +326,26 @@ body {
   opacity: 0.6;
 }
 
+.btn-small {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.btn-tiny {
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
+}
+
+/* The tinted red the Clear buttons have always had; it stays put on hover and
+   when disabled, as the inline style it replaces did. */
+.btn-clear,
+.btn-clear:hover,
+.btn-clear:disabled {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
 .btn-success {
   background-color: var(--success);
 }
@@ -342,6 +385,104 @@ body {
   white-space: nowrap;
   padding: 0.6rem 1rem;
   font-size: 0.9rem;
+}
+
+/* History and Logs, side by side. Only this row absorbs the panel's spare
+   height, so it sits after the `.panel > *` rule that stops everything else
+   from shrinking. */
+.panes {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.25rem;
+  flex: 1 1 0;
+  min-height: 160px;
+}
+
+.pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pane-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pane-title {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.history-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  min-height: 0;
+}
+
+.history-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-path {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.history-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.btn-history-retry {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Two classes, because `.log-area` is defined further down and would win. */
+.log-area.log-area-fill {
+  flex: 1;
+  margin-top: 0;
+  max-height: none;
+  min-height: 0;
+}
+
+.app-footer {
+  text-align: center;
+  margin-top: 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* The progress-and-result dialog. It is a modal <dialog>, so the rest of the
