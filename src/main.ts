@@ -792,18 +792,25 @@ async function runConversion() {
         const canReveal = succeeded.length > 0 && revealTarget !== null;
         btnRevealOutput.hidden = !canReveal;
 
-        showResult({
-            tone: outcome.tone,
-            headline: outcome.message,
-            output: !canReveal ? null
-                : isSingleFile ? `Output: ${revealTarget}`
-                : `Output: next to each .sspj under ${revealTarget}`,
-            issues: [
-                ...failed.map(f => ({ label: f.path, detail: f.error, tone: 'error' as const })),
-                ...warnings.map(w => ({ detail: w, tone: 'warning' as const })),
-            ],
-            canReveal,
-        });
+        // A clean run needs no dialog: the badge says Success and Reveal Output
+        // is beside it. The dialog stays for what needs reading, which is a
+        // failure or a scan that stopped early.
+        if (outcome.tone === 'success') {
+            closeModal();
+        } else {
+            showResult({
+                tone: outcome.tone,
+                headline: outcome.message,
+                output: !canReveal ? null
+                    : isSingleFile ? `Output: ${revealTarget}`
+                    : `Output: next to each .sspj under ${revealTarget}`,
+                issues: [
+                    ...failed.map(f => ({ label: f.path, detail: f.error, tone: 'error' as const })),
+                    ...warnings.map(w => ({ detail: w, tone: 'warning' as const })),
+                ],
+                canReveal,
+            });
+        }
 
         // One history entry per run, keyed by what was selected. Recording one
         // per `.sspj` filled the list with rows nobody had chosen and left the

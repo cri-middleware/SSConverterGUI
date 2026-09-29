@@ -21,13 +21,15 @@ application yet, see [Installation](install.md).
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
 5. Click the **"⚡ Convert"** button to start the conversion.
 6. While it runs, a bar counts the projects off — `12 / 50` — over the log of what each one is
-   doing. When it finishes, the window turns into the **result**: the headline says what happened,
-   every project that failed is listed with its full path and the converter's reason, and a scan
-   that stopped early is listed as a warning. **"📂 Reveal Output"** opens the folder the converter
-   wrote to: for one project that folder, for a batch the folder you selected, since a batch spreads
-   its output through it. Close the result with **"Close"** or Esc; the badge beside the button
-   keeps the status, and **"📂 Reveal Output"** stays there too. **"Stop / Cancel"** ends the run at
-   the file in flight and shows no result, only a `Cancelled` badge.
+   doing. When it finishes cleanly the dialog closes: the badge beside the button says `Success`,
+   and **"📂 Reveal Output"** appears next to it. If something needs reading — a project failed, a
+   scan stopped early, or the run could not start — the dialog stays and becomes the **result**: the
+   headline says what happened, every project that failed is listed with its full path and the
+   converter's reason, and a scan that stopped early is listed as a warning. **"📂 Reveal Output"**
+   opens the folder the converter wrote to: for one project that folder, for a batch the folder you
+   selected, since a batch spreads its output through it. Close the result with **"Close"** or Esc;
+   the badge and the button beside it stay. **"Stop / Cancel"** ends the run at the file in flight
+   and shows no result, only a `Cancelled` badge.
 
 ## Batch conversion
 
