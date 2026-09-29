@@ -47,6 +47,7 @@
   --btn-secondary-hover: rgba(255, 255, 255, 0.18);
   --log-bg: rgba(0, 0, 0, 0.3);
   --modal-overlay: rgba(0, 0, 0, 0.5);
+  --focus-ring: #818cf8;
 
   /* Aliases for tokens referenced by inline styles in index.html / main.ts.
      Defined once here, resolving through the theme-aware base tokens above so
@@ -69,6 +70,20 @@
   --btn-secondary-hover: rgba(0, 0, 0, 0.1);
   --log-bg: rgba(0, 0, 0, 0.05);
   --modal-overlay: rgba(0, 0, 0, 0.2);
+  --focus-ring: #4F46E5;
+}
+
+/* `hidden` has to win over the `display` any of these elements set for
+   themselves; the user agent's own rule for it does not. */
+[hidden] {
+  display: none !important;
+}
+
+/* One ring for everything a keyboard can reach. `:focus-visible` leaves it off
+   what a mouse click focuses. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 * {
@@ -254,7 +269,6 @@ body {
 }
 
 .input-row input:focus {
-  outline: none;
   border-color: var(--primary);
 }
 
@@ -272,6 +286,21 @@ body {
   background-color: var(--text-muted);
   cursor: not-allowed;
   transform: none;
+}
+
+.btn-danger {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.btn-danger:hover {
+  background-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:disabled {
+  background-color: rgba(239, 68, 68, 0.2);
+  opacity: 0.6;
 }
 
 .btn-success {
@@ -313,6 +342,78 @@ body {
   white-space: nowrap;
   padding: 0.6rem 1rem;
   font-size: 0.9rem;
+}
+
+/* The progress-and-result dialog. It is a modal <dialog>, so the rest of the
+   window is inert while it is open. Its two views are switched by `data-view`
+   on the dialog rather than by each part. */
+/* `margin: auto` centres it: the reset above zeroes the margin the user agent
+   centres a dialog with. */
+.modal {
+  width: 90%;
+  max-width: 600px;
+  margin: auto;
+  padding: 1.5rem;
+  background: var(--bg-panel);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+/* The dialog itself takes focus when it opens, and is not a control. */
+.modal:focus {
+  outline: none;
+}
+
+/* The fallback is for engines where `::backdrop` does not inherit the theme's
+   custom properties. */
+.modal::backdrop {
+  background: var(--modal-overlay, rgba(0, 0, 0, 0.5));
+  backdrop-filter: blur(2px);
+}
+
+.modal[data-view="run"] .view-result,
+.modal[data-view="result"] .view-run {
+  display: none;
+}
+
+.modal-title {
+  margin-top: 0;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-progress {
+  margin-top: 0.75rem;
+}
+
+.modal-progress-text {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.modal-log {
+  background: var(--bg-surface);
+  padding: 0.75rem;
+  border-radius: 8px;
+  height: 180px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.8rem;
+  margin: 1rem 0;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  white-space: pre-wrap;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* How far a batch has got, under the modal's title. */
@@ -508,3 +609,14 @@ body {
 .log-warning { color: #fbbf24; }
 .log-success { color: #34d399; font-weight: 500; }
 
+/* Motion is a preference. Nothing here needs to animate to be understood; the
+   spinner is the one thing that must keep turning, so it slows down. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
+
+  .spinner {
+    animation-duration: 3s;
+  }
+}
