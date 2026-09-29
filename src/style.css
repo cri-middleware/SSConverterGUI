@@ -223,6 +223,13 @@ body {
   background: rgba(79, 70, 229, 0.05);
 }
 
+/* An output box that does not apply (a folder batch writes next to each
+   project). The note under it stays at full strength: it is the reason. */
+.drop-zone.is-disabled > label,
+.drop-zone.is-disabled .input-row {
+  opacity: 0.5;
+}
+
 .form-group label {
   display: block;
   font-weight: 600;
@@ -322,6 +329,63 @@ body {
   border-radius: inherit;
   background: var(--primary);
   transition: width 0.2s ease;
+}
+
+/* The dialog's result view: where the output went, what went wrong, and the
+   way to it. */
+.result-output {
+  margin: 0.75rem 0;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.result-issues {
+  margin: 0.75rem 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.result-issue {
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid var(--text-muted);
+  border-radius: 0.5rem;
+  background: var(--input-bg);
+  font-size: 0.85rem;
+}
+
+.result-issue:last-child {
+  margin-bottom: 0;
+}
+
+.result-issue-error {
+  border-left-color: var(--danger);
+}
+
+.result-issue-warning {
+  border-left-color: #fbbf24;
+}
+
+.result-issue-label {
+  margin-bottom: 0.25rem;
+  font-family: monospace;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.result-issue-detail {
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .status-badge {

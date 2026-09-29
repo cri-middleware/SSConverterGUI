@@ -74,3 +74,60 @@ export function updateHistory(history: HistoryItem[], newItem: HistoryItem, maxI
     }
     return newHistory;
 }
+
+export type ThemeChoice = 'auto' | 'light' | 'dark';
+
+/**
+ * The stored theme, or `auto` (follow the system) when nothing was chosen.
+ * Anything else in storage counts as nothing chosen rather than throwing.
+ */
+export function parseThemeChoice(stored: string | null): ThemeChoice {
+    return stored === 'light' || stored === 'dark' ? stored : 'auto';
+}
+
+/** The order the theme button steps through; `auto` is the way back to the system. */
+export function nextThemeChoice(choice: ThemeChoice): ThemeChoice {
+    switch (choice) {
+        case 'auto': return 'light';
+        case 'light': return 'dark';
+        case 'dark': return 'auto';
+    }
+}
+
+export function resolveTheme(choice: ThemeChoice, systemPrefersLight: boolean): 'light' | 'dark' {
+    if (choice === 'auto') return systemPrefersLight ? 'light' : 'dark';
+    return choice;
+}
+
+export type RunTone = 'success' | 'warning' | 'error';
+
+export interface RunOutcome {
+    tone: RunTone;
+    /** The status beside the Convert button. */
+    badge: string;
+    /** One line for the log and the headline of the result dialog. */
+    message: string;
+}
+
+/**
+ * How a finished run reads, from its counts. `incomplete` is a directory scan
+ * that stopped at its budget: everything found converted, but the listing was
+ * not the whole folder, so it is not reported as a plain success.
+ */
+export function describeRun(succeeded: number, failed: number, incomplete: boolean): RunOutcome {
+    const plural = (n: number) => n === 1 ? '' : 's';
+    if (failed > 0 && succeeded === 0) {
+        return { tone: 'error', badge: 'Failed', message: `Conversion failed for ${failed} project${plural(failed)}.` };
+    }
+    if (failed > 0) {
+        return { tone: 'warning', badge: `${succeeded} ok / ${failed} failed`, message: `Converted ${succeeded}, failed ${failed}.` };
+    }
+    if (incomplete) {
+        return {
+            tone: 'warning',
+            badge: `${succeeded} ok (incomplete)`,
+            message: `Converted ${succeeded} project${plural(succeeded)}, but the scan was incomplete.`,
+        };
+    }
+    return { tone: 'success', badge: 'Success', message: `Successfully converted ${succeeded} project${plural(succeeded)}.` };
+}
