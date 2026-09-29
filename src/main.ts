@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
 import {
@@ -523,11 +522,11 @@ listen<string>('convert-error', event => logFromBackend(event.payload, 'error'))
 async function revealOutput() {
     if (!revealTarget) return;
     try {
-        // `revealItemInDir`, not `openPath`: it is what `opener:default` already
-        // grants, so this needs no widening of `capabilities/default.json`.
-        await revealItemInDir(revealTarget);
+        // Opens the folder itself. The opener plugin's `revealItemInDir` would
+        // open its parent and select it, which is not where the output is.
+        await invoke('open_folder', { path: revealTarget });
     } catch (e) {
-        log(`Could not reveal ${revealTarget}: ${e}`, 'error');
+        log(`Could not open ${revealTarget}: ${e}`, 'error');
     }
 }
 
