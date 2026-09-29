@@ -10,14 +10,14 @@ application yet, see [Installation](install.md).
    **"📥 Target .sspj File or Folder"** area. Alternatively, use the **"File..."** or
    **"Folder..."** buttons to browse. One item per drop: the outlined box tells you where the
    drop will land, and anything past the first is reported and ignored.
-3. *(Optional)* Specify a different output folder in the **"📤 Output Directory"** area, with
-   **"Browse..."** or by dropping a folder onto it. Left empty, the output goes next to the
-   original `.sspj`, into a `<name>/` folder — or `<name>_emb/` when step 4 is checked, so an
-   embedded build never overwrites a plain one. The field's placeholder shows the folder that
-   will be used. A folder you choose here stays for the next project you select, so you can set it
-   once and convert several in turn; **"Clear"** goes back to the default. Selecting a folder in
-   step 2 clears it and switches this area off: a batch writes each project
-   next to its own `.sspj`, so there is no single folder to name.
+3. *(Optional)* Change the output folder in the **"📤 Output"** row, with **"Change..."** or by
+   dropping a folder onto the row. The row shows where the output will go. Left alone, that is a
+   `<name>/` folder next to the original `.sspj` — or `<name>_emb/` when step 4 is checked, so an
+   embedded build never overwrites a plain one. A folder you choose stays for the next project you
+   select, so you can set it once and convert several in turn; **"Reset"**, which appears once you
+   have chosen one, goes back to the default. Selecting a folder in step 2 resets it and switches
+   the row off: a batch writes each project next to its own `.sspj`, so there is no single folder
+   to name.
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
 5. Click the **"⚡ Convert"** button to start the conversion.
 6. While it runs, a bar counts the projects off — `12 / 50` — over the log of what each one is
@@ -39,7 +39,7 @@ to add the files one by one.
 Each run is kept as **one entry**, under whatever you selected: a `.sspj` for a single conversion,
 the folder for a batch. Re-running one repeats it with the settings it used, without selecting the
 input and output again. The line under the path says what those settings were and when it last
-ran.
+ran. **Clear History** removes every entry after asking, and a cleared history cannot be brought back.
 
 ## Keyboard
 

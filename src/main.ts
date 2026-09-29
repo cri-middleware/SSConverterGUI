@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, confirm } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
 import {
@@ -41,16 +41,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </div>
 
-    <div class="form-group drop-zone zone-next" id="dropZoneOut">
-      <label class="zone-label">
-        <span class="zone-title">📤 Output Directory</span>
-        <button class="btn btn-small btn-clear" id="btnClearOut">Clear</button>
-      </label>
-      <div class="input-row">
-        <input type="text" id="outDirDisplay" readonly placeholder="Leave empty to output next to .sspj">
-        <button class="btn" id="btnSelectOut">Browse...</button>
-      </div>
-      <small class="zone-note">Note: Not used when converting a folder — each project is written next to its own .sspj.</small>
+    <div class="input-row output-row" id="dropZoneOut">
+      <span class="output-label">📤 Output</span>
+      <input type="text" id="outDirDisplay" readonly aria-label="Output folder" placeholder="Leave empty to output next to .sspj">
+      <button class="btn btn-secondary btn-small" id="btnSelectOut">Change...</button>
+      <button class="btn btn-secondary btn-small" id="btnClearOut" hidden>Reset</button>
     </div>
 
     <div class="options-group">
@@ -73,7 +68,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div class="pane">
         <div class="pane-head">
           <span class="pane-title">History</span>
-          <button class="btn btn-small btn-clear" id="btnClearHistory">Clear History</button>
+          <button class="btn btn-secondary btn-small" id="btnClearHistory">Clear History</button>
         </div>
         <div class="history-list" id="historyArea"></div>
       </div>
@@ -82,7 +77,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div class="pane">
         <div class="pane-head">
           <span class="pane-title">Logs</span>
-          <button class="btn btn-small btn-clear" id="btnClearLog">Clear Logs</button>
+          <button class="btn btn-secondary btn-small" id="btnClearLog">Clear Logs</button>
         </div>
         <div class="log-area log-area-fill" id="logArea"></div>
       </div>
@@ -229,6 +224,7 @@ function syncOutputAvailability() {
     const applies = outputApplies();
     btnSelectOut.disabled = isConverting || !applies;
     btnClearOut.disabled = isConverting || !applies;
+    btnClearOut.hidden = selectedOutPath === null;
     dropZoneOut.classList.toggle('is-disabled', !applies);
 }
 
@@ -255,7 +251,7 @@ async function refreshOutputPlaceholder() {
         }
     }
     outDirDisplay.placeholder = selectedKind === 'dir'
-        ? "Batch Mode: Output placed next to each .sspj"
+        ? "Batch: each project is written next to its own .sspj"
         : selectedKind === 'file'
             ? "Leave empty to output next to the source file"
             : "Leave empty to output next to .sspj";
@@ -870,7 +866,22 @@ btnClearLog.addEventListener('click', () => {
     logArea.replaceChildren();
 });
 
-btnClearHistory.addEventListener('click', () => {
+btnClearHistory.addEventListener('click', async () => {
+    const count = loadHistory().length;
+    if (count === 0) return;
+    // Every entry goes at once and there is no getting one back, so ask. The
+    // native sheet is the plugin's `message` command, which `dialog:default`
+    // already grants.
+    try {
+        const ok = await confirm(
+            `Remove ${count === 1 ? 'the 1 entry' : `all ${count} entries`} from the history? This cannot be undone.`,
+            { title: 'Clear History', kind: 'warning', okLabel: 'Clear', cancelLabel: 'Cancel' },
+        );
+        if (!ok) return;
+    } catch (e) {
+        log(`Could not ask before clearing the history: ${e}`, 'error');
+        return;
+    }
     localStorage.removeItem('convert_history');
     renderHistory();
     log('Cleared history.');

@@ -48,6 +48,7 @@
   --log-bg: rgba(0, 0, 0, 0.3);
   --modal-overlay: rgba(0, 0, 0, 0.5);
   --focus-ring: #818cf8;
+  color-scheme: dark;
 
   /* Aliases for tokens referenced by inline styles in index.html / main.ts.
      Defined once here, resolving through the theme-aware base tokens above so
@@ -71,6 +72,7 @@
   --log-bg: rgba(0, 0, 0, 0.05);
   --modal-overlay: rgba(0, 0, 0, 0.2);
   --focus-ring: #4F46E5;
+  color-scheme: light;
 }
 
 /* `hidden` has to win over the `display` any of these elements set for
@@ -238,17 +240,6 @@ body {
   background: rgba(79, 70, 229, 0.05);
 }
 
-/* An output box that does not apply (a folder batch writes next to each
-   project). The note under it stays at full strength: it is the reason. */
-.drop-zone.is-disabled > label,
-.drop-zone.is-disabled .input-row {
-  opacity: 0.5;
-}
-
-.form-group.drop-zone.zone-next {
-  margin-top: 0.5rem;
-}
-
 .form-group .zone-label {
   display: flex;
   justify-content: space-between;
@@ -259,12 +250,6 @@ body {
 .zone-title {
   font-size: 1.1rem;
   color: #818cf8;
-}
-
-.zone-note {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--text-muted);
 }
 
 .form-group label {
@@ -297,6 +282,46 @@ body {
 
 .input-row input::placeholder {
   color: rgba(148, 163, 184, 0.5);
+}
+
+/* The output row: where the files will go, on one line, with the folder picker
+   beside it. It is also where a folder can be dropped, so it takes the drag
+   highlight; when a folder batch makes it not apply, the whole row dims and the
+   field says why. */
+.output-row {
+  align-items: center;
+  /* Padding and border are pulled back out, so the row's contents line up with
+     the input above and the highlight reaches into the panel's margin. */
+  margin-inline: calc(-0.75rem - 2px);
+  padding: 0.5rem 0.75rem;
+  border: 2px dashed transparent;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.output-row.dragover {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.output-row.is-disabled > * {
+  opacity: 0.5;
+}
+
+.output-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.output-row input {
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.output-row input::placeholder {
+  color: var(--text-muted);
 }
 
 .btn-full {
@@ -335,15 +360,6 @@ body {
   margin-top: 0.25rem;
   padding: 0.1rem 0.4rem;
   font-size: 0.75rem;
-}
-
-/* The tinted red the Clear buttons have always had; it stays put on hover and
-   when disabled, as the inline style it replaces did. */
-.btn-clear,
-.btn-clear:hover,
-.btn-clear:disabled {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #f87171;
 }
 
 .btn-success {
@@ -444,6 +460,7 @@ body {
 }
 
 .history-info {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -464,6 +481,8 @@ body {
 .btn-history-retry {
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Two classes, because `.log-area` is defined further down and would win. */
