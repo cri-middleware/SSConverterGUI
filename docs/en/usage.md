@@ -14,7 +14,9 @@ application yet, see [Installation](install.md).
    **"Browse..."** or by dropping a folder onto it. Left empty, the output goes next to the
    original `.sspj`, into a `<name>/` folder — or `<name>_emb/` when step 4 is checked, so an
    embedded build never overwrites a plain one. The field's placeholder shows the folder that
-   will be used. Selecting a folder in step 2 switches this area off: a batch writes each project
+   will be used. A folder you choose here stays for the next project you select, so you can set it
+   once and convert several in turn; **"Clear"** goes back to the default. Selecting a folder in
+   step 2 clears it and switches this area off: a batch writes each project
    next to its own `.sspj`, so there is no single folder to name.
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
 5. Click the **"⚡ Convert"** button to start the conversion.

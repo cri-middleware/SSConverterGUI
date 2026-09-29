@@ -271,8 +271,17 @@ async function onInputSelected(path: string, kind: PathKind) {
     inDirDisplay.value = path;
     btnConvert.disabled = false;
 
-    selectedOutPath = null;
-    outDirDisplay.value = '';
+    // A chosen output folder stays for the next project, so it can be set once
+    // and several projects dropped in turn. The default is not kept here
+    // (`selectedOutPath` stays null and the converter resolves it), so nothing
+    // held over is derived from the previous input. A folder batch has no
+    // output folder, so the choice cannot follow it; say so rather than
+    // dropping it silently.
+    if (kind === 'dir' && selectedOutPath !== null) {
+        log(`Output folder cleared: a folder batch writes each project next to its own .sspj (was ${selectedOutPath}).`);
+        selectedOutPath = null;
+        outDirDisplay.value = '';
+    }
     await refreshOutputPlaceholder();
 }
 
