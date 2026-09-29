@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use tauri::Emitter;
+use tauri_plugin_opener::OpenerExt;
 
 // Bounds for the directory scan so a mis-dropped huge or pathological tree
 // (e.g. a home folder) cannot run unbounded — without these only the Cancel
@@ -63,6 +64,23 @@ fn path_kind(path: String) -> Result<String, String> {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok("missing".to_string()),
         Err(err) => Err(format!("Cannot read {}: {}", path, err)),
     }
+}
+
+/// Open a folder in the system file manager, showing what is inside it.
+///
+/// Not `revealItemInDir`: that selects a path *within its parent*, so handed
+/// the output folder it opens the folder above it with this one highlighted.
+/// It is the backend that opens it, because `openPath` from the frontend needs
+/// a scope covering every folder a user can choose, and only for something
+/// that is a folder: opening a file would launch it.
+#[tauri::command]
+fn open_folder(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    if !Path::new(&path).is_dir() {
+        return Err(format!("Not a folder: {}", path));
+    }
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|err| err.to_string())
 }
 
 #[derive(serde::Serialize)]
@@ -276,7 +294,8 @@ pub fn run() {
             convert_sspj,
             cancel_conversion,
             get_versions,
-            path_kind
+            path_kind,
+            open_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
