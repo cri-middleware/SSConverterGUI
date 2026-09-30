@@ -84,6 +84,12 @@ markdown_extensions:
       # `markdown_extensions` replaces Zensical's defaults wholesale, and the default `toc`
       # is the one that carries this.
       permalink: true
+      # Python-Markdown's default slugify strips non-ASCII, which turned every Japanese heading
+      # into a positional `_1`, `_2`, ... - unlinkable, and renumbered whenever a heading is
+      # added above it. This keeps the text, the same as the sibling docs sites.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
   - admonition
   - pymdownx.details
   - pymdownx.superfences:
