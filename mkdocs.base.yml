@@ -79,6 +79,11 @@ plugins:
   - redirects
 
 markdown_extensions:
+  - toc:
+      # The "¶" beside each heading, so a reader can copy a link to a section. Listing
+      # `markdown_extensions` replaces Zensical's defaults wholesale, and the default `toc`
+      # is the one that carries this.
+      permalink: true
   - admonition
   - pymdownx.details
   - pymdownx.superfences:
