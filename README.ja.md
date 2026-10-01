@@ -21,6 +21,7 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 - [**ドキュメントサイト (ホスト版)**](https://cri-middleware.github.io/SSConverterGUI/ja/) — 🚧 初回リリース後に公開
 - [**ドキュメント (日本語)**](./docs/ja/index.md)
 - [**Documentation (English)**](./docs/en/index.md)
+- [**AI アシスタント向け**](https://cri-middleware.github.io/SSConverterGUI/ja/llms.txt) — このドキュメントを Markdown で提供します。`llms.txt` はページの目次、`llms-full.txt` は全ページを 1 ファイルにまとめたものです — 🚧 初回リリース後に公開
 - [**SpriteStudio Docs（ポータル）**](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と全公式 Player の入口 — 🚧 初回リリース後に公開
 
 ### クイックリンク（日本語）
