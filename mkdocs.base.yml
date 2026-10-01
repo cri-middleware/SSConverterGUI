@@ -84,8 +84,14 @@ plugins:
   # page beside its HTML, for readers who hand the docs to an AI assistant. Needs `site_url`,
   # which both locale configs set. `sections` takes globs relative to `docs_dir`, so one entry
   # covers every page in both locales and a new page is picked up without editing it.
+  # `markdown_description` opens both files. It is English for both locales: a per-locale text
+  # would move `llmstxt` into the locale files and split `plugins` across three files, which
+  # the sequence rule at the top forbids.
   - llmstxt:
       full_output: llms-full.txt
+      markdown_description: |
+        `install` and `usage` are for running the finished app, `development` is for building
+        it from source, and `limitations` lists what it does not do.
       sections:
         Docs:
           - "*.md"
