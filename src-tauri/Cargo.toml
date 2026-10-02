@@ -5,6 +5,7 @@ description = "Convert SpriteStudio (.sspj) projects to .ssab binaries"
 authors = ["CRI Middleware Co., Ltd."]
 license = "BSD-3-Clause"
 edition = "2024"
+rust-version = "1.99"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
