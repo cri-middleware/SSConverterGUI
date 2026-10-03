@@ -44,7 +44,7 @@ if ! command -v node > /dev/null 2>&1; then
   exit 1
 fi
 
-VERSION="$(node -p "require('$MANIFEST').version || ''")"
+VERSION="$(cd "$ROOT_DIR" && node -p "require('./package.json').version || ''")"
 
 if [ -z "$VERSION" ]; then
   echo "$APP: package.json has no \"version\"" >&2
