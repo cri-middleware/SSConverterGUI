@@ -7,7 +7,8 @@
 # It is `version` in package.json, which is the single source: tauri.conf.json
 # reads it ("version": "../package.json"), the get_versions command surfaces it
 # at runtime, and release-macos.sh / release-windows.ps1 name their archives
-# after it. src-tauri/Cargo.toml carries a copy that has to be bumped with it.
+# after it. src-tauri/Cargo.toml carries a copy that has to be bumped with it,
+# and this prints nothing but an error while the two disagree.
 #
 # The tag is what names a release. This is what the tag *must* be: build-release
 # refuses a tag that disagrees, because a Release called v1.2.3 carrying
@@ -44,5 +45,22 @@ if (-not (Test-Path $manifest)) {
 $version = (Get-Content -Raw $manifest | ConvertFrom-Json).version
 
 if (-not $version) { Write-Error "${app}: package.json has no ""version""" }
+
+$crateVersion = $null
+$inPackage = $false
+foreach ($line in Get-Content "$rootDirectory/src-tauri/Cargo.toml") {
+    if ($line -match '^\s*\[') {
+        $inPackage = $line -match '^\s*\[package\]\s*$'
+        continue
+    }
+    if ($inPackage -and $line -match '^\s*version\s*=\s*"([^"]*)"') {
+        $crateVersion = $Matches[1]
+        break
+    }
+}
+
+if ($crateVersion -ne $version) {
+    Write-Error "${app}: src-tauri/Cargo.toml says '$crateVersion', package.json says '$version' -- bump them together"
+}
 
 Write-Output $version

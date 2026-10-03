@@ -9,7 +9,8 @@
 # It is `version` in package.json, which is the single source: tauri.conf.json
 # reads it (`"version": "../package.json"`), the `get_versions` command surfaces
 # it at runtime, and release-macos.sh / release-windows.ps1 name their archives
-# after it. src-tauri/Cargo.toml carries a copy that has to be bumped with it.
+# after it. src-tauri/Cargo.toml carries a copy that has to be bumped with it,
+# and this prints nothing but an error while the two disagree.
 #
 # The tag is what names a release -- release.yml is dispatched from a v* tag and
 # takes the name from that ref. This is what the tag *must* be: build-release.sh
@@ -48,6 +49,25 @@ VERSION="$(cd "$ROOT_DIR" && node -p "require('./package.json').version || ''")"
 
 if [ -z "$VERSION" ]; then
   echo "$APP: package.json has no \"version\"" >&2
+  exit 1
+fi
+
+CRATE_VERSION="$(
+  awk '
+    /^[[:space:]]*\[/ { in_package = ($0 ~ /^[[:space:]]*\[package\][[:space:]]*$/); next }
+    in_package && /^[[:space:]]*version[[:space:]]*=/ {
+      sub(/^[^=]*=[[:space:]]*/, "")
+      sub(/[[:space:]]*#.*$/, "")
+      gsub(/"/, "")
+      gsub(/[[:space:]]/, "")
+      print
+      exit
+    }
+  ' "$ROOT_DIR/src-tauri/Cargo.toml"
+)"
+
+if [ "$CRATE_VERSION" != "$VERSION" ]; then
+  echo "$APP: src-tauri/Cargo.toml says '$CRATE_VERSION', package.json says '$VERSION' -- bump them together" >&2
   exit 1
 fi
 
