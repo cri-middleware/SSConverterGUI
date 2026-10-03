@@ -1,9 +1,3 @@
-# Questions and private reports each have a better home than this tracker —
-# send them there before an issue is opened, not after.
-#
-# Conversion-engine bugs are reported here too, and routed from here. The
-# engine lives in SpriteStudio-SDK, which is not public, so its tracker would
-# 404 for exactly the people who would follow a link to it.
 blank_issues_enabled: false
 contact_links:
   - name: ❓ How do I use the app? / 使い方の質問
