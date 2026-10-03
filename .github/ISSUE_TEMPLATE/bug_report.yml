@@ -1,17 +1,41 @@
-name: 🐛 Bug report / 不具合の報告
-description: Something in the application or the conversion misbehaves (file selection, UI, history, logs, output). / アプリの動作や変換結果に問題がある場合
-labels: [bug]
+name: 🛠️ Bug report / 不具合の報告
+description: Something in the application or the conversion behaves incorrectly. / アプリの動作や変換結果に問題がある場合。
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report this. / ご報告ありがとうございます。
+        Thanks for taking the time to report this.
 
-        **Is the problem in the conversion itself** — a wrong `.ssab`, or a crash while converting
-        a `.sspj`? That belongs to the shared conversion engine. Report it here all the same and
-        say so; we will route it.
+        Before filing, please [search existing issues](https://github.com/cri-middleware/SSConverterGUI/issues?q=is%3Aissue).
+        **Do not attach proprietary `.sspj` files here** — this is a public tracker. Ask through the
+        [inquiry form](https://www.webtech.co.jp/contact/en.html) and we will arrange a private
+        transfer.
 
-        **変換処理そのものの問題**（出力される `.ssab` がおかしい、`.sspj` の変換中にクラッシュする等）は共通の変換エンジン側の課題です。こちらにその旨を添えてご報告ください。こちらで振り分けます。
+        投稿前に既存の Issue を検索してください。**業務データの `.sspj` は公開の場である本 Issue に添付しないでください。** 送付が必要な場合はヘルプセンターをご利用ください。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened? / 症状
+      description: What you expected, and what you got instead. / 期待した挙動と、実際の挙動。
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce / 再現手順
+      description: |
+        The smallest sequence that shows the problem.
+        問題を再現できる最小限の手順。
+      placeholder: |
+        1. Select ...
+        2. Check "Embedded Assets"
+        3. Convert
+        4. See ...
+    validations:
+      required: true
 
   - type: input
     id: version
@@ -43,38 +67,25 @@ body:
       required: true
 
   - type: textarea
-    id: what-happened
+    id: input
     attributes:
-      label: What happened? / 発生した事象
-      description: What did you expect, and what happened instead? / 期待した動作と、実際の動作。
-    validations:
-      required: true
-
-  - type: textarea
-    id: steps
-    attributes:
-      label: Steps to reproduce / 再現手順
-      placeholder: |
-        1. …
-        2. …
-        3. …
-    validations:
-      required: true
+      label: Input project / 入力プロジェクト
+      description: |
+        A single file or a folder? Roughly how many `.sspj`? Was "Embedded Assets" checked?
+        単一ファイルかフォルダか、`.sspj` の概数、"Embedded Assets" の有無。
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs / ログ
-      description: >
-        Paste the log shown at the bottom of the application window. / アプリ画面下部に表示されているログを貼り付けてください。
+      label: Log output / ログ
+      description: The log shown at the bottom of the application window. / アプリ画面下部に表示されているログ。
       render: text
 
   - type: textarea
-    id: input
+    id: conversion
     attributes:
-      label: Input project / 入力プロジェクト
-      description: >
-        Single file or a folder? Roughly how many `.sspj`? Was "Embedded Assets" checked?
-        Please do **not** attach confidential data here — ask through the
-        [inquiry form](https://www.webtech.co.jp/contact/en.html)
-        instead. / 単一ファイルかフォルダか、`.sspj` の概数、"Embedded Assets" の有無。機密データは添付せず、ヘルプセンターをご利用ください。
+      label: Is it the conversion itself? / 変換処理そのものの問題ですか？
+      description: |
+        A wrong `.ssab`, or a crash while converting a `.sspj`, most likely belongs to the shared
+        conversion engine rather than this application, and saying so here saves a round trip.
+        出力される `.ssab` がおかしい、`.sspj` の変換中にクラッシュするといった場合は、このアプリではなく共通の変換エンジン側の可能性が高いため、その旨をお書きください。

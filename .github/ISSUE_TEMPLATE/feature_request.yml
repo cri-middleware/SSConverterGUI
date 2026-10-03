@@ -1,34 +1,51 @@
-name: ✨ Feature request / 機能のご要望
-description: Suggest a new feature or an improvement to the application. / 新機能や改善のご提案
-labels: [enhancement]
+name: ✨ Feature request / 要望
+description: Suggest a new capability or an improvement. / 新機能や改善のご提案。
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Please search existing issues first — your idea may already be under discussion. /
+        Please [search existing issues](https://github.com/cri-middleware/SSConverterGUI/issues?q=is%3Aissue)
+        first — your idea may already be under discussion.
+
         投稿前に、同様のご要望が既にないか検索してください。
 
   - type: textarea
     id: problem
     attributes:
-      label: What problem does this solve? / どのような課題を解決しますか
-      description: >
-        Describe the situation you run into today, not only the feature you have in mind. /
-        実現したい機能だけでなく、現在困っている状況もお書きください。
+      label: What problem does this solve? / 解決したい課題
+      description: |
+        Describe the situation you are stuck in, not just the feature you have in mind — it often
+        leads to a better answer.
+        ご要望の機能そのものより、お困りの状況をお書きください。より良い解決策が見つかることがあります。
     validations:
       required: true
 
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed solution / ご提案の内容
+      label: What would you like it to do? / ご提案の内容
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered / 検討した代替案
-      description: >
-        Would `ssconverter-cli`, the command-line converter in SpriteStudio-SDK,
-        already cover this? / CLI 版で代替できるかもあわせてご検討ください。
+      label: What are you doing today instead? / 現在の回避方法
+      description: |
+        Workarounds you have tried, and why they fall short — including `ssconverter-cli`, the
+        command-line converter in SpriteStudio-SDK.
+        試した回避策と、不十分な点。SpriteStudio-SDK のコマンドライン版 `ssconverter-cli` で代替できるかもあわせてお書きください。
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Where does this belong? / 対象範囲
+      description: |
+        What a conversion produces is the shared conversion engine; the window, file selection and
+        history are this application. Unsure is fine.
+        変換結果は共通の変換エンジン側、画面・ファイル選択・履歴はアプリ側です。
+      options:
+        - Application (window, file selection, history)
+        - Shared conversion engine (what a conversion produces)
+        - Not sure / わからない
