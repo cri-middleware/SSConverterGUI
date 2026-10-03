@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The frontend never touches the SpriteStudio-SDK submodule, so skip it.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # No `version:` — it comes from package.json's `packageManager` field, so
       # CI and a developer machine cannot drift apart.
@@ -57,7 +57,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The ssconverter SDK is a git submodule; it must be fetched to compile.
           submodules: recursive
@@ -74,14 +74,14 @@ jobs:
           cache: pnpm
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
           # Pinned by SHA, so the channel must be named explicitly here.
           toolchain: stable
           components: rustfmt, clippy
 
       - name: Rust cache
-        uses: Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16 # v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: './src-tauri -> target'
           key: ci

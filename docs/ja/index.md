@@ -18,14 +18,14 @@ SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) �
 | ツール | こんなときに |
 |---|---|
 | **SSConverter GUI**（本アプリ） | ドラッグ＆ドロップやフォルダ単位の一括変換を、コマンドラインなしで行いたいとき。 |
-| [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/tree/main/cli) | 変換をスクリプト化したり、CI で実行したいとき。 |
+| [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/blob/HEAD/cli/README.ja.md) | 変換をスクリプト化したり、CI で実行したいとき。 |
 | [`ssconverter-web`](https://cri-middleware.github.io/SSPlayerForWeb/ssconverter/) | インストール不要で、ブラウザから単発の変換を行いたいとき。 |
 
 ## 次のステップ
 
 - [インストール](install.md) — アプリケーションのダウンロードと起動。
 - [使い方](usage.md) — 最初の `.sspj` ファイルを変換する。
-- [制限事項と対応範囲](limitations.md) — 何を変換し、何を Player に委ねているか。
+- [制約と適用範囲](limitations.md) — 何を変換し、何を Player に委ねているか。
 - [開発者向け](development.md) — ソースコードからビルドする。
 
 ## 関連リンク

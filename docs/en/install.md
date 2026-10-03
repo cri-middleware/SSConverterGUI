@@ -10,8 +10,9 @@ knowledge. If you want to build from source instead, see [Development](developme
 | **macOS** | macOS 10.15 (Catalina) or later. Apple Silicon and Intel are both covered by the same universal build. |
 | **Windows** | Windows 10 or 11 (64-bit) with the [WebView2 runtime](https://developer.microsoft.com/microsoft-edge/webview2/), which is preinstalled on current Windows 10 and 11. x86_64 and Arm-based PCs each have their own build. |
 
-Every build is portable: there is no installer, and nothing is written outside the folder you
-unpack it into.
+Every build is portable: there is no installer, and the application itself stays in the folder you
+unpack it into. The only thing written elsewhere is its per-user data — the theme choice and the
+conversion history — in the standard application data folder.
 
 ## Download
 
@@ -87,5 +88,5 @@ Once the application starts, continue to [Usage](usage.md).
 ## Uninstalling
 
 Delete the unpacked folder, or `SSConverterGUI.app`. The application installs no system-wide
-components; only its window settings and conversion history remain, in the standard per-user
+components; only its theme choice and conversion history remain, in the standard per-user
 application data folder.

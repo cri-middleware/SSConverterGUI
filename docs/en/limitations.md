@@ -72,7 +72,7 @@ not written.
 - **Editing.** Nothing here modifies a `.sspj`. That is SpriteStudio's job.
 - **Reversing a conversion.** `.ssab` is a playback format; there is no path back to `.sspj`.
 - **Watching a folder.** Conversion runs when you ask for it. A player that re-converts on save
-  does that in its own editor integration — SSPlayerForGodot's import dock, SSPlayerForUnity's
-  importer, SSPlayerForRenPy's auto importer.
+  does that in its own editor integration — SpriteStudio Player for Godot's import dock,
+  SpriteStudio Player for Unity's importer, SpriteStudio Player for Ren'Py's auto importer.
 - **CI.** Use [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK) — a GUI in a
   pipeline is the wrong shape, and the two produce identical output.
