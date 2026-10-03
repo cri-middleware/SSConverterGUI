@@ -73,7 +73,7 @@ jobs:
           fi
 
       # Guard against shipping the unreleased CHANGELOG placeholder date
-      # (e.g. "2026-0X-XX"): the top entry's date must be a real YYYY-MM-DD.
+      # (e.g. "Unreleased"): the top entry's date must be a real YYYY-MM-DD.
       - name: Check CHANGELOG has a real release date
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
