@@ -21,7 +21,7 @@ one that fits your workflow:
 | Tool | Use it when |
 |---|---|
 | **SSConverter GUI** (this app) | You want drag & drop, folder-wide batch conversion, and no command line. |
-| [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/tree/main/cli) | You want to script conversions or run them in CI. |
+| [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/tree/HEAD/cli) | You want to script conversions or run them in CI. |
 | [`ssconverter-web`](https://cri-middleware.github.io/SSPlayerForWeb/ssconverter/) | You want a one-off conversion in the browser with nothing to install. |
 
 ## Next steps
