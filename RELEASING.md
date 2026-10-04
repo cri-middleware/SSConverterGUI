@@ -79,7 +79,11 @@ gh run watch
 
 ### 6. Publish
 
-Open the draft on the [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, check that the macOS `.app.tar.gz` (universal), the two Windows `.zip` (x86_64 and arm64) and `SHA256SUMS` are attached, edit the notes, choose **Set as a pre-release** or **Set as the latest release** (a tag with a `-` can be either), and **Publish release**. Publishing also deploys the documentation site; merging to `main` publishes nothing, because the site documents the released application.
+Open the draft on the [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, check that the macOS `.app.tar.gz` (universal), the two Windows `.zip` (x86_64 and arm64) and `SHA256SUMS` are attached, edit the notes, choose **Set as a pre-release** or **Set as the latest release** (a tag with a `-` can be either), and **Publish release**. Publishing also starts `pages.yml`, which deploys the [documentation site](https://cri-middleware.github.io/SSConverterGUI/); merging to `main` publishes nothing, because the site documents the released application. Watch the run through, then open the site: a failed run leaves the Release published and the site as it was. Once the cause is fixed, re-run it; a re-run builds the same tag.
+
+```bash
+gh run watch                                      # pages.yml; the run takes a few seconds to appear
+```
 
 ### 7. Merge back
 
@@ -186,7 +190,11 @@ gh run watch
 
 ### 6. 公開
 
-[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページで下書きを開き、macOS の `.app.tar.gz`（ユニバーサル）、Windows の 2 つの `.zip`（x86_64 と arm64）、`SHA256SUMS` が添付されていることを確かめ、リリースノートを編集し、**Set as a pre-release** か **Set as the latest release** を選んで（`-` を含むタグはどちらも選べます）、**Publish release** を押します。公開するとドキュメントサイトもデプロイされます。`main` へのマージでは何も公開されません。サイトはリリース済みのアプリケーションを説明するものだからです。
+[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページで下書きを開き、macOS の `.app.tar.gz`（ユニバーサル）、Windows の 2 つの `.zip`（x86_64 と arm64）、`SHA256SUMS` が添付されていることを確かめ、リリースノートを編集し、**Set as a pre-release** か **Set as the latest release** を選んで（`-` を含むタグはどちらも選べます）、**Publish release** を押します。公開すると `pages.yml` が動き、[ドキュメントサイト](https://cri-middleware.github.io/SSConverterGUI/) をデプロイします。`main` へのマージでは何も公開されません。サイトはリリース済みのアプリケーションを説明するものだからです。run を最後まで見届けてから、サイトを開いて確かめます。run が失敗しても Release は公開されたままで、サイトは元のまま残ります。原因を直したら run を再実行します。再実行は同じタグをビルドします。
+
+```bash
+gh run watch                                      # pages.yml。run が一覧に出るまで数秒かかる
+```
 
 ### 7. develop へ戻す
 
