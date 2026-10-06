@@ -6,84 +6,134 @@ archive and the documentation site.
 
 ## Cutting a release
 
-Anyone with the Write role on this repository can cut a release: every step is a branch, a pull request, a tag, a workflow run or a Release, and the signing credentials are organization secrets, so nothing depends on whose machine runs it. You need `git`, `gh` 2.87 or later (run `gh auth login` once), Node.js and a Rust toolchain. The commands are bash; on Windows, run them in Git Bash.
+Anyone with the Write role on this repository can cut a release: every step is a branch, a pull request, a tag, a workflow run or a Release, and the signing credentials are organization secrets, so nothing depends on whose machine runs it. You need `git`, `gh` 2.87 or later (run `gh auth login` once), Node.js and a Rust toolchain. The repository needs GitHub Pages enabled with GitHub Actions as its source, and a `v*` tag rule on its `github-pages` environment, or publishing a Release deploys nothing; both are settings a repository admin makes. The commands are bash: in zsh, run `setopt interactive_comments` first, so that the `#` comments are not taken as arguments; on Windows, use Git Bash. Steps 1, 4 and 7 switch branches, so run them in a checkout of their own — a clone, or one made with `git worktree add` — not in one where other work is going on.
 
-A release is a tag on `main`, pushed first and built second. Three versions move together. `version` in `package.json` is the one that counts: `tauri.conf.json` reads it, the app shows it, every archive is named after it, and `scripts/release-version.sh` prints it. The crate `version` in `src-tauri/Cargo.toml` is a copy that moves in the same step, and `scripts/release-version.sh` refuses to print a version while the two disagree. The tag is `v` followed by it, and the release build refuses a tag that disagrees. The SDK this release ships is versioned on its own, by the submodule. Branches follow git-flow: `develop` integrates, `main` holds released commits only, and `release/X.Y` lives for one release — cut from `develop` for a new `X.Y`, or from the line's latest tag for a patch, and deleted once the release is out.
+A release is a tag on `main`, pushed first and built second. Three versions move together. `version` in `package.json` is the one that counts: `tauri.conf.json` reads it, the app shows it, every archive is named after it, and `scripts/release-version.sh` prints it. The crate `version` in `src-tauri/Cargo.toml` is a copy that moves in the same step, and `scripts/release-version.sh` refuses to print a version while the two disagree. The tag is `v` followed by it, and the release build refuses a tag that disagrees. The SDK this release ships is versioned on its own, by the submodule. Branches follow git-flow: `develop` integrates, `main` holds released commits only, and `release/X.Y` lives for one release — cut from `develop` when the release ships `develop`'s work, or from the line's latest tag when it ships only fixes on top of it, and deleted once the release is out.
 
-```bash
-VERSION=7.0.1                                       # what is being released
-BRANCH=release/$(echo "$VERSION" | cut -d. -f1,2)   # release/7.0
-```
+Every block runs as written in a new shell: it works out what it needs from the checkout, git and GitHub. The values set by hand are the version being released, written `<version>` in steps 1 and 2, and the SDK release it ships, `<sdk-tag>` in step 2 — fill them in, as in `7.0.1` and `v7.0.0`; left as they are, the line stops with a syntax error. A value that would not stop a command by itself when empty is read as `${VAR:?}`: an empty `VERSION` in step 2 would write an empty version, and an empty `RUN` would let the signing check in step 3 print nothing and pass.
+
+An agent can run every block, but a person tries the QA build's app in step 3, and two steps are a person's to decide: the merge in step 4, which puts the release on `main`, and step 6, which publishes it for good.
 
 ### 1. Branch
 
-A new `X.Y` is cut from `develop`. A patch release is cut from the line's latest tag, whether or not an earlier `release/X.Y` is still there, and its fixes are committed or cherry-picked onto it.
+A release that ships `develop`'s work is cut from `develop`: a new `X.Y`, or `7.0.0` after `7.0.0-beta.1`. A patch release ships only fixes: it is cut from the line's latest tag, and its fixes are committed or cherry-picked onto it. Either way, an earlier `release/X.Y` that is still there is replaced. Run the block that fits.
+
+For `develop`'s work:
 
 ```bash
+VERSION=<version>
+BRANCH=release/$(echo "${VERSION:?}" | cut -d. -f1,2)
 git fetch origin
-git switch -c "$BRANCH" origin/develop           # a new X.Y
-git switch -C "$BRANCH" v7.0.0                   # a patch release: the line's latest tag
+git switch -C "$BRANCH" origin/develop
+```
+
+For a patch:
+
+```bash
+VERSION=<version>
+BRANCH=release/$(echo "${VERSION:?}" | cut -d. -f1,2)
+git fetch origin --tags
+BASE=$(git -c versionsort.suffix=- tag --list "v${BRANCH#release/}.*" --sort=-v:refname | head -n 1)   # the line's latest tag
+git switch -C "$BRANCH" "${BASE:?}"
 ```
 
 ### 2. SDK, version and changelog
 
-In one commit. The converter is the `ssconverter` crate built from the `SpriteStudio-SDK` submodule, so the submodule is the SDK this release ships: check it out at that SDK release's tag. Set the version in `package.json` and `src-tauri/Cargo.toml`, and let cargo rewrite `src-tauri/Cargo.lock` for both — CI's clippy runs `--locked`. Then date the version's heading in `CHANGELOG.md` as `## [X.Y.Z] - YYYY-MM-DD`; on a patch release, add the heading and its link line at the bottom of the file.
+In one commit. The converter is the `ssconverter` crate built from the `SpriteStudio-SDK` submodule, so the submodule is the SDK this release ships: check it out at that SDK release's tag, `<sdk-tag>`. Set the version in `package.json` and `src-tauri/Cargo.toml`, and let cargo rewrite `src-tauri/Cargo.lock` for both — CI's clippy runs `--locked`. `<version>` is the one from step 1.
 
 ```bash
-SDK_TAG=v7.0.0                                   # the SDK release this ships
-git -C SpriteStudio-SDK fetch --tags origin && git -C SpriteStudio-SDK checkout "$SDK_TAG"
-export VERSION
-npm pkg set version="$VERSION"
-perl -pi -e 's/^version = ".*"/version = "$ENV{VERSION}"/' src-tauri/Cargo.toml
-cargo update -p ssconverter-gui --manifest-path src-tauri/Cargo.toml
-# date the heading in CHANGELOG.md, then:
+VERSION=<version>
+SDK_TAG=<sdk-tag>
+git submodule update --init SpriteStudio-SDK &&
+  git -C SpriteStudio-SDK fetch --tags origin &&
+  git -C SpriteStudio-SDK checkout "${SDK_TAG:?}"
+export VERSION="${VERSION:?}" &&
+  npm pkg set version="$VERSION" &&
+  perl -pi -e 's/^version = ".*"/version = "$ENV{VERSION}"/' src-tauri/Cargo.toml &&
+  cargo update -p ssconverter-gui --manifest-path src-tauri/Cargo.toml
+```
+
+Then date the version's heading in `CHANGELOG.md` as `## [X.Y.Z] - YYYY-MM-DD`, adding the heading and its link line at the bottom of the file if the version has none yet, look over the change, and commit it:
+
+```bash
 git diff
 git add SpriteStudio-SDK package.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
-git commit -m "chore(release): v$VERSION"
+git commit -m "chore(release): v$(scripts/release-version.sh)"
 ```
 
 ### 3. Pull request and QA build
 
-Open the pull request into `main`; its CI runs the unit tests, the frontend build, `cargo fmt` and clippy. Then dispatch the release workflow from the branch. With `upload_release` left false it builds, signs and checks the macOS archive and both Windows archives exactly as the release will, keeps them on the run (`SSConverterGUI-release-dist`), and creates no Release. Try the app from those archives on both systems. Fix anything on the branch and repeat until both runs are green.
+Open the pull request into `main`; its CI runs the unit tests, the frontend build, `cargo fmt` and clippy.
 
 ```bash
-git push -u origin "$BRANCH"
-gh pr create -B main --title "Release v$VERSION" --body ""
-RUN=$(gh workflow run release.yml --ref "$BRANCH" | sed 's|.*/||')
-gh run watch "${RUN:?}" --exit-status
-gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D qa
+BRANCH=$(git branch --show-current | grep '^release/')
+git push -u origin "${BRANCH:?}"
+gh pr create -B main -H "${BRANCH:?}" --title "Release v$(scripts/release-version.sh)" --body ""
 ```
 
-A missing signing secret does not fail this run: the macOS job logs `Skipping code signing` or `Skipping notarization` and builds an unsigned app. Look for those lines here, because the tag run in step 5 requires the signature and fails instead.
+Then dispatch the release workflow from the branch. With `upload_release` left false it builds, signs and checks the macOS archive and both Windows archives exactly as the release will, keeps them on the run (`SSConverterGUI-release-dist`), and creates no Release; the block downloads them into `qa/<run ID>`. **A person tries the app** from those archives, on macOS and on Windows. Fix anything on the branch and run this block again, until both runs are green and the app works.
+
+```bash
+BRANCH=$(git branch --show-current | grep '^release/')
+git push origin "${BRANCH:?}"
+RUN=$(gh workflow run release.yml --ref "${BRANCH:?}" | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status
+gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # must print nothing
+gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN"
+```
+
+A missing signing secret does not fail this run: the macOS job logs `Skipping code signing` or `Skipping notarization` and builds an unsigned app. The block's signing check looks for those lines and must print nothing, because the tag run in step 5 requires the signature and fails instead. If it prints anything, no change on the branch fixes it: the organization's signing secrets are not reaching this repository. An organization owner decides which repositories they reach, and on GitHub Free they cannot reach a private one. Dispatch again once they do.
 
 ### 4. Merge and tag
 
-Merge with a merge commit, never a squash or a rebase, so that `main` keeps the commits the QA build built rather than copies of them. Tag `main` only when its tree is the one the QA build built. It differs only when `main` held commits the branch did not; merge `main` into the branch and go back to step 3.
+Merge with a merge commit, never a squash or a rebase, so that `main` keeps the commits the QA build built rather than copies of them. Before merging, check that a QA run built the branch's head green, and that merging it changes nothing in its tree. If it would, `main` holds changes the branch does not, and the tag would go on a tree no QA run built: merge `main` into the branch and go back to step 3.
 
 ```bash
-gh pr merge "$BRANCH" --merge
+BRANCH=$(git branch --show-current | grep '^release/')
+git fetch origin
+SHA=$(git rev-parse --verify -q "origin/${BRANCH:?}")
+gh run list -w release.yml -c "${SHA:?}" -s success -L 1                                             # must list a run
+git diff --stat "origin/${BRANCH:?}" "$(git merge-tree --write-tree origin/main "origin/$BRANCH")"   # must print nothing
+```
+
+**A person runs the merge**, which puts the release on `main`: choose **Create a merge commit** on the pull request's page, or run
+
+```bash
+BRANCH=$(git branch --show-current | grep '^release/')
+gh pr merge "${BRANCH:?}" --merge
+```
+
+Then tag `main`. The tag goes on the merge commit only when its tree is the branch's, which `git diff` confirms by printing nothing:
+
+```bash
 git switch main && git pull --ff-only
-git diff --stat HEAD^2 HEAD                           # must print nothing
-TAG=v$(scripts/release-version.sh) && echo "$TAG"
-git tag -a "$TAG" -m "$TAG" && git push origin "$TAG"
+git diff --stat --exit-code HEAD^2 HEAD &&
+  TAG=v$(scripts/release-version.sh) &&
+  git tag -a "$TAG" -m "$TAG" && git push origin "$TAG"
 ```
 
 ### 5. Build the Release
 
-Dispatch from the tag. On a tag the run refuses a tag that disagrees with `package.json` and a `CHANGELOG.md` whose top heading has no date, and requires the macOS app to be signed, notarized and stapled (`sign=yes`). It then creates a **draft** Release carrying the archives, `SHA256SUMS` and generated notes; nothing is public yet. `upload_release=true` from anything but a `v*` tag fails the run rather than skipping the Release quietly.
+Dispatch from the tag on `main`. On a tag the run refuses a tag that disagrees with `package.json` and a `CHANGELOG.md` whose top heading has no date, and requires the macOS app to be signed, notarized and stapled (`sign=yes`). It then creates a **draft** Release carrying the archives, `SHA256SUMS` and generated notes; nothing is public yet. `upload_release=true` from anything but a `v*` tag fails the run rather than skipping the Release quietly.
 
 ```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
 RUN=$(gh workflow run release.yml --ref "${TAG:?}" -f upload_release=true | sed 's|.*/||')
 gh run watch "${RUN:?}" --exit-status
 ```
 
 ### 6. Publish
 
-Open the draft on the [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, check that the macOS `.app.tar.gz` (universal), the two Windows `.zip` (x86_64 and arm64) and `SHA256SUMS` are attached, edit the notes, choose **Set as a pre-release** or **Set as the latest release** (a tag with a `-` can be either), and **Publish release**. Publishing also starts `pages.yml`, which deploys the [documentation site](https://cri-middleware.github.io/SSConverterGUI/); merging to `main` publishes nothing, because the site documents the released application. Watch the run through, then open the site: a failed run leaves the Release published and the site as it was. Once the cause is fixed, re-run it; a re-run builds the same tag.
+**A person runs this step**: the notes and the choice between a pre-release and the latest release are judgments, and a published Release is permanent. Open the draft on the [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, check that the macOS `.app.tar.gz` (universal), the two Windows `.zip` (x86_64 and arm64) and `SHA256SUMS` are attached, edit the notes, choose **Set as a pre-release** or **Set as the latest release** (a tag with a `-` can be either), and **Publish release**.
+
+Publishing also starts `pages.yml`, which deploys the [documentation site](https://cri-middleware.github.io/SSConverterGUI/); merging to `main` publishes nothing, because the site documents the released application. Watch the run through, then open the site: a failed run leaves the Release published and the site as it was. Once the cause is fixed, re-run it with `gh run rerun "${RUN:?}"`; a re-run builds the same tag.
 
 ```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
 RUN=$(gh run list -w pages.yml -b "${TAG:?}" -L 1 --json databaseId -q '.[0].databaseId')
-gh run watch "${RUN:?}" --exit-status             # RUN is empty for the few seconds before the run appears
+gh run watch "${RUN:?}" --exit-status             # RUN is empty until the run appears: repeat the last two lines
 ```
 
 ### 7. Merge back
@@ -91,16 +141,32 @@ gh run watch "${RUN:?}" --exit-status             # RUN is empty for the few sec
 Merge `main` into `develop`. After a patch release this conflicts where `develop` has moved on: keep `develop`'s version and its `Unreleased` heading, with the patch's section below it. When the next version is decided, set it on `develop` the way step 2 does, under a `## [X.Y.Z] - Unreleased` heading.
 
 ```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
 git switch develop && git pull --ff-only
-git merge --no-ff main && git push origin develop
-git push origin --delete "$BRANCH"
+git merge --no-ff origin/main && git push origin develop
+git push origin --delete "release/$(echo "${TAG:?}" | sed 's/^v//' | cut -d. -f1,2)"
 ```
 
-If the button on its pull request already deleted the release branch, the last line only reports that the branch does not exist. Nothing needs it afterwards: a patch release cuts it again from the tag.
+If the button on its pull request already deleted the release branch, the last line only reports that the branch does not exist. Nothing needs it afterwards: the line's next release cuts it again in step 1.
 
 ## Undoing a release
 
-Until the Release is published, it can be undone. A run that failed for a transient reason is dispatched again from the same tag once its draft is deleted. A fault that needs new commits takes the tag down too: delete the draft, run `git push origin ":refs/tags/$TAG" && git tag -d "$TAG"`, fix it on the branch — restore it from its pull request if it was deleted — and go back to step 3.
+Until the Release is published, it can be undone. The draft goes first, if the run made one:
+
+```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
+gh release delete "${TAG:?}" --yes
+```
+
+A run that failed for a transient reason is then dispatched again from the same tag, with step 5's block. A fault that needs new commits takes the tag down too, on GitHub and here; then fix it on the branch — restore it from its pull request if it was deleted — and go back to step 3.
+
+```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
+git push origin ":refs/tags/${TAG:?}" && git tag -d "${TAG:?}"
+```
 
 **Once published, the tag and its assets are permanent** — users have the archives, and the version the app shows names them — so a fix is a new patch version.
 
@@ -118,84 +184,134 @@ Until the Release is published, it can be undone. A run that failed for a transi
 
 ## リリースの手順
 
-このリポジトリの Write ロールを持つ人なら誰でもリリースできます。どの手順もブランチ・プルリクエスト・タグ・ワークフローの実行・Release のいずれかで、署名の資格情報は組織の Secret なので、誰の手元で実行しても結果は変わりません。必要なのは `git`、`gh` 2.87 以降（最初に一度 `gh auth login`）、Node.js、Rust ツールチェーンです。コマンドは bash で書いています。Windows では Git Bash で実行してください。
+このリポジトリの Write ロールを持つ人なら誰でもリリースできます。どの手順もブランチ・プルリクエスト・タグ・ワークフローの実行・Release のいずれかで、署名の資格情報は組織の Secret なので、誰の手元で実行しても結果は変わりません。必要なのは `git`、`gh` 2.87 以降（最初に一度 `gh auth login`）、Node.js、Rust ツールチェーンです。リポジトリ側では、GitHub Pages を有効にしてソースを GitHub Actions にし、`github-pages` environment に `v*` のタグのルールを足しておく必要があります。どちらかが欠けると、Release を公開しても何もデプロイされません。どちらもリポジトリの admin が行う設定です。コマンドは bash です。zsh では、`#` のコメントが引数として渡されないよう、先に `setopt interactive_comments` を実行します。Windows では Git Bash を使います。手順 1・4・7 はブランチを切り替えるので、ほかの作業をしていない専用のチェックアウト（クローンか、`git worktree add` で作ったもの）で実行してください。
 
-リリースは `main` 上のタグです。先にタグを push し、ビルドはその後です。3 つのバージョンを一緒に動かします。基準は `package.json` の `version` で、`tauri.conf.json` がこれを読み、アプリが表示し、各アーカイブの名前になり、`scripts/release-version.sh` が出力します。`src-tauri/Cargo.toml` のクレート `version` はその写しで、同じ手順で動かします。2 つが食い違っている間、`scripts/release-version.sh` はバージョンを出力せずに失敗します。タグはその頭に `v` を付けたもので、食い違うタグはリリースビルドが拒否します。同梱する SDK のバージョンはこれとは別で、submodule が決めます。ブランチは git-flow です。`develop` が統合ブランチで、`main` にはリリース済みのコミットだけが入ります。`release/X.Y` は 1 回のリリースの間だけ使います。新しい `X.Y` なら `develop` から、パッチならその系統の最新のタグから切り、リリースが済んだら消します。
+リリースは `main` 上のタグです。先にタグを push し、ビルドはその後です。3 つのバージョンを一緒に動かします。基準は `package.json` の `version` で、`tauri.conf.json` がこれを読み、アプリが表示し、各アーカイブの名前になり、`scripts/release-version.sh` が出力します。`src-tauri/Cargo.toml` のクレート `version` はその写しで、同じ手順で動かします。2 つが食い違っている間、`scripts/release-version.sh` はバージョンを出力せずに失敗します。タグはその頭に `v` を付けたもので、食い違うタグはリリースビルドが拒否します。同梱する SDK のバージョンはこれとは別で、submodule が決めます。ブランチは git-flow です。`develop` が統合ブランチで、`main` にはリリース済みのコミットだけが入ります。`release/X.Y` は 1 回のリリースの間だけ使います。`develop` の作業を出すリリースなら `develop` から、タグの上に修正だけを載せるリリースならその系統の最新のタグから切り、リリースが済んだら消します。
 
-```bash
-VERSION=7.0.1                                       # リリースするバージョン
-BRANCH=release/$(echo "$VERSION" | cut -d. -f1,2)   # release/7.0
-```
+どのブロックも、新しいシェルで書かれたとおりに実行できます。必要なものはチェックアウト・git・GitHub から求めます。手で設定する値は、リリースするバージョン（手順 1 と 2 の `<version>`）と、同梱する SDK のリリース（手順 2 の `<sdk-tag>`）だけです。`7.0.1`、`v7.0.0` のように埋めてください。埋めずに実行すると、その行は構文エラーで止まります。空でもそれだけでは止まらない値は `${VAR:?}` で読みます。手順 2 の `VERSION` が空だと空のバージョンを書き込み、`RUN` が空だと手順 3 の署名の確認が何も出力せずに通ってしまうためです。
+
+どのブロックもエージェントに実行させられますが、手順 3 の QA ビルドのアプリは人が試し、2 つの手順は人が判断します。リリースを `main` に入れる手順 4 のマージと、取り消せない公開を行う手順 6 です。
 
 ### 1. ブランチ
 
-新しい `X.Y` は `develop` から切ります。パッチリリースは、以前の `release/X.Y` が残っているかどうかに関係なく、その系統の最新のタグから切り、修正をそこへコミットするか cherry-pick します。
+`develop` の作業を出すリリースは `develop` から切ります。新しい `X.Y` や、`7.0.0-beta.1` の後の `7.0.0` がこれに当たります。パッチリリースは修正だけを出すもので、その系統の最新のタグから切り、修正をそこへコミットするか cherry-pick します。どちらの場合も、以前の `release/X.Y` が残っていれば置き換えます。当てはまる方のブロックを実行します。
+
+`develop` の作業を出すとき:
 
 ```bash
+VERSION=<version>
+BRANCH=release/$(echo "${VERSION:?}" | cut -d. -f1,2)
 git fetch origin
-git switch -c "$BRANCH" origin/develop           # 新しい X.Y
-git switch -C "$BRANCH" v7.0.0                   # パッチリリース: その系統の最新のタグ
+git switch -C "$BRANCH" origin/develop
+```
+
+パッチのとき:
+
+```bash
+VERSION=<version>
+BRANCH=release/$(echo "${VERSION:?}" | cut -d. -f1,2)
+git fetch origin --tags
+BASE=$(git -c versionsort.suffix=- tag --list "v${BRANCH#release/}.*" --sort=-v:refname | head -n 1)   # その系統の最新のタグ
+git switch -C "$BRANCH" "${BASE:?}"
 ```
 
 ### 2. SDK、バージョン、CHANGELOG
 
-1 コミットで行います。変換処理は `SpriteStudio-SDK` submodule からビルドする `ssconverter` クレートなので、submodule がこのリリースに同梱する SDK です。その SDK リリースのタグに submodule を合わせます。`package.json` と `src-tauri/Cargo.toml` にバージョンを設定し、両方に合わせて `src-tauri/Cargo.lock` を cargo に書き直させます（CI の clippy は `--locked` で実行します）。続けて `CHANGELOG.md` のそのバージョンの見出しに日付を入れ、`## [X.Y.Z] - YYYY-MM-DD` とします。パッチリリースでは見出しと、ファイル末尾のリンク行を足します。
+1 コミットで行います。変換処理は `SpriteStudio-SDK` submodule からビルドする `ssconverter` クレートなので、submodule がこのリリースに同梱する SDK です。その SDK リリースのタグ `<sdk-tag>` に submodule を合わせます。`package.json` と `src-tauri/Cargo.toml` にバージョンを設定し、両方に合わせて `src-tauri/Cargo.lock` を cargo に書き直させます（CI の clippy は `--locked` で実行します）。`<version>` は手順 1 と同じものです。
 
 ```bash
-SDK_TAG=v7.0.0                                   # 同梱する SDK のリリース
-git -C SpriteStudio-SDK fetch --tags origin && git -C SpriteStudio-SDK checkout "$SDK_TAG"
-export VERSION
-npm pkg set version="$VERSION"
-perl -pi -e 's/^version = ".*"/version = "$ENV{VERSION}"/' src-tauri/Cargo.toml
-cargo update -p ssconverter-gui --manifest-path src-tauri/Cargo.toml
-# CHANGELOG.md の見出しに日付を入れてから:
+VERSION=<version>
+SDK_TAG=<sdk-tag>
+git submodule update --init SpriteStudio-SDK &&
+  git -C SpriteStudio-SDK fetch --tags origin &&
+  git -C SpriteStudio-SDK checkout "${SDK_TAG:?}"
+export VERSION="${VERSION:?}" &&
+  npm pkg set version="$VERSION" &&
+  perl -pi -e 's/^version = ".*"/version = "$ENV{VERSION}"/' src-tauri/Cargo.toml &&
+  cargo update -p ssconverter-gui --manifest-path src-tauri/Cargo.toml
+```
+
+続けて `CHANGELOG.md` のそのバージョンの見出しに日付を入れ、`## [X.Y.Z] - YYYY-MM-DD` とします。そのバージョンの見出しがまだ無ければ、見出しとファイル末尾のリンク行を足します。変更を見直してからコミットします。
+
+```bash
 git diff
 git add SpriteStudio-SDK package.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
-git commit -m "chore(release): v$VERSION"
+git commit -m "chore(release): v$(scripts/release-version.sh)"
 ```
 
 ### 3. プルリクエストと QA ビルド
 
-`main` へのプルリクエストを作ります。その CI がユニットテスト、フロントエンドのビルド、`cargo fmt`、clippy を実行します。続けてブランチからリリースワークフローを実行します。`upload_release` を false のままにすると、macOS と 2 つの Windows のアーカイブをリリースと同じようにビルド・署名・検査して run に残し（`SSConverterGUI-release-dist`）、Release は作りません。そのアーカイブのアプリを両方の OS で試してください。問題があればブランチで直し、両方の run が緑になるまで繰り返します。
+`main` へのプルリクエストを作ります。その CI がユニットテスト、フロントエンドのビルド、`cargo fmt`、clippy を実行します。
 
 ```bash
-git push -u origin "$BRANCH"
-gh pr create -B main --title "Release v$VERSION" --body ""
-RUN=$(gh workflow run release.yml --ref "$BRANCH" | sed 's|.*/||')
-gh run watch "${RUN:?}" --exit-status
-gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D qa
+BRANCH=$(git branch --show-current | grep '^release/')
+git push -u origin "${BRANCH:?}"
+gh pr create -B main -H "${BRANCH:?}" --title "Release v$(scripts/release-version.sh)" --body ""
 ```
 
-署名の Secret が欠けていても、この run は失敗しません。macOS のジョブが `Skipping code signing` や `Skipping notarization` をログに出し、未署名のアプリを作ります。手順 5 のタグの run は署名を必須にしていて、そこで失敗することになるので、ここでその行が出ていないかを確認してください。
+続けて、ブランチからリリースワークフローを実行します。`upload_release` を false のままにすると、macOS と 2 つの Windows のアーカイブをリリースと同じようにビルド・署名・検査して run に残し（`SSConverterGUI-release-dist`）、Release は作りません。ブロックはそれを `qa/<run の ID>` にダウンロードします。**そのアーカイブのアプリは人が試します。** macOS と Windows の両方で試してください。問題があればブランチで直し、このブロックをもう一度実行します。両方の run が緑になり、アプリが動くまで繰り返します。
+
+```bash
+BRANCH=$(git branch --show-current | grep '^release/')
+git push origin "${BRANCH:?}"
+RUN=$(gh workflow run release.yml --ref "${BRANCH:?}" | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status
+gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # 何も出力されないこと
+gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN"
+```
+
+署名の Secret が欠けていても、この run は失敗しません。macOS のジョブが `Skipping code signing` や `Skipping notarization` をログに出し、未署名のアプリを作ります。ブロックの署名の確認はその行を探すもので、何も出力されてはいけません。手順 5 のタグの run は署名を必須にしていて、そこで失敗することになるためです。何か出力されたら、ブランチをどう変えても直りません。組織の署名用 Secret がこのリポジトリに届いていません。どのリポジトリに届けるかは組織のオーナーが決めますが、GitHub Free では private のリポジトリには届けられません。届くようになったら実行し直してください。
 
 ### 4. マージとタグ
 
-マージはマージコミットで行い、squash や rebase は使いません。QA ビルドしたコミットの写しではなく、そのものを `main` に残すためです。タグは、`main` のツリーが QA ビルドしたものと同じときにだけ打ちます。違うのは `main` にブランチが持たないコミットがあった場合だけで、そのときは `main` をブランチへマージして手順 3 に戻ります。
+マージはマージコミットで行い、squash や rebase は使いません。QA ビルドしたコミットの写しではなく、そのものを `main` に残すためです。マージの前に、ブランチの先頭を QA の run が緑でビルドしていること、マージしてもブランチのツリーが変わらないことを確かめます。変わるなら `main` にブランチの持たない変更があり、どの QA の run もビルドしていないツリーにタグが付きます。そのときは `main` をブランチへマージして手順 3 に戻ります。
 
 ```bash
-gh pr merge "$BRANCH" --merge
+BRANCH=$(git branch --show-current | grep '^release/')
+git fetch origin
+SHA=$(git rev-parse --verify -q "origin/${BRANCH:?}")
+gh run list -w release.yml -c "${SHA:?}" -s success -L 1                                             # run が 1 つ表示されること
+git diff --stat "origin/${BRANCH:?}" "$(git merge-tree --write-tree origin/main "origin/$BRANCH")"   # 何も出力されないこと
+```
+
+**マージは人が行います。** リリースが `main` に入るためです。プルリクエストのページで **Create a merge commit** を選ぶか、次を実行します。
+
+```bash
+BRANCH=$(git branch --show-current | grep '^release/')
+gh pr merge "${BRANCH:?}" --merge
+```
+
+続けて `main` にタグを打ちます。タグはマージコミットのツリーがブランチと同じときにだけ打たれます。`git diff` が何も出力しないことがその確認です。
+
+```bash
 git switch main && git pull --ff-only
-git diff --stat HEAD^2 HEAD                           # 何も出力されないこと
-TAG=v$(scripts/release-version.sh) && echo "$TAG"
-git tag -a "$TAG" -m "$TAG" && git push origin "$TAG"
+git diff --stat --exit-code HEAD^2 HEAD &&
+  TAG=v$(scripts/release-version.sh) &&
+  git tag -a "$TAG" -m "$TAG" && git push origin "$TAG"
 ```
 
 ### 5. Release のビルド
 
-タグからワークフローを実行します。タグの run は、`package.json` と食い違うタグと、先頭の見出しに日付の無い `CHANGELOG.md` を拒否し、macOS のアプリが署名・公証・ステープル済みであることを要求します（`sign=yes`）。そのうえで、アーカイブと `SHA256SUMS`、自動生成のリリースノートを持つ**下書き**の Release を作ります。まだ何も公開されていません。`v*` タグ以外からの `upload_release=true` は、Release を黙って飛ばさずに実行を失敗させます。
+`main` 上のタグからワークフローを実行します。タグの run は、`package.json` と食い違うタグと、先頭の見出しに日付の無い `CHANGELOG.md` を拒否し、macOS のアプリが署名・公証・ステープル済みであることを要求します（`sign=yes`）。そのうえで、アーカイブと `SHA256SUMS`、自動生成のリリースノートを持つ**下書き**の Release を作ります。まだ何も公開されていません。`v*` タグ以外からの `upload_release=true` は、Release を黙って飛ばさずに実行を失敗させます。
 
 ```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
 RUN=$(gh workflow run release.yml --ref "${TAG:?}" -f upload_release=true | sed 's|.*/||')
 gh run watch "${RUN:?}" --exit-status
 ```
 
 ### 6. 公開
 
-[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページで下書きを開き、macOS の `.app.tar.gz`（ユニバーサル）、Windows の 2 つの `.zip`（x86_64 と arm64）、`SHA256SUMS` が添付されていることを確かめ、リリースノートを編集し、**Set as a pre-release** か **Set as the latest release** を選んで（`-` を含むタグはどちらも選べます）、**Publish release** を押します。公開すると `pages.yml` が動き、[ドキュメントサイト](https://cri-middleware.github.io/SSConverterGUI/) をデプロイします。`main` へのマージでは何も公開されません。サイトはリリース済みのアプリケーションを説明するものだからです。run を最後まで見届けてから、サイトを開いて確かめます。run が失敗しても Release は公開されたままで、サイトは元のまま残ります。原因を直したら run を再実行します。再実行は同じタグをビルドします。
+**この手順は人が行います。** リリースノートの中身と、pre-release か latest かの選択は判断が要り、公開した Release は取り消せないためです。[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページで下書きを開き、macOS の `.app.tar.gz`（ユニバーサル）、Windows の 2 つの `.zip`（x86_64 と arm64）、`SHA256SUMS` が添付されていることを確かめ、リリースノートを編集し、**Set as a pre-release** か **Set as the latest release** を選んで（`-` を含むタグはどちらも選べます）、**Publish release** を押します。
+
+公開すると `pages.yml` が動き、[ドキュメントサイト](https://cri-middleware.github.io/SSConverterGUI/) をデプロイします。`main` へのマージでは何も公開されません。サイトはリリース済みのアプリケーションを説明するものだからです。run を最後まで見届けてから、サイトを開いて確かめます。run が失敗しても Release は公開されたままで、サイトは元のまま残ります。原因を直したら `gh run rerun "${RUN:?}"` で再実行します。再実行は同じタグをビルドします。
 
 ```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
 RUN=$(gh run list -w pages.yml -b "${TAG:?}" -L 1 --json databaseId -q '.[0].databaseId')
-gh run watch "${RUN:?}" --exit-status             # run が一覧に出るまでの数秒間は RUN が空になる
+gh run watch "${RUN:?}" --exit-status             # run が出るまで RUN は空。最後の 2 行を繰り返す
 ```
 
 ### 7. develop へ戻す
@@ -203,16 +319,32 @@ gh run watch "${RUN:?}" --exit-status             # run が一覧に出るまで
 `main` を `develop` へマージします。パッチリリースの後は、`develop` が先へ進んだ箇所で衝突します。`develop` のバージョンと `Unreleased` の見出しを残し、パッチの節をその下に置いてください。次のバージョンが決まったら、手順 2 と同じやり方で `develop` にバージョンを設定し、`## [X.Y.Z] - Unreleased` の見出しを立てます。
 
 ```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
 git switch develop && git pull --ff-only
-git merge --no-ff main && git push origin develop
-git push origin --delete "$BRANCH"
+git merge --no-ff origin/main && git push origin develop
+git push origin --delete "release/$(echo "${TAG:?}" | sed 's/^v//' | cut -d. -f1,2)"
 ```
 
-プルリクエストのページのボタンでリリースブランチを消してあれば、最後の行は「ブランチが無い」と出るだけです。パッチリリースはタグから切り直すので、この後ブランチが要ることはありません。
+プルリクエストのページのボタンでリリースブランチを消してあれば、最後の行は「ブランチが無い」と出るだけです。同じ系統の次のリリースは手順 1 で切り直すので、この後ブランチが要ることはありません。
 
 ## リリースの取り消し
 
-Release を公開するまでは取り消せます。一時的な理由で失敗した run は、下書きを消してから同じタグでもう一度実行します。新しいコミットが要る不具合ならタグも取り下げます。下書きを消し、`git push origin ":refs/tags/$TAG" && git tag -d "$TAG"` を実行し、ブランチで直して（消していたらプルリクエストのページから復元して）手順 3 に戻ります。
+Release を公開するまでは取り消せます。run が下書きを作っていれば、先にそれを消します。
+
+```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
+gh release delete "${TAG:?}" --yes
+```
+
+一時的な理由で失敗した run は、そのあと手順 5 のブロックで同じタグからもう一度実行します。新しいコミットが要る不具合なら、タグも GitHub と手元の両方から取り下げ、ブランチで直して（消していたらプルリクエストのページから復元して）手順 3 に戻ります。
+
+```bash
+git fetch origin --tags
+TAG=$(git describe --exact-match --tags --match 'v[0-9]*' origin/main)
+git push origin ":refs/tags/${TAG:?}" && git tag -d "${TAG:?}"
+```
 
 **公開した後のタグとアセットは恒久的です。** 利用者はそのアーカイブを持っていて、アプリが表示するバージョンがそれを名指ししているので、修正は新しいパッチバージョンで出します。
 
