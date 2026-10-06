@@ -6,7 +6,7 @@ archive and the documentation site.
 
 ## Cutting a release
 
-Anyone with the Write role on this repository can cut a release: every step is a branch, a pull request, a tag, a workflow run or a Release, and the signing credentials are organization secrets, so nothing depends on whose machine runs it. You need `git`, `gh` (run `gh auth login` once), Node.js and a Rust toolchain. The commands are bash; on Windows, run them in Git Bash.
+Anyone with the Write role on this repository can cut a release: every step is a branch, a pull request, a tag, a workflow run or a Release, and the signing credentials are organization secrets, so nothing depends on whose machine runs it. You need `git`, `gh` 2.87 or later (run `gh auth login` once), Node.js and a Rust toolchain. The commands are bash; on Windows, run them in Git Bash.
 
 A release is a tag on `main`, pushed first and built second. Three versions move together. `version` in `package.json` is the one that counts: `tauri.conf.json` reads it, the app shows it, every archive is named after it, and `scripts/release-version.sh` prints it. The crate `version` in `src-tauri/Cargo.toml` is a copy that moves in the same step, and `scripts/release-version.sh` refuses to print a version while the two disagree. The tag is `v` followed by it, and the release build refuses a tag that disagrees. The SDK this release ships is versioned on its own, by the submodule. Branches follow git-flow: `develop` integrates, `main` holds released commits only, and `release/X.Y` lives for one release — cut from `develop` for a new `X.Y`, or from the line's latest tag for a patch, and deleted once the release is out.
 
@@ -49,9 +49,9 @@ Open the pull request into `main`; its CI runs the unit tests, the frontend buil
 ```bash
 git push -u origin "$BRANCH"
 gh pr create -B main --title "Release v$VERSION" --body ""
-gh workflow run release.yml --ref "$BRANCH"
-gh run watch                                      # the run takes a few seconds to appear
-gh run download <run-id> -n SSConverterGUI-release-dist -D qa   # <run-id>: the one gh run watch shows
+RUN=$(gh workflow run release.yml --ref "$BRANCH" | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status
+gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D qa
 ```
 
 A missing signing secret does not fail this run: the macOS job logs `Skipping code signing` or `Skipping notarization` and builds an unsigned app. Look for those lines here, because the tag run in step 5 requires the signature and fails instead.
@@ -73,8 +73,8 @@ git tag -a "$TAG" -m "$TAG" && git push origin "$TAG"
 Dispatch from the tag. On a tag the run refuses a tag that disagrees with `package.json` and a `CHANGELOG.md` whose top heading has no date, and requires the macOS app to be signed, notarized and stapled (`sign=yes`). It then creates a **draft** Release carrying the archives, `SHA256SUMS` and generated notes; nothing is public yet. `upload_release=true` from anything but a `v*` tag fails the run rather than skipping the Release quietly.
 
 ```bash
-gh workflow run release.yml --ref "$TAG" -f upload_release=true
-gh run watch
+RUN=$(gh workflow run release.yml --ref "${TAG:?}" -f upload_release=true | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status
 ```
 
 ### 6. Publish
@@ -82,7 +82,8 @@ gh run watch
 Open the draft on the [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, check that the macOS `.app.tar.gz` (universal), the two Windows `.zip` (x86_64 and arm64) and `SHA256SUMS` are attached, edit the notes, choose **Set as a pre-release** or **Set as the latest release** (a tag with a `-` can be either), and **Publish release**. Publishing also starts `pages.yml`, which deploys the [documentation site](https://cri-middleware.github.io/SSConverterGUI/); merging to `main` publishes nothing, because the site documents the released application. Watch the run through, then open the site: a failed run leaves the Release published and the site as it was. Once the cause is fixed, re-run it; a re-run builds the same tag.
 
 ```bash
-gh run watch                                      # pages.yml; the run takes a few seconds to appear
+RUN=$(gh run list -w pages.yml -b "${TAG:?}" -L 1 --json databaseId -q '.[0].databaseId')
+gh run watch "${RUN:?}" --exit-status             # RUN is empty for the few seconds before the run appears
 ```
 
 ### 7. Merge back
@@ -117,7 +118,7 @@ Until the Release is published, it can be undone. A run that failed for a transi
 
 ## リリースの手順
 
-このリポジトリの Write ロールを持つ人なら誰でもリリースできます。どの手順もブランチ・プルリクエスト・タグ・ワークフローの実行・Release のいずれかで、署名の資格情報は組織の Secret なので、誰の手元で実行しても結果は変わりません。必要なのは `git`、`gh`（最初に一度 `gh auth login`）、Node.js、Rust ツールチェーンです。コマンドは bash で書いています。Windows では Git Bash で実行してください。
+このリポジトリの Write ロールを持つ人なら誰でもリリースできます。どの手順もブランチ・プルリクエスト・タグ・ワークフローの実行・Release のいずれかで、署名の資格情報は組織の Secret なので、誰の手元で実行しても結果は変わりません。必要なのは `git`、`gh` 2.87 以降（最初に一度 `gh auth login`）、Node.js、Rust ツールチェーンです。コマンドは bash で書いています。Windows では Git Bash で実行してください。
 
 リリースは `main` 上のタグです。先にタグを push し、ビルドはその後です。3 つのバージョンを一緒に動かします。基準は `package.json` の `version` で、`tauri.conf.json` がこれを読み、アプリが表示し、各アーカイブの名前になり、`scripts/release-version.sh` が出力します。`src-tauri/Cargo.toml` のクレート `version` はその写しで、同じ手順で動かします。2 つが食い違っている間、`scripts/release-version.sh` はバージョンを出力せずに失敗します。タグはその頭に `v` を付けたもので、食い違うタグはリリースビルドが拒否します。同梱する SDK のバージョンはこれとは別で、submodule が決めます。ブランチは git-flow です。`develop` が統合ブランチで、`main` にはリリース済みのコミットだけが入ります。`release/X.Y` は 1 回のリリースの間だけ使います。新しい `X.Y` なら `develop` から、パッチならその系統の最新のタグから切り、リリースが済んだら消します。
 
@@ -160,9 +161,9 @@ git commit -m "chore(release): v$VERSION"
 ```bash
 git push -u origin "$BRANCH"
 gh pr create -B main --title "Release v$VERSION" --body ""
-gh workflow run release.yml --ref "$BRANCH"
-gh run watch                                      # run が一覧に出るまで数秒かかる
-gh run download <run-id> -n SSConverterGUI-release-dist -D qa   # <run-id> は gh run watch が表示するもの
+RUN=$(gh workflow run release.yml --ref "$BRANCH" | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status
+gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D qa
 ```
 
 署名の Secret が欠けていても、この run は失敗しません。macOS のジョブが `Skipping code signing` や `Skipping notarization` をログに出し、未署名のアプリを作ります。手順 5 のタグの run は署名を必須にしていて、そこで失敗することになるので、ここでその行が出ていないかを確認してください。
@@ -184,8 +185,8 @@ git tag -a "$TAG" -m "$TAG" && git push origin "$TAG"
 タグからワークフローを実行します。タグの run は、`package.json` と食い違うタグと、先頭の見出しに日付の無い `CHANGELOG.md` を拒否し、macOS のアプリが署名・公証・ステープル済みであることを要求します（`sign=yes`）。そのうえで、アーカイブと `SHA256SUMS`、自動生成のリリースノートを持つ**下書き**の Release を作ります。まだ何も公開されていません。`v*` タグ以外からの `upload_release=true` は、Release を黙って飛ばさずに実行を失敗させます。
 
 ```bash
-gh workflow run release.yml --ref "$TAG" -f upload_release=true
-gh run watch
+RUN=$(gh workflow run release.yml --ref "${TAG:?}" -f upload_release=true | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status
 ```
 
 ### 6. 公開
@@ -193,7 +194,8 @@ gh run watch
 [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページで下書きを開き、macOS の `.app.tar.gz`（ユニバーサル）、Windows の 2 つの `.zip`（x86_64 と arm64）、`SHA256SUMS` が添付されていることを確かめ、リリースノートを編集し、**Set as a pre-release** か **Set as the latest release** を選んで（`-` を含むタグはどちらも選べます）、**Publish release** を押します。公開すると `pages.yml` が動き、[ドキュメントサイト](https://cri-middleware.github.io/SSConverterGUI/) をデプロイします。`main` へのマージでは何も公開されません。サイトはリリース済みのアプリケーションを説明するものだからです。run を最後まで見届けてから、サイトを開いて確かめます。run が失敗しても Release は公開されたままで、サイトは元のまま残ります。原因を直したら run を再実行します。再実行は同じタグをビルドします。
 
 ```bash
-gh run watch                                      # pages.yml。run が一覧に出るまで数秒かかる
+RUN=$(gh run list -w pages.yml -b "${TAG:?}" -L 1 --json databaseId -q '.[0].databaseId')
+gh run watch "${RUN:?}" --exit-status             # run が一覧に出るまでの数秒間は RUN が空になる
 ```
 
 ### 7. develop へ戻す
