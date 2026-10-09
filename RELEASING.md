@@ -71,7 +71,7 @@ git push -u origin "${BRANCH:?}"
 gh pr create -B main -H "${BRANCH:?}" --title "Release v$(scripts/release-version.sh)" --body ""
 ```
 
-Then dispatch the release workflow from the branch. With `upload_release` left false it builds, signs and checks the macOS archive and both Windows archives exactly as the release will, keeps them on the run (`SSConverterGUI-release-dist`), and creates no Release; the block downloads them into `qa/<run ID>`. **A person tries the app** from those archives, on macOS and on Windows. Fix anything on the branch and run this block again, until both runs are green and the app works.
+Then dispatch the release workflow from the branch. A run from a branch builds, signs and checks the macOS archive and both Windows archives exactly as the release will, keeps them on the run (`SSConverterGUI-release-dist`), and creates no Release; the block downloads them into `qa/<run ID>`. **A person tries the app** from those archives, on macOS and on Windows. Fix anything on the branch and run this block again, until both runs are green and the app works.
 
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')
@@ -114,7 +114,7 @@ git switch main && git pull --ff-only &&
 
 ### 5. Build the Release
 
-Dispatch from the tag on `main`. On a tag the run refuses a tag that disagrees with `package.json` and a `CHANGELOG.md` whose top heading has no date, and requires the macOS app to be signed, notarized and stapled (`sign=yes`). It then creates a **draft** Release carrying the archives, `SHA256SUMS` and generated notes; nothing is public yet. `upload_release=true` from anything but a `v*` tag fails the run rather than skipping the Release quietly.
+Dispatch from the tag on `main`. On a tag the run refuses a tag that disagrees with `package.json` and a `CHANGELOG.md` whose top heading has no date, and requires the macOS app to be signed, notarized and stapled (`sign=yes`). It then creates a **draft** Release carrying the archives, `SHA256SUMS` and generated notes; nothing is public yet. A tag that already has a Release, draft or published, keeps it as it is: the run builds, says so in a notice and creates nothing, so delete a draft before dispatching again ([Undoing a release](#undoing-a-release)). With `-f upload_release=false` a run from the tag only builds, its files kept on the run.
 
 ```bash
 git fetch origin --tags
@@ -249,7 +249,7 @@ git push -u origin "${BRANCH:?}"
 gh pr create -B main -H "${BRANCH:?}" --title "Release v$(scripts/release-version.sh)" --body ""
 ```
 
-続けて、ブランチからリリースワークフローを実行します。`upload_release` を false のままにすると、macOS と 2 つの Windows のアーカイブをリリースと同じようにビルド・署名・検査して run に残し（`SSConverterGUI-release-dist`）、Release は作りません。ブロックはそれを `qa/<run の ID>` にダウンロードします。**そのアーカイブのアプリは人が試します。** macOS と Windows の両方で試してください。問題があればブランチで直し、このブロックをもう一度実行します。両方の run が緑になり、アプリが動くまで繰り返します。
+続けて、ブランチからリリースワークフローを実行します。ブランチからの実行では、macOS と 2 つの Windows のアーカイブをリリースと同じようにビルド・署名・検査して run に残し（`SSConverterGUI-release-dist`）、Release は作りません。ブロックはそれを `qa/<run の ID>` にダウンロードします。**そのアーカイブのアプリは人が試します。** macOS と Windows の両方で試してください。問題があればブランチで直し、このブロックをもう一度実行します。両方の run が緑になり、アプリが動くまで繰り返します。
 
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')
@@ -292,7 +292,7 @@ git switch main && git pull --ff-only &&
 
 ### 5. Release のビルド
 
-`main` 上のタグからワークフローを実行します。タグの run は、`package.json` と食い違うタグと、先頭の見出しに日付の無い `CHANGELOG.md` を拒否し、macOS のアプリが署名・公証・ステープル済みであることを要求します（`sign=yes`）。そのうえで、アーカイブと `SHA256SUMS`、自動生成のリリースノートを持つ**下書き**の Release を作ります。まだ何も公開されていません。`v*` タグ以外からの `upload_release=true` は、Release を黙って飛ばさずに実行を失敗させます。
+`main` 上のタグからワークフローを実行します。タグの run は、`package.json` と食い違うタグと、先頭の見出しに日付の無い `CHANGELOG.md` を拒否し、macOS のアプリが署名・公証・ステープル済みであることを要求します（`sign=yes`）。そのうえで、アーカイブと `SHA256SUMS`、自動生成のリリースノートを持つ**下書き**の Release を作ります。まだ何も公開されていません。Release がすでにあるタグでは、下書きでも公開済みでも、その Release に触れません。run はビルドして notice を出すだけなので、もう一度実行するときは先に下書きを消します（[リリースの取り消し](#リリースの取り消し)）。`-f upload_release=false` を付けると、タグからの実行でもビルドだけを行い、成果物を run に残します。
 
 ```bash
 git fetch origin --tags
