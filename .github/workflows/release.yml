@@ -1,17 +1,17 @@
 name: Release
 
 # Run manually from the Actions tab. Matches the sibling repos' release flow
-# (SpriteStudio-SDK / SSPlayerForGodot / SSPlayerForRenPy): the default
-# (upload_release=false) only builds — for QA on a release/X.Y branch.
-# A draft GitHub Release is created only on an explicit dispatch on a
-# v* tag ref with upload_release=true; publishing it is a manual step.
+# (SpriteStudio-SDK / SSPlayerForGodot / SSPlayerForRenPy): the ref decides.
+# A run from a branch only builds — for QA on a release/X.Y branch. A run from
+# a v* tag also drafts the GitHub Release, unless upload_release is turned off
+# or the tag already has one; publishing it is a manual step.
 on:
   workflow_dispatch:
     inputs:
       upload_release:
-        description: 'Create a draft GitHub Release (publish by hand afterwards; requires a v* tag ref)'
+        description: 'Draft the GitHub Release, to publish by hand. Only from a v* tag that has no Release yet; from a branch the run is a build.'
         required: false
-        default: false
+        default: true
         type: boolean
 
 # Least privilege at the workflow level: the build job (which holds the Apple
@@ -202,15 +202,30 @@ jobs:
           path: release-dist
           merge-multiple: true
 
-      # A release is a tag that was pushed first and dispatched from second, so
-      # asking to upload from anything else is an operator error, not a mode.
-      # (build-release.sh separately refuses a tag that disagrees with the
-      # version in package.json, which is what the archives are named after.)
-      - name: Refuse to release from a non-tag ref
-        if: inputs.upload_release && !startsWith(github.ref, 'refs/tags/v')
+      # The ref decides what the run is: a v* tag is a release, anything else is
+      # a build, kept on the run and drafting nothing. A tag that already has a
+      # Release, draft or published, keeps it as it is, so a run from an old tag
+      # rebuilds without touching the files people have downloaded and checked
+      # against its SHA256SUMS. To have a Release made again, delete it first.
+      - name: Decide on the GitHub Release
+        id: release
+        if: inputs.upload_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          echo "::error::upload_release=true needs a v* tag. Push the tag first, then dispatch this workflow from it (Use workflow from → the tag)."
-          exit 1
+          case "$GITHUB_REF" in
+            refs/tags/v*) ;;
+            *) echo "::notice::${GITHUB_REF_NAME} is not a v* tag — a build, no Release."; exit 0 ;;
+          esac
+          if out="$(gh release view "$GITHUB_REF_NAME" --json isDraft 2>&1)"; then
+            echo "::notice::${GITHUB_REF_NAME} already has a Release — left as it is. Delete it to have it made again."
+          elif [ "$out" = "release not found" ]; then
+            echo "draft=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "$out"
+            exit 1
+          fi
 
       # The same script again, with build=no: the phase after the matrix. It
       # checks the three archives are all present, named after this version and
@@ -223,8 +238,8 @@ jobs:
       - name: Collect and check the release
         run: ./scripts/build-release.sh build=no in=release-dist verify=yes
 
-      # Keep the bundle as a workflow artifact so a QA run
-      # (upload_release=false) is useful without creating a Release.
+      # Keep the bundle as a workflow artifact so a QA run from a branch is
+      # useful without creating a Release.
       - name: Upload final release package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -239,7 +254,7 @@ jobs:
           retention-days: 7
 
       - name: Create GitHub Release
-        if: inputs.upload_release
+        if: steps.release.outputs.draft == 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: |
