@@ -12,7 +12,7 @@ A release is a tag on `main`, pushed first and built second. Three versions move
 
 Every block runs as written in a new shell: it works out what it needs from the checkout, git and GitHub. The values set by hand are the version being released, written `<version>` in steps 1 and 2, and the SDK release it ships, `<sdk-tag>` in step 2 — fill them in, as in `7.0.1` and `v7.0.0`; left as they are, the line stops with a syntax error. A value that would not stop a command by itself when empty is read as `${VAR:?}`: an empty `VERSION` in step 2 would write an empty version, and an empty `RUN` would let the signing check in step 3 print nothing and pass.
 
-An agent can run every block, but a person tries the QA build's app in step 3, and two steps are a person's to decide: the merge in step 4, which puts the release on `main`, and step 6, which publishes it for good.
+An agent can run every block, but a person tries the QA build's app and sorts the scan's matches in step 3, and two steps are a person's to decide: the merge in step 4, which puts the release on `main`, and step 6, which publishes it for good.
 
 ### 1. Branch
 
@@ -83,6 +83,17 @@ gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN"
 ```
 
 A missing signing secret does not fail this run: the macOS job logs `Skipping code signing` or `Skipping notarization` and builds an unsigned app. The block's signing check looks for those lines and must print nothing, because the tag run in step 5 requires the signature and fails instead. If it prints anything, no change on the branch fixes it: the organization's signing secrets are not reaching this repository. An organization owner decides which repositories they reach, and on GitHub Free they cannot reach a private one. Dispatch again once they do.
+
+Last, scan the branch for code copied from others. `provenance.yml` runs SCANOSS, which matches the tracked files against public open-source code by sending their fingerprints rather than the code, and ScanCode, which finds copyright and license notices. It keeps both reports and a summary of what they found on the run (`provenance`); the block downloads them into `qa/<run ID>` and prints the summary. **A person sorts the matches.** A match with the earlier SpriteStudio Players and SDK is our own code. Anything else is rewritten, unless its license, read at its source, is compatible with BSD-3-Clause and the code keeps the notice that license asks for. After any change on the branch, run the block again.
+
+```bash
+BRANCH=$(git branch --show-current | grep '^release/')
+git push origin "${BRANCH:?}" &&
+  RUN=$(gh workflow run provenance.yml --ref "${BRANCH:?}" | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status &&
+  gh run download "${RUN:?}" -n provenance -D "qa/$RUN" &&
+  cat "qa/$RUN/summary.md"
+```
 
 ### 4. Merge and tag
 
@@ -190,7 +201,7 @@ git push origin ":refs/tags/${TAG:?}" && git tag -d "${TAG:?}"
 
 どのブロックも、新しいシェルで書かれたとおりに実行できます。必要なものはチェックアウト・git・GitHub から求めます。手で設定する値は、リリースするバージョン（手順 1 と 2 の `<version>`）と、同梱する SDK のリリース（手順 2 の `<sdk-tag>`）だけです。`7.0.1`、`v7.0.0` のように埋めてください。埋めずに実行すると、その行は構文エラーで止まります。空でもそれだけでは止まらない値は `${VAR:?}` で読みます。手順 2 の `VERSION` が空だと空のバージョンを書き込み、`RUN` が空だと手順 3 の署名の確認が何も出力せずに通ってしまうためです。
 
-どのブロックもエージェントに実行させられますが、手順 3 の QA ビルドのアプリは人が試し、2 つの手順は人が判断します。リリースを `main` に入れる手順 4 のマージと、取り消せない公開を行う手順 6 です。
+どのブロックもエージェントに実行させられますが、手順 3 の QA ビルドのアプリは人が試し、照合の一致は人が仕分け、2 つの手順は人が判断します。リリースを `main` に入れる手順 4 のマージと、取り消せない公開を行う手順 6 です。
 
 ### 1. ブランチ
 
@@ -261,6 +272,17 @@ gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN"
 ```
 
 署名の Secret が欠けていても、この run は失敗しません。macOS のジョブが `Skipping code signing` や `Skipping notarization` をログに出し、未署名のアプリを作ります。ブロックの署名の確認はその行を探すもので、何も出力されてはいけません。手順 5 のタグの run は署名を必須にしていて、そこで失敗することになるためです。何か出力されたら、ブランチをどう変えても直りません。組織の署名用 Secret がこのリポジトリに届いていません。どのリポジトリに届けるかは組織のオーナーが決めますが、GitHub Free では private のリポジトリには届けられません。届くようになったら実行し直してください。
+
+最後に、他者のコードを写した箇所が無いかを、ブランチで照合します。`provenance.yml` は SCANOSS と ScanCode を実行します。SCANOSS は、追跡しているファイルを公開されているオープンソースのコードと照合します。送るのはコードではなく指紋です。ScanCode は、著作権表示とライセンスの記述を見つけます。2 つの報告と、見つかったものの一覧は run に残ります（`provenance`）。ブロックはそれを `qa/<run の ID>` にダウンロードし、一覧を表示します。**一致は人が仕分けます。** 以前の SpriteStudio の Player・SDK との一致は、自社のコードです。それ以外は書き直します。残せるのは、出所で確かめたライセンスが BSD-3-Clause と両立し、そのライセンスが求める表示をコードに残すときだけです。ブランチを変えたら、このブロックをもう一度実行します。
+
+```bash
+BRANCH=$(git branch --show-current | grep '^release/')
+git push origin "${BRANCH:?}" &&
+  RUN=$(gh workflow run provenance.yml --ref "${BRANCH:?}" | sed 's|.*/||')
+gh run watch "${RUN:?}" --exit-status &&
+  gh run download "${RUN:?}" -n provenance -D "qa/$RUN" &&
+  cat "qa/$RUN/summary.md"
+```
 
 ### 4. マージとタグ
 
