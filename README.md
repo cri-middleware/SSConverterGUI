@@ -18,11 +18,11 @@ Built with Tauri v2, Vite, and TypeScript, it provides an intuitive interface fo
 
 Comprehensive documentation is available in the `docs/` folder:
 
-- [**Documentation site (hosted)**](https://cri-middleware.github.io/SSConverterGUI/) — 🚧 live after the first release
+- [**Documentation site (hosted)**](https://cri-middleware.github.io/SSConverterGUI/)
 - [**Documentation (English)**](./docs/en/index.md)
 - [**ドキュメント (日本語)**](./docs/ja/index.md)
-- [**For AI assistants**](https://cri-middleware.github.io/SSConverterGUI/llms.txt) — these docs as Markdown: `llms.txt` indexes the pages and `llms-full.txt` holds all of them in one file — 🚧 live after the first release
-- [**SpriteStudio Docs (portal)**](https://cri-middleware.github.io/SpriteStudio-Docs/) — the SDK and every official player in one place — 🚧 live after the first release
+- [**For AI assistants**](https://cri-middleware.github.io/SSConverterGUI/llms.txt) — these docs as Markdown: `llms.txt` indexes the pages and `llms-full.txt` holds all of them in one file
+- [**SpriteStudio Docs (portal)**](https://cri-middleware.github.io/SpriteStudio-Docs/) — the SDK and every official player in one place
 
 ### Quick Links (English)
 
@@ -37,8 +37,6 @@ Comprehensive documentation is available in the `docs/` folder:
 **Working on SSConverter GUI itself?** [Building from Source](#%EF%B8%8F-building-from-source) below.
 
 Requires **macOS 10.15+** (universal) or **Windows 10/11** (x86_64 and Arm builds). Every build is portable — no installer. Projects have to be authored in **SpriteStudio 7.5 or later**, which is what the `.ssab` / `.ssqb` formats are defined against.
-
-> 🚧 **Not released yet.** The download below goes live once the first release is published. Until then, [Building from Source](#%EF%B8%8F-building-from-source) is the way to run it.
 
 1. **Download**: Get the archive for your OS and CPU from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases), unpack it, and run it. The Windows `.exe` is unsigned, so SmartScreen prompts on first launch — see the [Installation Guide](./docs/en/install.md).
 2. **Select**: Drag & drop a `.sspj` file — or a folder containing several — into the target area.
