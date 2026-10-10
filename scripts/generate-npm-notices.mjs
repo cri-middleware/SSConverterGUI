@@ -3,7 +3,8 @@
 //
 // `cargo about` covers only the Rust dependency graph, but Tauri embeds the
 // compiled frontend bundle into the same binary, so the npm packages whose code
-// ends up in `dist/` need their notices shipped too.
+// ends up in `dist/` need their notices shipped too. So does the Inter font the
+// frontend hosts itself (`src/assets/fonts/`), which is no npm package.
 //
 // Mirrors about.toml's philosophy: a dependency whose license text cannot be
 // located is a hard failure, not a silent omission — that is the signal to
@@ -154,7 +155,19 @@ for (const group of sortedGroups) {
   lines.push('---', '')
 }
 
+// The OFL asks for the font's copyright notice and license to travel with every copy.
+lines.push(
+  '## Fonts',
+  '',
+  'The frontend bundle embeds the **Inter** font (https://github.com/rsms/inter).',
+  '',
+  '```text',
+  readFileSync(join(repoRoot, 'src', 'assets', 'fonts', 'OFL.txt'), 'utf8').trim(),
+  '```',
+  '',
+)
+
 appendFileSync(outFile, lines.join('\n'))
 
 const packageCount = sortedGroups.reduce((n, g) => n + g.packages.length, 0)
-console.log(`Appended notices for ${packageCount} npm package(s) to ${outFile}`)
+console.log(`Appended notices for ${packageCount} npm package(s) and the Inter font to ${outFile}`)
