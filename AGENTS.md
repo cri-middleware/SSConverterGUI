@@ -66,7 +66,5 @@ is Rust in `src-tauri/`; the conversion itself comes from the `ssconverter` crat
     structurally identical and only the labels translated. There is no fallback locale, so a page missing
     from one side is a nav entry pointing at nothing. Internal links are relative `.md` paths, which is what
     `--strict` validates; links into other repositories are absolute URLs.
-*   **`docs/requirements.txt` pins `zensical`**, in step with the sibling repositories. Bump deliberately,
-    not incidentally.
 *   **The README is an entry point, not a duplicate** of the site: the feature list, a quick start, and
     links into `docs/`. Detailed walkthroughs belong in `docs/`.
