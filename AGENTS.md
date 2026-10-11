@@ -48,7 +48,6 @@ is Rust in `src-tauri/`; the conversion itself comes from the `ssconverter` crat
 | How a release is cut and signed | [RELEASING.md](./RELEASING.md), maintainers only |
 | What the app does not do | [docs/en/limitations.md](./docs/en/limitations.md) |
 | What each script does and takes | that script's `--help` |
-| User-facing changes | [CHANGELOG.md](./CHANGELOG.md) (Keep a Changelog + SemVer) |
 
 ## Invariants
 
@@ -67,7 +66,5 @@ is Rust in `src-tauri/`; the conversion itself comes from the `ssconverter` crat
     structurally identical and only the labels translated. There is no fallback locale, so a page missing
     from one side is a nav entry pointing at nothing. Internal links are relative `.md` paths, which is what
     `--strict` validates; links into other repositories are absolute URLs.
-*   **`docs/requirements.txt` pins `zensical`**, in step with the sibling repositories. Bump deliberately,
-    not incidentally.
 *   **The README is an entry point, not a duplicate** of the site: the feature list, a quick start, and
     links into `docs/`. Detailed walkthroughs belong in `docs/`.
