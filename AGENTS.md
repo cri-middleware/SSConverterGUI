@@ -48,7 +48,6 @@ is Rust in `src-tauri/`; the conversion itself comes from the `ssconverter` crat
 | How a release is cut and signed | [RELEASING.md](./RELEASING.md), maintainers only |
 | What the app does not do | [docs/en/limitations.md](./docs/en/limitations.md) |
 | What each script does and takes | that script's `--help` |
-| User-facing changes | [CHANGELOG.md](./CHANGELOG.md) (Keep a Changelog + SemVer) |
 
 ## Invariants
 
