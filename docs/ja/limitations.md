@@ -17,7 +17,7 @@ SSConverter GUI は **SDK の `ssconverter` に窓を付けたもの**です。�
 | 読み込むもの | `.sspj` と、そこから参照される一式（`.ssae` / `.ssce` / `.ssee` / `.ssqe` と画像）。指定するのは `.sspj` だけで、残りはそこから辿ります。 |
 | 書き出すもの | アニメーションの **`.ssab`**、シーケンスの **`.ssqb`**。1 つの `.sspj` からアニメパックごとに `.ssab` が出ます。 |
 
-**Embedded Assets** はテクスチャをバイナリに焼き込みます（既定は隣に置く）。Player はどちらも読めるので、選択の基準は配布の仕方です。embedded は 1 ファイルで完結し、非 embedded はテクスチャを差し替えたり複数パックで共有したりできます。
+**Embedded Assets** はテクスチャをバイナリに焼き込みます（既定は隣に置く）。embedded は 1 ファイルで完結し、非 embedded はテクスチャを差し替えたり複数パックで共有したりできます。非 embedded はどの Player も読めますが、embedded を読めない Player もあります（[reference と embedded](https://cri-middleware.github.io/SpriteStudio-Docs/ja/overview/conversion/#reference-and-embedded)）。
 
 ## 対応プラットフォーム
 
