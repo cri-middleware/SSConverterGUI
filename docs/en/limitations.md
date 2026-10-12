@@ -24,9 +24,10 @@ cannot draw is on that player's own Limitations page, and what none of them draw
 | What is read | The `.sspj` and everything it references — `.ssae` / `.ssce` / `.ssee` / `.ssqe` and the images. Point the app at the `.sspj`; the rest is found from it. |
 | What is written | **`.ssab`** for animations, **`.ssqb`** for sequences. One `.sspj` yields one `.ssab` per animation pack. |
 
-**Embedded Assets** bakes the textures into the binary instead of leaving them beside it. A player
-loads either, so the choice is about how you ship: embedded is one self-contained file, non-embedded
-keeps the textures replaceable and shared between packs.
+**Embedded Assets** bakes the textures into the binary instead of leaving them beside it. Embedded
+is one self-contained file; non-embedded keeps the textures replaceable and shared between packs.
+Every player loads non-embedded, but not every player loads embedded — see
+[Reference and embedded](https://cri-middleware.github.io/SpriteStudio-Docs/overview/conversion/#reference-and-embedded).
 
 ## Platforms
 
