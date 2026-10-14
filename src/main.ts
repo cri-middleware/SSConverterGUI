@@ -26,7 +26,7 @@ type PathKind = 'sspj' | 'file' | 'dir' | 'missing';
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="header">
     <h1>SSConverter GUI</h1>
-    <p>Convert SpriteStudio projects (.sspj) to binaries (.ssab)</p>
+    <p>Convert SpriteStudio projects (.sspj) to binaries (.ssab / .ssqb)</p>
   </div>
   
   <div class="panel">
