@@ -63,8 +63,11 @@ Each `.sspj` is converted on its own. A project that fails is reported with its 
 real batch nearly every project is called `project.sspj` — and the run continues to the next one.
 The status line at the end counts both.
 
-Cancelling is different: it stops the whole batch at the file in flight, and that file's output is
-not written.
+Cancelling is different: it stops the whole batch at the file in flight. The projects finished
+before it keep their output, the badge says how far the run got, and if any converted, the run is
+kept in the history. The file in flight may have written part of its output — the converter creates
+its folder, writes the binaries and then copies the textures, and a stop can land between any two —
+so convert that project again before using what is in its folder.
 
 ## Not in scope
 
