@@ -132,6 +132,27 @@ export function describeRun(succeeded: number, failed: number, incomplete: boole
     return { tone: 'success', badge: 'Success', message: `Successfully converted ${succeeded} project${plural(succeeded)}.` };
 }
 
+/**
+ * How a run the user stopped reads. `succeeded` and `failed` count the projects
+ * that ended before the stop, so the one in flight is in neither; the badge
+ * gives that against `total` in the progress bar's `done / total`. A stop
+ * before any project ended is the plain `Cancelled` it always was.
+ */
+export function describeCancelled(succeeded: number, failed: number, total: number): RunOutcome {
+    const done = succeeded + failed;
+    if (done === 0) {
+        return { tone: 'warning', badge: 'Cancelled', message: 'Conversion cancelled.' };
+    }
+    const of = `${done} of ${total} project${total === 1 ? '' : 's'}`;
+    return {
+        tone: 'warning',
+        badge: `Cancelled (${done} / ${total})`,
+        message: failed > 0
+            ? `Cancelled after ${of}: converted ${succeeded}, failed ${failed}.`
+            : `Cancelled after converting ${of}.`,
+    };
+}
+
 export type ShortcutAction = 'open-file' | 'open-folder' | 'convert';
 
 /** The parts of a `KeyboardEvent` that decide a shortcut. */

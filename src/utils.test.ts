@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, historySummary, HistoryItem,
-    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, shortcutAction, KeyLike,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, describeCancelled, shortcutAction, KeyLike,
 } from './utils';
 
 describe('updateHistory', () => {
@@ -179,6 +179,32 @@ describe('describeRun', () => {
 
     it('should let failures take precedence over an incomplete scan', () => {
         expect(describeRun(2, 1, true).badge).toBe('2 ok / 1 failed');
+    });
+});
+
+describe('describeCancelled', () => {
+    it('should stay a plain Cancelled when nothing ended before the stop', () => {
+        expect(describeCancelled(0, 0, 50)).toEqual({
+            tone: 'warning', badge: 'Cancelled', message: 'Conversion cancelled.',
+        });
+        expect(describeCancelled(0, 0, 1).badge).toBe('Cancelled');
+    });
+
+    // The project in flight is in neither count, so 29 done of 50 was cut at the 30th.
+    it('should say how far the run got, as the progress bar did', () => {
+        expect(describeCancelled(29, 0, 50)).toEqual({
+            tone: 'warning',
+            badge: 'Cancelled (29 / 50)',
+            message: 'Cancelled after converting 29 of 50 projects.',
+        });
+    });
+
+    it('should count failures among the projects that ended', () => {
+        expect(describeCancelled(27, 2, 50)).toEqual({
+            tone: 'warning',
+            badge: 'Cancelled (29 / 50)',
+            message: 'Cancelled after 29 of 50 projects: converted 27, failed 2.',
+        });
     });
 });
 

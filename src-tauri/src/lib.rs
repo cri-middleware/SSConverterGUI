@@ -150,6 +150,11 @@ struct ConvertSummary {
     /// truncated directory scan). Already emitted live as `convert-warning`;
     /// repeated here so the final status can say the batch was not exhaustive.
     warnings: Vec<String>,
+    /// Stop ended the run at the file in flight. The lists above still hold
+    /// every file that ended before it, so what was converted is not lost.
+    cancelled: bool,
+    /// How many `.sspj` the run set out to convert.
+    total: usize,
 }
 
 #[tauri::command]
@@ -254,13 +259,15 @@ async fn convert_sspj(
         let mut succeeded = vec![];
         let mut failed = vec![];
         let mut output_dirs: Vec<String> = vec![];
+        let mut cancelled = false;
 
         let total = files_to_convert.len();
         let _ = app.emit("convert-progress", ConvertProgress { done: 0, total });
 
         for (index, file) in files_to_convert.iter().enumerate() {
             if should_stop.load(Ordering::Relaxed) {
-                return Err("Conversion cancelled by user.".into());
+                cancelled = true;
+                break;
             }
 
             let _ = app.emit("convert-log", format!("Converting: {}", file.display()));
@@ -286,9 +293,11 @@ async fn convert_sspj(
                 Err(err) => {
                     // Cancellation surfaces as an error on the in-flight file;
                     // treat that as cancelling the whole batch rather than as a
-                    // per-file failure.
+                    // per-file failure. The files that ended before it are
+                    // still reported, so a stopped batch keeps what it did.
                     if should_stop.load(Ordering::Relaxed) {
-                        return Err("Conversion cancelled by user.".into());
+                        cancelled = true;
+                        break;
                     }
                     // Full path, not just the file name: in a real batch nearly
                     // every project is called `project.sspj`. This is the only
@@ -308,7 +317,7 @@ async fn convert_sspj(
             let _ = app.emit("convert-progress", ConvertProgress { done: index + 1, total });
         }
 
-        Ok(ConvertSummary { succeeded, failed, output_dirs, warnings })
+        Ok(ConvertSummary { succeeded, failed, output_dirs, warnings, cancelled, total })
     })
     .await
     .map_err(|e| format!("Task panicked: {}", e))?
