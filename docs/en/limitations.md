@@ -57,6 +57,15 @@ you expected may simply not have been reached. Choose a narrower folder and run 
 
 There is no depth limit, so nesting alone never stops the walk.
 
+The walk does pass over some folders without a message:
+
+- a folder it cannot read, for want of permission, and everything inside it;
+- a drive, share or disk image mounted somewhere inside the folder — the walk stays on the volume
+  the folder is on, where `ssconverter-cli` goes on into it;
+- a folder whose name begins with `.git`, as `ssconverter-cli` also skips.
+
+A project missing from a batch that reported no warning is most likely under one of these.
+
 ## One failure does not stop the batch
 
 Each `.sspj` is converted on its own. A project that fails is reported with its **full path** — in a
