@@ -206,6 +206,11 @@ async fn convert_sspj(
                 return Err("Conversion cancelled during directory scan.".into());
             }
 
+            // The walk yields entries in whatever order the filesystem lists
+            // them. Sorted, a batch converts, logs and lists its failures in the
+            // same order every time, and the order a person would look for them.
+            files_to_convert.sort();
+
             let visited = visited.load(Ordering::Relaxed);
             let hit_budget = budget_exceeded.load(Ordering::Relaxed);
 
