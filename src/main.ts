@@ -252,9 +252,7 @@ async function refreshOutputPlaceholder() {
     }
     outDirDisplay.placeholder = selectedKind === 'dir'
         ? "Batch: each project is written next to its own .sspj"
-        : selectedKind === 'file'
-            ? "Leave empty to output next to the source file"
-            : "Leave empty to output next to .sspj";
+        : "Leave empty to output next to .sspj";
 }
 
 async function onInputSelected(path: string, kind: PathKind) {
@@ -383,6 +381,10 @@ function renderHistory() {
             if (!kind) return;
             if (kind === 'missing') {
                 log(`History entry no longer exists: ${item.inputPath}`, 'error');
+                return;
+            }
+            if (kind !== 'sspj' && kind !== 'dir') {
+                log(`History entry is no longer a .sspj file or a folder: ${item.inputPath}`, 'error');
                 return;
             }
 
@@ -666,6 +668,13 @@ btnSelectInFile.addEventListener('click', async () => {
             if (!kind) return;
             if (kind === 'missing') {
                 log(`Selected file no longer exists: ${path}`, 'error');
+                return;
+            }
+            // The dialog's filter is a hint, not a check: Windows matches it
+            // case-insensitively and takes any name typed into the box. Refuse
+            // what the converter would not call a project, as a drop does.
+            if (kind !== 'sspj') {
+                log(`Selected file is not a .sspj file: ${path}`, 'error');
                 return;
             }
             await onInputSelected(path, kind);
