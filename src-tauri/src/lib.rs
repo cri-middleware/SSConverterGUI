@@ -33,8 +33,37 @@ fn scan_limit_label(visited: usize) -> String {
 /// (`<name>/`, or `<name>_emb/` when assets are embedded) where it belongs:
 /// `get_ssab_output_directory` is private to `ssconverter`, so recomputing it
 /// here would be a second copy that could drift. If the wording ever changes,
-/// no directory is captured and the frontend simply offers nothing to reveal.
+/// no directory is captured and the frontend simply offers nothing to reveal —
+/// which `reports_the_default_output_directory` below catches on a submodule bump.
 const OUTPUT_DIR_LOG_PREFIX: &str = "Writing output to: ";
+
+/// Convert one `.sspj`, handing every converter message to `on_log`, and return
+/// the directory the converter said it wrote to — `None` if it never said.
+fn convert_one<F>(
+    file: &Path,
+    config: &ConverterConfig,
+    on_log: &F,
+    should_stop: &AtomicBool,
+) -> Result<Option<String>, ssconverter::ConverterError>
+where
+    F: Fn(&str) + Sync + Send,
+{
+    let reported_dir = std::sync::Mutex::new(None::<String>);
+    convert_sspj_to_ssab_files_cancellable(
+        file,
+        config,
+        &|msg: &str| {
+            if let Some(dir) = msg.strip_prefix(OUTPUT_DIR_LOG_PREFIX)
+                && let Ok(mut slot) = reported_dir.lock()
+            {
+                *slot = Some(dir.to_string());
+            }
+            on_log(msg);
+        },
+        should_stop,
+    )?;
+    Ok(reported_dir.into_inner().ok().flatten())
+}
 
 struct CancelState(Arc<AtomicBool>);
 
@@ -231,23 +260,19 @@ async fn convert_sspj(
 
             let _ = app.emit("convert-log", format!("Converting: {}", file.display()));
 
-            // Owned handle for the progress callback, which outlives this scope
-            // only as far as the call below.
-            let app_clone = app.clone();
-            let reported_dir = std::sync::Mutex::new(None::<String>);
-            let result = convert_sspj_to_ssab_files_cancellable(file, &config, &|msg: &str| {
-                if let Some(dir) = msg.strip_prefix(OUTPUT_DIR_LOG_PREFIX)
-                    && let Ok(mut slot) = reported_dir.lock()
-                {
-                    *slot = Some(dir.to_string());
-                }
-                let _ = app_clone.emit("convert-log", msg);
-            }, &should_stop);
+            let result = convert_one(
+                file,
+                &config,
+                &|msg: &str| {
+                    let _ = app.emit("convert-log", msg);
+                },
+                &should_stop,
+            );
 
             match result {
-                Ok(()) => {
+                Ok(reported_dir) => {
                     succeeded.push(file.to_string_lossy().into_owned());
-                    if let Ok(Some(dir)) = reported_dir.into_inner()
+                    if let Some(dir) = reported_dir
                         && !output_dirs.contains(&dir)
                     {
                         output_dirs.push(dir);
@@ -299,4 +324,97 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    /// The SDK's own fixture project, from the submodule, so these run against
+    /// whichever converter the submodule pins.
+    fn fixture() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../SpriteStudio-SDK/tests/overall")
+    }
+
+    /// A directory of the test's own under the system temp folder, removed on
+    /// drop. Conversions run on a copy of the fixture in one: the default
+    /// output lands next to the `.sspj`, which is otherwise inside the
+    /// submodule's working tree.
+    struct Scratch(PathBuf);
+
+    impl Scratch {
+        fn new(name: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!(
+                "ssconverter-gui-{}-{}",
+                std::process::id(),
+                name
+            ));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            Scratch(dir)
+        }
+    }
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn copy_dir(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for entry in std::fs::read_dir(from).unwrap() {
+            let entry = entry.unwrap();
+            let dest = to.join(entry.file_name());
+            if entry.file_type().unwrap().is_dir() {
+                copy_dir(&entry.path(), &dest);
+            } else {
+                std::fs::copy(entry.path(), dest).unwrap();
+            }
+        }
+    }
+
+    // Reveal Output opens the directory `convert_one` reads out of the
+    // converter's log, and `defaultOutputName` in src/utils.ts restates the
+    // rule that names it. A submodule bump that rewords the message or changes
+    // the rule fails here, rather than in the app, where the button would just
+    // stop appearing.
+    #[test]
+    fn reports_the_default_output_directory() {
+        for (embedded, name) in [(false, "overall"), (true, "overall_emb")] {
+            let scratch = Scratch::new(name);
+            copy_dir(&fixture(), &scratch.0);
+            let mut config = ConverterConfig::default();
+            config.convert_config.embedded = embedded;
+
+            let reported = convert_one(
+                &scratch.0.join("overall.sspj"),
+                &config,
+                &|_: &str| {},
+                &AtomicBool::new(false),
+            )
+            .expect("the SDK's fixture converts");
+
+            let expected = scratch.0.join(name);
+            assert_eq!(reported, Some(expected.display().to_string()));
+            assert!(expected.is_dir(), "{} was not written", expected.display());
+        }
+    }
+
+    // The frontend takes a path for a project only when this says `sspj`, and
+    // the converter's scan matches the extension the same way, case and all.
+    #[test]
+    fn path_kind_tells_a_project_from_any_other_path() {
+        let kind = |p: &Path| path_kind(p.to_string_lossy().into_owned()).unwrap();
+        assert_eq!(kind(&fixture().join("overall.sspj")), "sspj");
+        assert_eq!(kind(&fixture().join("Basic.ssae")), "file");
+        assert_eq!(kind(&fixture()), "dir");
+        assert_eq!(kind(&fixture().join("no-such.sspj")), "missing");
+
+        let scratch = Scratch::new("upper");
+        let upper = scratch.0.join("Project.SSPJ");
+        std::fs::write(&upper, "").unwrap();
+        assert_eq!(kind(&upper), "file");
+    }
 }

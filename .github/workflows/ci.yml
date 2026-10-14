@@ -1,11 +1,12 @@
 name: CI
 
 # Two tiers, as in SpriteStudio-SDK. Every pull request runs the frontend's
-# tests and build, and fmt and clippy on the Rust crate. The weekly run, a
-# dispatch and the release PR (release/X.Y into main) also build the app the way
-# release.yml does, for macOS (universal) and Windows (x86_64, arm64), unsigned,
-# and build the documentation site. `release.yml` runs no checks, so this is the
-# only place a broken test, type error, or lint lands before a release build does.
+# tests and build, and fmt, clippy and the tests of the Rust crate. The weekly
+# run, a dispatch and the release PR (release/X.Y into main) also build the app
+# the way release.yml does, for macOS (universal) and Windows (x86_64, arm64),
+# unsigned, and build the documentation site. `release.yml` runs no checks, so
+# this is the only place a broken test, type error, or lint lands before a
+# release build does.
 on:
   pull_request:
     paths-ignore:
@@ -119,6 +120,14 @@ jobs:
       - name: cargo clippy
         working-directory: src-tauri
         run: cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings
+
+      # What the backend reads out of the converter — the output directory
+      # Reveal Output opens, and which paths count as a project — checked
+      # against the SDK's own fixtures in the submodule, so a bump that changes
+      # either fails here rather than in the running app.
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test -p ssconverter-gui --locked
 
   # The weekly tier. `github.base_ref == 'main'` is the release PR: under git-flow
   # only release/X.Y is merged into main.
