@@ -4,7 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
 import {
     updateHistory, sanitizeHistory, defaultOutputName, historySummary, HistoryItem,
-    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, shortcutAction, ThemeChoice, RunTone,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, describeCancelled, shortcutAction, ThemeChoice, RunTone,
 } from './utils';
 import './style.css';
 
@@ -17,6 +17,11 @@ interface ConvertSummary {
     // Already logged live via the `convert-warning` event; used here only to
     // decide the final status.
     warnings: string[];
+    // Stop ended the run at the file in flight; the lists above hold what
+    // ended before it.
+    cancelled: boolean;
+    // How many `.sspj` the run set out to convert.
+    total: number;
 }
 
 // Mirrors the Rust `path_kind` command: the real filesystem type of a path,
@@ -26,7 +31,7 @@ type PathKind = 'sspj' | 'file' | 'dir' | 'missing';
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="header">
     <h1>SSConverter GUI</h1>
-    <p>Convert SpriteStudio projects (.sspj) to binaries (.ssab)</p>
+    <p>Convert SpriteStudio projects (.sspj) to binaries (.ssab / .ssqb)</p>
   </div>
   
   <div class="panel">
@@ -252,9 +257,7 @@ async function refreshOutputPlaceholder() {
     }
     outDirDisplay.placeholder = selectedKind === 'dir'
         ? "Batch: each project is written next to its own .sspj"
-        : selectedKind === 'file'
-            ? "Leave empty to output next to the source file"
-            : "Leave empty to output next to .sspj";
+        : "Leave empty to output next to .sspj";
 }
 
 async function onInputSelected(path: string, kind: PathKind) {
@@ -383,6 +386,10 @@ function renderHistory() {
             if (!kind) return;
             if (kind === 'missing') {
                 log(`History entry no longer exists: ${item.inputPath}`, 'error');
+                return;
+            }
+            if (kind !== 'sspj' && kind !== 'dir') {
+                log(`History entry is no longer a .sspj file or a folder: ${item.inputPath}`, 'error');
                 return;
             }
 
@@ -642,7 +649,8 @@ progressModal.addEventListener('close', () => {
 });
 
 // Set when Stop is pressed, so a run that ends in an error can be told apart
-// from one the user cut short: the backend reports both as an `Err`.
+// from one the user cut short during the directory scan: the backend reports
+// both as an `Err`.
 let cancelRequested = false;
 
 btnCancelConvert.addEventListener('click', async () => {
@@ -666,6 +674,13 @@ btnSelectInFile.addEventListener('click', async () => {
             if (!kind) return;
             if (kind === 'missing') {
                 log(`Selected file no longer exists: ${path}`, 'error');
+                return;
+            }
+            // The dialog's filter is a hint, not a check: Windows matches it
+            // case-insensitively and takes any name typed into the box. Refuse
+            // what the converter would not call a project, as a drop does.
+            if (kind !== 'sspj') {
+                log(`Selected file is not a .sspj file: ${path}`, 'error');
                 return;
             }
             await onInputSelected(path, kind);
@@ -779,11 +794,7 @@ async function runConversion() {
 
         // Individual failures and warnings were already logged from their
         // backend events — only the totals are logged here.
-        const { succeeded, failed, warnings, output_dirs } = result;
-
-        const outcome = describeRun(succeeded.length, failed.length, warnings.length > 0);
-        updateBadge(convertStatus, outcome.badge, outcome.tone);
-        log(outcome.message, outcome.tone);
+        const { succeeded, failed, warnings, output_dirs, cancelled, total } = result;
 
         // One project: reveal the directory the converter reported. A batch
         // scatters its output beside each `.sspj`, so the folder that was
@@ -792,10 +803,17 @@ async function runConversion() {
         const canReveal = succeeded.length > 0 && revealTarget !== null;
         btnRevealOutput.hidden = !canReveal;
 
+        const outcome = cancelled
+            ? describeCancelled(succeeded.length, failed.length, total)
+            : describeRun(succeeded.length, failed.length, warnings.length > 0);
+        updateBadge(convertStatus, outcome.badge, outcome.tone);
+        log(outcome.message, outcome.tone);
+
         // A clean run needs no dialog: the badge says Success and Reveal Output
-        // is beside it. The dialog stays for what needs reading, which is a
-        // failure or a scan that stopped early.
-        if (outcome.tone === 'success') {
+        // is beside it. Nor does a stopped one: Stop asked for the run to end,
+        // not for a report, and the badge says how far it got. The dialog stays
+        // for what needs reading, which is a failure or a scan that stopped early.
+        if (cancelled || outcome.tone === 'success') {
             closeModal();
         } else {
             showResult({
@@ -815,6 +833,7 @@ async function runConversion() {
         // One history entry per run, keyed by what was selected. Recording one
         // per `.sspj` filled the list with rows nobody had chosen and left the
         // folder of a batch — the thing you would want to run again — absent.
+        // A stopped batch is kept too: running it again is how it gets finished.
         if (succeeded.length > 0) {
             saveHistory({
                 inputPath,
@@ -826,7 +845,9 @@ async function runConversion() {
         }
     } catch (e: any) {
         if (cancelRequested) {
-            // The user asked for this; there is nothing to report but that it stopped.
+            // A stop during the directory scan arrives as an error, before
+            // anything was converted; there is nothing to report but that it
+            // stopped. A stop once converting began is a `cancelled` summary.
             log(`${e}`, 'warning');
             updateBadge(convertStatus, 'Cancelled', 'warning');
             closeModal();

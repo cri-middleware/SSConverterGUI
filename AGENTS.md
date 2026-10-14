@@ -9,9 +9,11 @@
 *   **Anything that exists twice changes twice** — a page and its translation, a `.sh` and its `.ps1`.
     Missing one half is this family's most common defect.
 *   **Never break a line between two Japanese characters**; Chrome renders the break as a space.
-*   **Finish with this repository's checks**: `pnpm test`, and for anything under `docs/` the both-locale
-    build in the [Development guide](./docs/en/development.md). Read what a run says it verified, not its
-    exit code — several checks pass, or skip themselves, without a prerequisite.
+*   **Finish with this repository's checks**: `pnpm test`, the Rust checks in
+    [CONTRIBUTING.md](./CONTRIBUTING.md) for anything under `src-tauri/` or a submodule bump, and for
+    anything under `docs/` the both-locale build in the [Development guide](./docs/en/development.md).
+    Read what a run says it verified, not its exit code — several checks pass, or skip themselves,
+    without a prerequisite.
 *   **Do not restate what another file owns**; the table below says which file. A fact no file owns goes
     where its staleness will be noticed.
 *   **Never commit inside the `SpriteStudio-SDK` submodule.** A core change is an SDK pull request, then a
@@ -36,7 +38,8 @@ Rust in `src-tauri/`, and the conversion itself from the submodule's `ssconverte
 
 ## Invariants
 
-*   **Framework-free logic goes in `src/utils.ts`**, the only unit-tested layer; the Rust and Tauri layers
-    are exercised by running the app.
+*   **Framework-free logic goes in `src/utils.ts`**, the frontend's only unit-tested layer. The Rust tests
+    cover just what the backend reads out of the converter, against the SDK's fixtures; the rest of the
+    Rust and Tauri layers is exercised by running the app.
 *   **A new backend capability needs its permission** in `src-tauri/capabilities/default.json`; a command
     beyond the granted set fails at runtime, not at build time.

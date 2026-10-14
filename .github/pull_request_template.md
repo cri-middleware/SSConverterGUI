@@ -17,7 +17,7 @@ that is useful information, not a problem.
 -->
 
 - [ ] `pnpm test` — frontend helpers only; it reaches neither the Rust backend nor a conversion
-- [ ] `pnpm run build`, then in `src-tauri/`: `cargo fmt --all -- --check` and `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings`
+- [ ] `pnpm run build`, then in `src-tauri/`: `cargo fmt --all -- --check`, `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings` and `cargo test -p ssconverter-gui --locked`
 - [ ] `pnpm run tauri dev` — checked the affected UI flow / 影響する UI 操作を確認した
 - [ ] Converted a real `.sspj` (single file and/or folder) / 実際の `.sspj` で変換を確認した
 - [ ] Not run — see notes below / 未実行（理由は下記）

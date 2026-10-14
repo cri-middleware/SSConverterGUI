@@ -1,7 +1,7 @@
 [package]
 name = "ssconverter-gui"
 version = "7.0.0-beta.1"
-description = "Convert SpriteStudio (.sspj) projects to .ssab binaries"
+description = "Convert SpriteStudio (.sspj) projects to .ssab and .ssqb binaries"
 authors = ["CRI Middleware Co., Ltd."]
 license = "BSD-3-Clause"
 edition = "2024"

@@ -28,9 +28,10 @@ If you find a bug, please check if it relates to the GUI (e.g. file selection, U
 ### Pull Requests
 1. Fork the repository.
 2. Clone your fork with `--recursive` to ensure the SDK submodule is initialized.
-3. Run `pnpm test`, then check your change in the running app with `pnpm run tauri dev`. `pnpm test` covers
-   the frontend's helpers only — it reaches neither the Rust backend nor a conversion — so also convert a
-   real `.sspj` in the app.
+3. Run `pnpm test` and, for a change to the backend, the Rust checks under
+   [Coding Standards](#coding-standards), then check your change in the running app with
+   `pnpm run tauri dev`. `pnpm test` covers the frontend's helpers only, and the Rust tests only what the
+   backend reads out of the converter, so also convert a real `.sspj` in the app.
 4. Submit a Pull Request.
 
 ## Development Environment
@@ -38,8 +39,10 @@ Please refer to the [Development Guide](./docs/en/development.md) for detailed p
 
 ## Coding Standards
 - **Frontend**: Use strict TypeScript. Avoid inline styles; use the central `style.css`.
-- **Backend (Rust)**: in `src-tauri/`, `cargo fmt --all -- --check` and
-  `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings` — what CI runs.
+- **Backend (Rust)**: in `src-tauri/`, `cargo fmt --all -- --check`,
+  `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings` and
+  `cargo test -p ssconverter-gui --locked` — what CI runs. Clippy and the tests need the frontend built
+  (`pnpm run build`) and the submodule checked out; the tests convert the SDK's own fixtures.
 
 <br>
 <br>
@@ -76,7 +79,7 @@ SSConverter GUI にご関心をお寄せいただき、ありがとうござい�
 ### プルリクエスト
 1. リポジトリをフォークしてください。
 2. サブモジュールを取得するため、必ず `--recursive` オプションを付けてクローンしてください。
-3. `pnpm test` を実行し、`pnpm run tauri dev` で起動したアプリで変更を確認してください。`pnpm test` が見るのはフロントエンドの補助関数だけで、Rust バックエンドにも変換処理にも届きません。実際の `.sspj` もアプリで変換してください。
+3. `pnpm test` を実行し、バックエンドを変更した場合は[コーディング規約](#コーディング規約)の Rust のチェックも実行したうえで、`pnpm run tauri dev` で起動したアプリで変更を確認してください。`pnpm test` が見るのはフロントエンドの補助関数だけで、Rust のテストが見るのもバックエンドがコンバータから読み取る部分だけです。実際の `.sspj` もアプリで変換してください。
 4. プルリクエストを送信してください。
 
 ## 開発環境のセットアップ
@@ -84,4 +87,4 @@ SSConverter GUI にご関心をお寄せいただき、ありがとうござい�
 
 ## コーディング規約
 - **フロントエンド**: Strict な TypeScript を記述してください。インラインスタイルは避け、`style.css` を活用してください。
-- **バックエンド (Rust)**: `src-tauri/` で `cargo fmt --all -- --check` と `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings` を通してください（CI と同じコマンドです）。
+- **バックエンド (Rust)**: `src-tauri/` で `cargo fmt --all -- --check`、`cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings`、`cargo test -p ssconverter-gui --locked` を通してください（CI と同じコマンドです）。clippy とテストはフロントエンドのビルド (`pnpm run build`) とサブモジュールの取得が前提で、テストは SDK 自身のフィクスチャを変換します。

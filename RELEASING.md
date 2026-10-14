@@ -63,7 +63,7 @@ git commit -m "chore(release): v$(scripts/release-version.sh)"
 
 ### 3. Pull request and QA build
 
-Open the pull request into `main`; its CI runs the unit tests, the frontend build, `cargo fmt` and clippy, builds the app for macOS and Windows as `release.yml` does but unsigned, and builds the documentation site.
+Open the pull request into `main`; its CI runs the unit tests, the frontend build, `cargo fmt`, clippy and the Rust tests, builds the app for macOS and Windows as `release.yml` does but unsigned, and builds the documentation site.
 
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')
@@ -253,7 +253,7 @@ git commit -m "chore(release): v$(scripts/release-version.sh)"
 
 ### 3. プルリクエストと QA ビルド
 
-`main` へのプルリクエストを作ります。その CI がユニットテスト、フロントエンドのビルド、`cargo fmt`、clippy を実行し、`release.yml` と同じ手順で macOS と Windows のアプリを署名なしでビルドし、ドキュメントサイトをビルドします。
+`main` へのプルリクエストを作ります。その CI がユニットテスト、フロントエンドのビルド、`cargo fmt`、clippy、Rust のテストを実行し、`release.yml` と同じ手順で macOS と Windows のアプリを署名なしでビルドし、ドキュメントサイトをビルドします。
 
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')

@@ -57,14 +57,26 @@ you expected may simply not have been reached. Choose a narrower folder and run 
 
 There is no depth limit, so nesting alone never stops the walk.
 
+The walk does pass over some folders without a message:
+
+- a folder it cannot read, for want of permission, and everything inside it;
+- a drive, share or disk image mounted somewhere inside the folder — the walk stays on the volume
+  the folder is on, where `ssconverter-cli` goes on into it;
+- a folder whose name begins with `.git`, as `ssconverter-cli` also skips.
+
+A project missing from a batch that reported no warning is most likely under one of these.
+
 ## One failure does not stop the batch
 
 Each `.sspj` is converted on its own. A project that fails is reported with its **full path** — in a
 real batch nearly every project is called `project.sspj` — and the run continues to the next one.
 The status line at the end counts both.
 
-Cancelling is different: it stops the whole batch at the file in flight, and that file's output is
-not written.
+Cancelling is different: it stops the whole batch at the file in flight. The projects finished
+before it keep their output, the badge says how far the run got, and if any converted, the run is
+kept in the history. The file in flight may have written part of its output — the converter creates
+its folder, writes the binaries and then copies the textures, and a stop can land between any two —
+so convert that project again before using what is in its folder.
 
 ## Not in scope
 
