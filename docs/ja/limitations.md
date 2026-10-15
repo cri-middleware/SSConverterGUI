@@ -21,8 +21,7 @@ SSConverter GUI は **SDK の `ssconverter` に窓を付けたもの**です。�
 
 ## 対応プラットフォーム
 
-**macOS と Windows のみ。** Linux ビルドはありません（`scripts/` にあるのは `release-macos.sh` と
-`release-windows.ps1` の 2 本だけです）。非対応というより未ビルドで、変換自体は SDK が動く環境ならどこでも動きます。Linux では
+**macOS と Windows のみ。** Linux ビルドはありません。変換自体は SDK が動く環境ならどこでも動くので、Linux では
 [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK) をお使いください（窓が無いだけで同じ変換です）。
 
 Windows の実行ファイルは**未署名**のため、初回起動時に SmartScreen の警告が出ます。表示と進め方は[インストール手順](install.md)にあります。
