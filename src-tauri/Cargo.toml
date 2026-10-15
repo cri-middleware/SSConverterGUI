@@ -16,13 +16,13 @@ name = "gui_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.7.2", features = [] }
+tauri-build = { version = "2.7.3", features = [] }
 
 [dependencies]
-tauri = { version = "2.12.3", features = [] }
-tauri-plugin-opener = "2.7.1"
+tauri = { version = "2.12.4", features = [] }
+tauri-plugin-opener = "2.7.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 ssconverter = { path = "../SpriteStudio-SDK/libs/ssconverter" }
-tauri-plugin-dialog = "2.8.2"
+tauri-plugin-dialog = "2.8.3"
 
