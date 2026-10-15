@@ -31,9 +31,8 @@ Every player loads non-embedded, but not every player loads embedded — see
 
 ## Platforms
 
-**macOS and Windows only.** There is no Linux build of this application — `scripts/` has
-`release-macos.sh` and `release-windows.ps1` and no third. Linux is not unsupported so much as
-unbuilt; the conversion itself runs anywhere the SDK does, so on Linux use
+**macOS and Windows only.** There is no Linux build of this application. The conversion itself
+runs anywhere the SDK does, so on Linux use
 [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK), which is the same
 conversion without a window.
 
