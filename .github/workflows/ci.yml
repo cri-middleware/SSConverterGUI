@@ -35,9 +35,12 @@ concurrency:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # The frontend never touches the SpriteStudio-SDK submodule, so skip it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # No `version:` — it comes from package.json's `packageManager` field, so
       # CI and a developer machine cannot drift apart.
@@ -66,12 +69,14 @@ jobs:
     # so a Linux job would need webkit2gtk system packages for a target nobody
     # releases. macOS needs no extra system dependencies.
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The ssconverter SDK is a git submodule; it must be fetched to compile.
           submodules: recursive
+          persist-credentials: false
 
       # No `version:` — it comes from package.json's `packageManager` field, so
       # CI and a developer machine cannot drift apart.
@@ -152,6 +157,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0

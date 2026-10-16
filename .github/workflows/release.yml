@@ -20,9 +20,11 @@ on:
 permissions:
   contents: read
 
+# One run per ref at a time. A second dispatch of the same tag waits for the
+# first rather than cancelling it, so a half-built release is never abandoned.
 concurrency:
-  group: release-${{ github.actor }}-${{ github.head_ref || github.run_number }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 # Third-party actions are pinned to a full commit SHA (tag in the trailing
 # comment) so a moved/retagged release can't inject code into jobs that carry
@@ -45,6 +47,7 @@ jobs:
             arch: arm64
 
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 120
 
     steps:
       - name: Checkout (with submodules)
@@ -54,6 +57,7 @@ jobs:
           submodules: recursive
           # Full history so the converter's build script can embed the git SHA.
           fetch-depth: 0
+          persist-credentials: false
 
       # Through the script, so the version has one definition shared with
       # build-release.sh and with anyone cutting a release by hand.
@@ -186,6 +190,7 @@ jobs:
   package:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # Only this job needs write access, and only to create the Release.
     permissions:
       contents: write
@@ -195,6 +200,8 @@ jobs:
       # are named after, so the tree has to be here — the download alone is not
       # enough any more.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Download all artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
