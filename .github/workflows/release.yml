@@ -201,6 +201,7 @@ jobs:
       # enough any more.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-tags: true
           persist-credentials: false
 
       - name: Download all artifacts
@@ -260,6 +261,16 @@ jobs:
           # build fails, in a step that has nothing to do with the release.
           retention-days: 7
 
+      # The pre-release mark the draft carries: one once a full release is
+      # tagged, none before (scripts/release-channel.sh).
+      - name: Read the Release's channel
+        id: channel
+        if: steps.release.outputs.draft == 'true'
+        run: |
+          channel="$(./scripts/release-channel.sh "$GITHUB_REF_NAME")"
+          echo "::notice::${GITHUB_REF_NAME} is a ${channel} release"
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         if: steps.release.outputs.draft == 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
@@ -273,8 +284,8 @@ jobs:
           # release page, and everything else lives in the install guide.
           generate_release_notes: true
           # Always a draft, as in the sibling repos: a human checks the assets
-          # and the generated notes, then publishes from the GitHub UI, choosing
-          # "Set as a pre-release" / "Set as the latest release" there. Hence no
-          # prerelease / make_latest here — the same decision, made once, in the
-          # place where the release is actually published.
+          # and the generated notes, then publishes it from the GitHub UI as it
+          # is marked. A draft cannot be made Latest; publishing one that is not
+          # a pre-release makes it so.
           draft: true
+          prerelease: ${{ steps.channel.outputs.channel == 'prerelease' }}
