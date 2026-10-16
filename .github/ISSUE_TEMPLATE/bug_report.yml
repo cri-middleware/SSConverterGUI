@@ -41,7 +41,6 @@ body:
     attributes:
       label: Application version / アプリのバージョン
       description: Shown in the application window. / アプリ画面に表示されているバージョン。
-      placeholder: 7.0.0-beta.1
     validations:
       required: true
 
