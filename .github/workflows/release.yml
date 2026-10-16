@@ -76,6 +76,21 @@ jobs:
             exit 1
           fi
 
+      # The converter is built from the SpriteStudio-SDK submodule, so a release
+      # ships whatever commit it is on: that has to be an SDK release.
+      - name: Check the SDK submodule is on an SDK release tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          have="$(git rev-parse HEAD:SpriteStudio-SDK)"
+          url="$(git config -f .gitmodules submodule.SpriteStudio-SDK.url)"
+          sdk_tag="$(git ls-remote --tags "$url" | awk -v h="$have" '$1 == h && $2 ~ /^refs\/tags\/v[0-9]/ { t = $2; sub(/^refs\/tags\//, "", t); sub(/\^\{\}$/, "", t); print t; exit }')"
+          if [ -z "$sdk_tag" ]; then
+            echo "::error::the SpriteStudio-SDK submodule is at ${have}, which no SDK release tag names (RELEASING.md step 2)."
+            exit 1
+          fi
+          echo "SpriteStudio-SDK is at ${sdk_tag}"
+
       # Guard against shipping the unreleased CHANGELOG placeholder date
       # (e.g. "Unreleased"): the top entry's date must be a real YYYY-MM-DD.
       - name: Check CHANGELOG has a real release date
