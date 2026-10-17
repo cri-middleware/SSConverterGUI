@@ -108,12 +108,6 @@ jobs:
           toolchain: stable
           # No `targets:` — the release scripts add the ones they need.
 
-      - name: Rust cache
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: './src-tauri -> target'
-          key: ${{ matrix.platform }}-${{ matrix.arch }}
-
       # The shipped binary statically links the whole Rust dependency graph, so
       # its third-party license notices must ship with it. cargo-about (no
       # `targets` in about.toml) evaluates the union of all targets, so the file
