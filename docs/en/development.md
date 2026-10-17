@@ -120,7 +120,7 @@ Material theme, matching the other SpriteStudio player repositories. The sources
 
 ```bash
 scripts/prepare-docs.sh          # once: .venv + docs/requirements.txt
-scripts/build-docs.sh            # exactly what CI runs; fails on broken links / missing nav
+scripts/build-docs.sh            # exactly what CI runs; fails on broken links
 
 .venv/bin/zensical serve                   # live preview of English at http://127.0.0.1:8000
 .venv/bin/zensical serve -f mkdocs.ja.yml  # ... or of Japanese
@@ -147,4 +147,4 @@ English therefore leaves no Japanese site at all.
 
 Every page exists twice — once under `docs/en/` and once under `docs/ja/`. When you add, move, or
 rename a page, do it in **both** locales and add the entry to the `nav` of **both**
-`mkdocs.yml` and `mkdocs.ja.yml`, or the strict build will fail.
+`mkdocs.yml` and `mkdocs.ja.yml`; the strict build does not catch a missing one.

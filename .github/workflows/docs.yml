@@ -1,7 +1,7 @@
 name: Docs
 
 # Builds the documentation the way pages.yml publishes it, both locales
-# --strict, so a broken link or nav entry surfaces before a release publishes
+# --strict, so a broken link surfaces before a release publishes
 # it. The site carries no demo and no examples, so the docs are all of it.
 #
 # A pull request that touches the site's sources runs this on its own. ci.yml
