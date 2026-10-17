@@ -101,7 +101,7 @@ scripts/build-release.sh sign=no notices=no
 
 ```bash
 scripts/prepare-docs.sh          # 初回のみ。.venv を作成し docs/requirements.txt を導入
-scripts/build-docs.sh            # CI と同一。リンク切れや nav の不整合で失敗する
+scripts/build-docs.sh            # CI と同一。リンク切れで失敗する
 
 .venv/bin/zensical serve                   # 英語を http://127.0.0.1:8000 でライブプレビュー
 .venv/bin/zensical serve -f mkdocs.ja.yml  # ... または日本語をプレビュー
@@ -122,4 +122,4 @@ scripts\build-docs.ps1
 Zensical は **1 ロケールにつき 1 つの設定ファイル** でビルドするため、ビルドはロケールごとに実行され、
 `build-docs` はその順序を保証します。英語を先にビルドするのは、英語ビルドが出力先の `site/` を開始時に消去し、日本語サイトはその内側（`site/ja`）に出力されるためです。英語だけをビルドすると日本語サイトは残りません。
 
-すべてのページは `docs/en/` と `docs/ja/` に 1 つずつ存在します。ページを追加・移動・リネームする際は**両方のロケール**で行い、`mkdocs.yml` と `mkdocs.ja.yml` の **両方** の `nav` にもエントリを追加してください。どちらかが欠けると strict ビルドが失敗します。
+すべてのページは `docs/en/` と `docs/ja/` に 1 つずつ存在します。ページを追加・移動・リネームする際は**両方のロケール**で行い、`mkdocs.yml` と `mkdocs.ja.yml` の **両方** の `nav` にもエントリを追加してください。どちらかが欠けても、strict ビルドは気付きません。

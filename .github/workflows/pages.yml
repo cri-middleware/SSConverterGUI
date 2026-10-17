@@ -109,7 +109,7 @@ jobs:
       # build from drifting apart, and it is the same command in every repository in the
       # family, whatever else that repository's site carries.
       #
-      # --strict fails the build on broken links / missing nav entries, so a publish
+      # --strict fails the build on broken links, so a publish
       # aborts rather than deploying a site with a dead link.
       # One build per locale - there is no plugin producing both from a single run any
       # more - English first, because the English build wipes site/ and the Japanese site
