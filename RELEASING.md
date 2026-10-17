@@ -71,7 +71,7 @@ git push -u origin "${BRANCH:?}"
 gh pr create -B main -H "${BRANCH:?}" --title "Release v$(scripts/release-version.sh)" --body ""
 ```
 
-Then dispatch the release workflow from the branch. A run from a branch builds, signs and checks the macOS archive and both Windows archives exactly as the release will, keeps them on the run (`SSConverterGUI-release-dist`), and creates no Release; the block downloads them into `qa/<run ID>`. **A person tries the app** from those archives, on macOS and on Windows. Fix anything on the branch and run this block again, until both runs are green and the app works.
+Then dispatch the release workflow from the branch. A run from a branch builds, signs and checks the macOS archive and the Windows archives exactly as the release will, keeps them on the run (`SSConverterGUI-release-dist`), and creates no Release; the block downloads them into `qa/<run ID>`. **A person tries the app** from those archives, on macOS and on Windows. Fix anything on the branch and run this block again, until both runs are green and the app works.
 
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')
@@ -137,7 +137,7 @@ gh run watch "${RUN:?}" --exit-status
 
 ### 6. Publish
 
-**A person runs this step**: the notes are a judgment, and a published Release is permanent. Open the draft on the [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, check that the macOS `.tar.gz` (universal), the two Windows `.zip` (x86_64 and arm64) and `SHA256SUMS` are attached, edit the notes, and **Publish release** as the draft is marked: `scripts/release-channel.sh` made it a pre-release when a full release is already tagged, and left it to become Latest otherwise. Only a Release that becomes Latest deploys the site.
+**A person runs this step**: the notes are a judgment, and a published Release is permanent. Open the draft on the [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, check that the macOS `.tar.gz` (universal), the Windows `.zip` (x86_64 and arm64) and `SHA256SUMS` are attached, edit the notes, and **Publish release** as the draft is marked: `scripts/release-channel.sh` made it a pre-release when a full release is already tagged, and left it to become Latest otherwise. Only a Release that becomes Latest deploys the site.
 
 Publishing also starts `pages.yml`, which deploys the [documentation site](https://cri-middleware.github.io/SSConverterGUI/); merging to `main` publishes nothing, because the site documents the released application. Watch the run through, then open the site: a failed run leaves the Release published and the site as it was. Once the cause is fixed, re-run it with `gh run rerun "${RUN:?}"`; a re-run builds the same tag.
 
@@ -261,7 +261,7 @@ git push -u origin "${BRANCH:?}"
 gh pr create -B main -H "${BRANCH:?}" --title "Release v$(scripts/release-version.sh)" --body ""
 ```
 
-続けて、ブランチからリリースワークフローを実行します。ブランチからの実行では、macOS と 2 つの Windows のアーカイブをリリースと同じようにビルド・署名・検査して run に残し（`SSConverterGUI-release-dist`）、Release は作りません。ブロックはそれを `qa/<run の ID>` にダウンロードします。**そのアーカイブのアプリは人が試します。** macOS と Windows の両方で試してください。問題があればブランチで直し、このブロックをもう一度実行します。両方の run が緑になり、アプリが動くまで繰り返します。
+続けて、ブランチからリリースワークフローを実行します。ブランチからの実行では、macOS と Windows のアーカイブをリリースと同じようにビルド・署名・検査して run に残し（`SSConverterGUI-release-dist`）、Release は作りません。ブロックはそれを `qa/<run の ID>` にダウンロードします。**そのアーカイブのアプリは人が試します。** macOS と Windows の両方で試してください。問題があればブランチで直し、このブロックをもう一度実行します。両方の run が緑になり、アプリが動くまで繰り返します。
 
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')
@@ -327,7 +327,7 @@ gh run watch "${RUN:?}" --exit-status
 
 ### 6. 公開
 
-**この手順は人が行います。** リリースノートの中身は判断が要り、公開した Release は取り消せないためです。[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページで下書きを開き、macOS の `.tar.gz`（ユニバーサル）、Windows の 2 つの `.zip`（x86_64 と arm64）、`SHA256SUMS` が添付されていることを確かめ、リリースノートを編集し、下書きの印のまま **Publish release** を押します。`scripts/release-channel.sh` が、正式版のタグがすでにあれば pre-release にし、なければ Latest になるようにしてあります。サイトをデプロイするのは Latest になる Release だけです。
+**この手順は人が行います。** リリースノートの中身は判断が要り、公開した Release は取り消せないためです。[Releases](https://github.com/cri-middleware/SSConverterGUI/releases) ページで下書きを開き、macOS の `.tar.gz`（ユニバーサル）、Windows の `.zip`（x86_64 と arm64）、`SHA256SUMS` が添付されていることを確かめ、リリースノートを編集し、下書きの印のまま **Publish release** を押します。`scripts/release-channel.sh` が、正式版のタグがすでにあれば pre-release にし、なければ Latest になるようにしてあります。サイトをデプロイするのは Latest になる Release だけです。
 
 公開すると `pages.yml` が動き、[ドキュメントサイト](https://cri-middleware.github.io/SSConverterGUI/) をデプロイします。`main` へのマージでは何も公開されません。サイトはリリース済みのアプリケーションを説明するものだからです。run を最後まで見届けてから、サイトを開いて確かめます。run が失敗しても Release は公開されたままで、サイトは元のまま残ります。原因を直したら `gh run rerun "${RUN:?}"` で再実行します。再実行は同じタグをビルドします。
 
