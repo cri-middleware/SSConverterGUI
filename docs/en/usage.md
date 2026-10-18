@@ -33,6 +33,9 @@ application yet, see [Installation](install.md).
    — and what finished before the stop is kept: if anything converted, **"📂 Reveal Output"** opens it
    and the run goes into the history.
 
+Copy the output folder to where your player loads assets from; each player's Quick Start shows where
+— start from [Choose Your Platform](https://cri-middleware.github.io/SpriteStudio-Docs/overview/choose-your-platform/).
+
 ## Batch conversion
 
 Selecting a folder in step 2 converts every `.sspj` file inside it in one run — there is no need

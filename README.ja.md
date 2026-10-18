@@ -38,11 +38,26 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 
 動作環境は **macOS 10.15 以降**（ユニバーサル）または **Windows 10 / 11**（x86_64 版と Arm 版を用意）です。いずれもポータブル版のため、インストーラはありません。対応するのは **SpriteStudio 7.5 以上**で作成されたプロジェクトです（`.ssab` / `.ssqb` の形式がその版に対して定義されています）。
 
-1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS と CPU に合ったアーカイブを入手し、展開して起動します。Windows 版の `.exe` は未署名のため初回起動時に SmartScreen の警告が表示されます。詳しくは[インストール手順](./docs/ja/install.md)を参照してください。
-2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）をターゲットエリアにドラッグ＆ドロップします。
-3. **変換**: **「⚡ Convert」** ボタンをクリックします。ステータスはボタン横のバッジに、1 件ごとの結果はその下のログに出ます。
+1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS と CPU に合ったアーカイブ（macOS は `SSConverterGUI_<version>_universal.tar.gz`、Windows は `SSConverterGUI_<version>_x86_64.zip` か `…_arm64.zip`）を入手し、展開して起動します。Windows 版の `.exe` は未署名のため初回起動時に SmartScreen の警告が表示されます。詳しくは[インストール手順](./docs/ja/install.md)を参照してください。
+2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）を、**「📥 Target .sspj File or Folder」** の枠へドラッグ＆ドロップします。
+3. **変換**: **「⚡ Convert」** ボタンをクリックします。ステータスはボタン横のバッジに、1 件ごとの結果はその下のログに出ます。出力は `.sspj` の隣にできる、プロジェクト名のフォルダです（**Embedded Assets** にチェックを入れたときは `<name>_emb/`）。**「📂 Reveal Output」** で開けます。
 
-出力先フォルダの指定やアセットの埋め込みを含む詳しい手順は、[使い方](./docs/ja/usage.md)を参照してください。
+   ```
+   Ringo/                 ← SpriteStudio のプロジェクト
+   ├── Ringo.sspj         ← これをドロップする
+   ├── Ringo.png
+   ├── …
+   └── Ringo/             ← ⚡ Convert が書き出す
+       ├── Ringo.ssab
+       ├── Ringo.png
+       └── …
+   ```
+
+出力したフォルダを、お使いの Player がアセットを読み込む場所へコピーします。どこに置くかは各 Player のクイックスタートにあります。[プラットフォームの選び方](https://cri-middleware.github.io/SpriteStudio-Docs/ja/overview/choose-your-platform/)から辿れます。
+
+SpriteStudio のデータが手元に無くても始められます。[公式のサンプルデータ](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/)がそのまま使えます。キャラクターなら [Ringo](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/#ringo) が手頃です。
+
+**次に読む:** [使い方](./docs/ja/usage.md) · [インストール](./docs/ja/install.md) · [制約と適用範囲](./docs/ja/limitations.md)
 
 ## 🛠️ ソースからのビルド
 
