@@ -30,7 +30,8 @@ Rust in `src-tauri/`, and the conversion itself from the submodule's `ssconverte
 
 | Question | File |
 |---|---|
-| Use and install | [README.md](./README.md), the [docs site](./docs/en/) |
+| Using the app: every option | the [docs site](./docs/en/) |
+| Install, a first conversion, where to read next | [README.md](./README.md) |
 | Constraints, setup, build, the docs site | [CONTRIBUTING.md](./CONTRIBUTING.md), [Development guide](./docs/en/development.md) |
 | Versions, releases and signing, maintainers only | [RELEASING.md](./RELEASING.md) |
 | What the app does not do | [docs/en/limitations.md](./docs/en/limitations.md) |
