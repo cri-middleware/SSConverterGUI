@@ -38,11 +38,26 @@ Comprehensive documentation is available in the `docs/` folder:
 
 Requires **macOS 10.15+** (universal) or **Windows 10/11** (x86_64 and Arm builds). Every build is portable — no installer. Projects have to be authored in **SpriteStudio 7.5 or later**, which is what the `.ssab` / `.ssqb` formats are defined against.
 
-1. **Download**: Get the archive for your OS and CPU from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases), unpack it, and run it. The Windows `.exe` is unsigned, so SmartScreen prompts on first launch — see the [Installation Guide](./docs/en/install.md).
-2. **Select**: Drag & drop a `.sspj` file — or a folder containing several — into the target area.
-3. **Convert**: Click the **"⚡ Convert"** button. The badge beside it gives the status, and the log below reports each project.
+1. **Download**: Get the archive for your OS and CPU from [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) — `SSConverterGUI_<version>_universal.tar.gz` on macOS, `SSConverterGUI_<version>_x86_64.zip` or `…_arm64.zip` on Windows — unpack it, and run it. The Windows `.exe` is unsigned, so SmartScreen prompts on first launch — see the [Installation Guide](./docs/en/install.md).
+2. **Select**: Drag & drop a `.sspj` file — or a folder containing several — onto the **"📥 Target .sspj File or Folder"** area.
+3. **Convert**: Click the **"⚡ Convert"** button. The badge beside it gives the status, and the log below reports each project. The output is a folder named after the project, next to its `.sspj` (`<name>_emb/` with **Embedded Assets** checked); **"📂 Reveal Output"** opens it.
 
-For the full walkthrough, including output folders and asset embedding, see the [Usage Guide](./docs/en/usage.md).
+   ```
+   Ringo/                 ← your SpriteStudio project
+   ├── Ringo.sspj         ← drop this
+   ├── Ringo.png
+   ├── …
+   └── Ringo/             ← written by ⚡ Convert
+       ├── Ringo.ssab
+       ├── Ringo.png
+       └── …
+   ```
+
+Copy that output folder to where your player loads assets from; each player's Quick Start shows where — start from [Choose Your Platform](https://cri-middleware.github.io/SpriteStudio-Docs/overview/choose-your-platform/).
+
+No `.sspj` of your own yet? SpriteStudio's [official sample data](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/) works as-is — the page is in Japanese, the downloads are not. [Ringo](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/#ringo) is a good character to start with.
+
+**Read next:** [Usage](./docs/en/usage.md) · [Installation](./docs/en/install.md) · [Limitations & Scope](./docs/en/limitations.md)
 
 ## 🛠️ Building from Source
 
