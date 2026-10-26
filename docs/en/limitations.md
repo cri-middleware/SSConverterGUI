@@ -20,7 +20,7 @@ cannot draw is on that player's own Limitations page, and what none of them draw
 
 | | |
 |---|---|
-| Project version | **SpriteStudio 7.5 or later.** The `.ssab` / `.ssqb` formats are defined against it, and an older project is not converted into a newer one. |
+| Project version | **SpriteStudio 7.6 or later.** The `.ssab` / `.ssqb` formats are defined against it, and an older project is not converted into a newer one. |
 | What is read | The `.sspj` and everything it references — `.ssae` / `.ssce` / `.ssee` / `.ssqe` and the images. Point the app at the `.sspj`; the rest is found from it. |
 | What is written | **`.ssab`** for animations, **`.ssqb`** for sequences. One `.sspj` yields one `.ssab` per animation pack. |
 
