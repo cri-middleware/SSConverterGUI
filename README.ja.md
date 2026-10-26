@@ -36,7 +36,7 @@ Tauri v2、Vite、TypeScript を使用して構築されており、効率的な
 **自分のプロジェクトを変換する場合**はこのまま下へ。ダウンロードして、`.sspj` を放り込んで、変換するだけです。
 **SSConverter GUI 自体を開発する場合**は下の[ソースからのビルド](#%EF%B8%8F-ソースからのビルド)へ。
 
-動作環境は **macOS 10.15 以降**（ユニバーサル）または **Windows 10 / 11**（x86_64 版と Arm 版を用意）です。いずれもポータブル版のため、インストーラはありません。対応するのは **SpriteStudio 7.5 以上**で作成されたプロジェクトです（`.ssab` / `.ssqb` の形式がその版に対して定義されています）。
+動作環境は **macOS 10.15 以降**（ユニバーサル）または **Windows 10 / 11**（x86_64 版と Arm 版を用意）です。いずれもポータブル版のため、インストーラはありません。対応するのは **SpriteStudio 7.6 以上**で作成されたプロジェクトです（`.ssab` / `.ssqb` の形式がその版に対して定義されています）。
 
 1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS と CPU に合ったアーカイブ（macOS は `SSConverterGUI_<version>_universal.tar.gz`、Windows は `SSConverterGUI_<version>_x86_64.zip` か `…_arm64.zip`）を入手し、展開して起動します。Windows 版の `.exe` は未署名のため初回起動時に SmartScreen の警告が表示されます。詳しくは[インストール手順](./docs/ja/install.md)を参照してください。
 2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）を、**「📥 Target .sspj File or Folder」** の枠へドラッグ＆ドロップします。
