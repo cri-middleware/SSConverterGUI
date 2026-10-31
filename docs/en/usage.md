@@ -15,9 +15,11 @@ application yet, see [Installation](install.md).
    `<name>/` folder next to the original `.sspj` — or `<name>_emb/` when step 4 is checked, so an
    embedded build never overwrites a plain one. A folder you choose stays for the next project you
    select, so you can set it once and convert several in turn; **"Reset"**, which appears once you
-   have chosen one, goes back to the default. Selecting a folder in step 2 resets it and switches
-   the row off: a batch writes each project next to its own `.sspj`, so there is no single folder
-   to name.
+   have chosen one, goes back to the default. The files go straight into a folder you choose, with
+   no `<name>/` folder of their own, so a file already there under the same name is overwritten: an
+   embedded build of the same project, or a texture or animation pack of the same name from another
+   project. Selecting a folder in step 2 resets it and switches the row off: a batch writes each
+   project next to its own `.sspj`, so there is no single folder to name.
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
 5. Click the **"⚡ Convert"** button to start the conversion.
 6. While it runs, a bar counts the projects off — `12 / 50` — over the log of what each one is
