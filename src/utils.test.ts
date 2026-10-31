@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     updateHistory, sanitizeHistory, isHistoryItem, defaultOutputName, historySummary, HistoryItem,
-    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, describeCancelled, shortcutAction, KeyLike,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, describeCancelled, shortcutAction, KeyLike, resultText,
 } from './utils';
 
 describe('updateHistory', () => {
@@ -244,5 +244,31 @@ describe('shortcutAction', () => {
     it('should not repeat while a key is held', () => {
         expect(shortcutAction(press('o', { metaKey: true, repeat: true }))).toBeNull();
         expect(shortcutAction(press('Enter', { ctrlKey: true, repeat: true }))).toBeNull();
+    });
+});
+
+describe('resultText', () => {
+    it('lists each failure as the CLI does, then the versions', () => {
+        const text = resultText({
+            headline: 'Converted 1, failed 1.',
+            output: 'Output: next to each .sspj under /work',
+            issues: [
+                { label: '/work/b/b.sspj', detail: 'parse error', tone: 'error' },
+                { detail: 'Stopped scanning after 10000 entries.', tone: 'warning' },
+            ],
+        }, 'App Version: 1.0.0\nConverter Version: 7.0.0 (ssab v1, ssqb v1)');
+        expect(text).toBe([
+            'Converted 1, failed 1.',
+            'Output: next to each .sspj under /work',
+            'Error: /work/b/b.sspj: parse error',
+            'Warning: Stopped scanning after 10000 entries.',
+            'App Version: 1.0.0',
+            'Converter Version: 7.0.0 (ssab v1, ssqb v1)',
+        ].join('\n'));
+    });
+
+    it('leaves out what is not there', () => {
+        const text = resultText({ headline: 'Conversion failed.', output: null, issues: [{ detail: 'no such file', tone: 'error' }] }, null);
+        expect(text).toBe('Conversion failed.\nError: no such file');
     });
 });

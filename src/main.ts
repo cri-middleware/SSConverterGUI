@@ -4,7 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { dirname, basename, join } from '@tauri-apps/api/path';
 import {
     updateHistory, sanitizeHistory, defaultOutputName, historySummary, HistoryItem,
-    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, describeCancelled, shortcutAction, ThemeChoice, RunTone,
+    parseThemeChoice, nextThemeChoice, resolveTheme, describeRun, describeCancelled, shortcutAction, resultText, ThemeChoice, RunTone,
 } from './utils';
 import './style.css';
 
@@ -115,6 +115,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div class="result-output" id="resultOutput" hidden></div>
       <div class="result-issues" id="resultIssues" hidden></div>
       <div class="result-actions">
+        <button class="btn btn-secondary" id="btnResultCopy" title="Copy the result as text">Copy</button>
         <button class="btn btn-secondary" id="btnResultReveal" title="Show the output in the file manager">📂 Reveal Output</button>
         <button class="btn" id="btnResultClose">Close</button>
       </div>
@@ -155,6 +156,7 @@ const modalProgressText = document.getElementById('modalProgressText')!;
 const modalIcon = document.getElementById('modalIcon')!;
 const resultOutput = document.getElementById('resultOutput')!;
 const resultIssues = document.getElementById('resultIssues')!;
+const btnResultCopy = document.getElementById('btnResultCopy') as HTMLButtonElement;
 const btnResultReveal = document.getElementById('btnResultReveal') as HTMLButtonElement;
 const btnResultClose = document.getElementById('btnResultClose') as HTMLButtonElement;
 const themeToggle = document.getElementById('themeToggle') as HTMLButtonElement;
@@ -600,7 +602,13 @@ function renderIssue(issue: ResultIssue): HTMLElement {
     return row;
 }
 
+// What the result dialog is showing, for Copy.
+let shownResult: ResultView | null = null;
+// The versions as Copy Versions copies them, once they have loaded.
+let versionsText: string | null = null;
+
 function showResult(view: ResultView) {
+    shownResult = view;
     progressModal.dataset.view = 'result';
     modalPinned = false;
     modalIcon.textContent = TONE_ICON[view.tone];
@@ -621,6 +629,18 @@ function closeModal() {
 }
 
 btnResultClose.addEventListener('click', closeModal);
+
+btnResultCopy.addEventListener('click', async () => {
+    if (!shownResult) return;
+    try {
+        await navigator.clipboard.writeText(resultText(shownResult, versionsText));
+        const orig = btnResultCopy.textContent;
+        btnResultCopy.textContent = 'Copied!';
+        setTimeout(() => { btnResultCopy.textContent = orig; }, 2000);
+    } catch (e) {
+        log('Failed to copy the result.', 'error');
+    }
+});
 
 // A run owns the dialog until it ends: put it back if something closed it.
 function keepOpen() {
@@ -921,10 +941,11 @@ async function loadVersions() {
         const schemas = `ssab v${info.ssab_schema_version}, ssqb v${info.ssqb_schema_version}`;
         appVersionDisplay.textContent = `App Version: ${info.app_version}`;
         versionDisplay.textContent = `Converter Version: ${info.converter_version} (${schemas})`;
+        const textToCopy = `App Version: ${info.app_version}\nConverter Version: ${info.converter_version} (${schemas})`;
+        versionsText = textToCopy;
         btnCopyVersion.hidden = false;
         btnCopyVersion.onclick = async () => {
             try {
-                const textToCopy = `App Version: ${info.app_version}\nConverter Version: ${info.converter_version} (${schemas})`;
                 await navigator.clipboard.writeText(textToCopy);
                 const orig = btnCopyVersion.textContent;
                 btnCopyVersion.textContent = 'Copied!';

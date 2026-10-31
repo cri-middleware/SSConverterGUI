@@ -29,8 +29,9 @@ application yet, see [Installation](install.md).
    headline says what happened, every project that failed is listed with its full path and the
    converter's reason, and a scan that stopped early is listed as a warning. **"📂 Reveal Output"**
    opens the folder the converter wrote to: for one project that folder, for a batch the folder you
-   selected, since a batch spreads its output through it. Close the result with **"Close"** or Esc;
-   the badge and the button beside it stay. **"Stop / Cancel"** ends the run at the file in flight
+   selected, since a batch spreads its output through it. **"Copy"** puts the result on the
+   clipboard as text, with the versions, to paste into a bug report or an AI assistant. Close the
+   result with **"Close"** or Esc; the badge and the button beside it stay. **"Stop / Cancel"** ends the run at the file in flight
    and closes the dialog without a result. The badge says how far the run got — `Cancelled (29 / 50)`
    — and what finished before the stop is kept: if anything converted, **"📂 Reveal Output"** opens it
    and the run goes into the history.
