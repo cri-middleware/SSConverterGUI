@@ -429,6 +429,8 @@ body {
 }
 
 .pane-title {
+  margin: 0;
+  font-size: inherit;
   color: var(--text-muted);
   font-weight: 600;
 }
