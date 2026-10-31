@@ -76,10 +76,10 @@ Then dispatch the release workflow from the branch. A run from a branch builds, 
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')
 git push origin "${BRANCH:?}" &&
-  RUN=$(gh workflow run release.yml --ref "${BRANCH:?}" | sed 's|.*/||')
-gh run watch "${RUN:?}" --exit-status
-gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN"
-! gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # must print nothing
+  RUN=$(gh workflow run release.yml --ref "${BRANCH:?}" | sed 's|.*/||') &&
+  gh run watch "${RUN:?}" --exit-status &&
+  gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN" &&
+  ! gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # must print nothing
 ```
 
 A missing signing secret does not fail this run: the macOS job logs `Skipping code signing` or `Skipping notarization` and builds an unsigned app. The block's signing check looks for those lines and must print nothing, because the tag run in step 5 requires the signature and fails instead. If it prints anything, no change on the branch fixes it: the organization's signing secrets are not reaching this repository. An organization owner decides which repositories they reach, and on GitHub Free they cannot reach a private one. Dispatch again once they do.
@@ -297,10 +297,10 @@ gh pr create -B main -H "${BRANCH:?}" --title "Release v$(scripts/release-versio
 ```bash
 BRANCH=$(git branch --show-current | grep '^release/')
 git push origin "${BRANCH:?}" &&
-  RUN=$(gh workflow run release.yml --ref "${BRANCH:?}" | sed 's|.*/||')
-gh run watch "${RUN:?}" --exit-status
-gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN"
-! gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # 何も出力されないこと
+  RUN=$(gh workflow run release.yml --ref "${BRANCH:?}" | sed 's|.*/||') &&
+  gh run watch "${RUN:?}" --exit-status &&
+  gh run download "${RUN:?}" -n SSConverterGUI-release-dist -D "qa/$RUN" &&
+  ! gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # 何も出力されないこと
 ```
 
 署名の Secret が欠けていても、この run は失敗しません。macOS のジョブが `Skipping code signing` や `Skipping notarization` をログに出し、未署名のアプリを作ります。ブロックの署名の確認はその行を探すもので、何も出力されてはいけません。手順 5 のタグの run は署名を必須にしていて、そこで失敗することになるためです。何か出力されたら、ブランチをどう変えても直りません。組織の署名用 Secret がこのリポジトリに届いていません。どのリポジトリに届けるかは組織のオーナーが決めますが、GitHub Free では private のリポジトリには届けられません。届くようになったら実行し直してください。
