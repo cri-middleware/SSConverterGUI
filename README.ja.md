@@ -3,7 +3,6 @@
 # SSConverter GUI
 
 SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) を、プレイヤーが読み込むバイナリ —— アニメーションの **`.ssab`** とシーケンスの **`.ssqb`** —— に変換するクロスプラットフォーム対応の GUI アプリケーションです。
-Tauri v2、Vite、TypeScript を使用して構築されており、効率的な変換作業のための直感的なインターフェースを提供します。
 
 ## ✨ 主な機能
 
