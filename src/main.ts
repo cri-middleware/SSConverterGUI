@@ -37,10 +37,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="panel">
     <div class="form-group drop-zone" id="dropZoneIn">
       <label class="zone-label">
-        <span class="zone-title">📥 Target .sspj File or Folder</span>
+        <span class="zone-title" id="inputTitle">📥 Target .sspj File or Folder</span>
       </label>
       <div class="input-row">
-        <input type="text" id="inDirDisplay" readonly placeholder="Select or drop a SpriteStudio Project / Folder...">
+        <input type="text" id="inDirDisplay" readonly aria-labelledby="inputTitle" placeholder="Select or drop a SpriteStudio Project / Folder...">
         <button class="btn" id="btnSelectInFile">File...</button>
         <button class="btn" id="btnSelectInDir">Folder...</button>
       </div>
@@ -49,8 +49,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="input-row output-row" id="dropZoneOut">
       <span class="output-label">📤 Output</span>
       <input type="text" id="outDirDisplay" readonly aria-label="Output folder" placeholder="Leave empty to output next to .sspj">
-      <button class="btn btn-secondary btn-small" id="btnSelectOut">Change...</button>
-      <button class="btn btn-secondary btn-small" id="btnClearOut" hidden>Reset</button>
+      <button class="btn btn-secondary btn-small" id="btnSelectOut" aria-label="Change output folder">Change...</button>
+      <button class="btn btn-secondary btn-small" id="btnClearOut" aria-label="Reset output folder" hidden>Reset</button>
     </div>
 
     <div class="options-group">
@@ -64,7 +64,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <button class="btn btn-success btn-full" id="btnConvert" disabled>
         ⚡ Convert
       </button>
-      <span class="status-badge badge-pending" id="convertStatus">Waiting</span>
+      <span class="status-badge badge-pending" id="convertStatus" role="status">Waiting</span>
       <button class="btn btn-secondary" id="btnRevealOutput" hidden title="Show the output in the file manager">📂 Reveal Output</button>
     </div>
 
@@ -72,7 +72,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <!-- History Area -->
       <div class="pane">
         <div class="pane-head">
-          <span class="pane-title">History</span>
+          <h2 class="pane-title">History</h2>
           <button class="btn btn-secondary btn-small" id="btnClearHistory">Clear History</button>
         </div>
         <div class="history-list" id="historyArea"></div>
@@ -81,10 +81,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <!-- Logs Area -->
       <div class="pane">
         <div class="pane-head">
-          <span class="pane-title">Logs</span>
+          <h2 class="pane-title" id="logTitle">Logs</h2>
           <button class="btn btn-secondary btn-small" id="btnClearLog">Clear Logs</button>
         </div>
-        <div class="log-area log-area-fill" id="logArea"></div>
+        <div class="log-area log-area-fill" id="logArea" role="log" aria-labelledby="logTitle"></div>
       </div>
     </div>
   </div>
@@ -378,6 +378,8 @@ function renderHistory() {
         const btn = document.createElement('button');
         btn.className = 'btn btn-history-retry';
         btn.textContent = '⚡ Convert';
+        // Every row's button reads the same, so its name says which entry it runs.
+        btn.setAttribute('aria-label', `Convert again: ${item.inputPath}`);
         // A conversion may finish and re-render the list while the previous one
         // is still tearing down, so honour the current busy state here too.
         btn.disabled = isConverting;
