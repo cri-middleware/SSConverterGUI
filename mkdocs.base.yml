@@ -52,7 +52,10 @@ plugins:
       full_output: llms-full.txt
       markdown_description: |
         `install` and `usage` are for running the finished app, `development` is for building
-        it from source, and `limitations` lists what it does not do.
+        it from source, and `limitations` lists what it does not do. The app has no command
+        line: scripts, CI and coding assistants convert with `ssconverter-cli`
+        (https://github.com/cri-middleware/SpriteStudio-SDK/tree/HEAD/cli), which writes the
+        same bytes.
       sections:
         Docs:
           - "*.md"
