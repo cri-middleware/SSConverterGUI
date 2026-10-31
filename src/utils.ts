@@ -153,6 +153,30 @@ export function describeCancelled(succeeded: number, failed: number, total: numb
     };
 }
 
+/** What the result dialog shows, as far as its text goes. */
+export interface ResultText {
+    headline: string;
+    output: string | null;
+    issues: { label?: string; detail: string; tone: 'warning' | 'error' }[];
+}
+
+/**
+ * The result dialog as plain text, for pasting into a bug report or an AI
+ * assistant: the headline, the output line, one line per issue, and the
+ * versions when they are known. An issue reads like `ssconverter-cli`'s stderr,
+ * `Error: <project>: <reason>`, since its tone is only a colour on screen.
+ */
+export function resultText(view: ResultText, versions: string | null): string {
+    const lines = [view.headline];
+    if (view.output) lines.push(view.output);
+    for (const issue of view.issues) {
+        const prefix = issue.tone === 'error' ? 'Error' : 'Warning';
+        lines.push(issue.label ? `${prefix}: ${issue.label}: ${issue.detail}` : `${prefix}: ${issue.detail}`);
+    }
+    if (versions) lines.push(versions);
+    return lines.join('\n');
+}
+
 export type ShortcutAction = 'open-file' | 'open-folder' | 'convert';
 
 /** The parts of a `KeyboardEvent` that decide a shortcut. */
