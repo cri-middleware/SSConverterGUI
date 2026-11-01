@@ -10,6 +10,35 @@
 - **コア変換ロジック**: [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK)
   (`ssconverter` Rust クレート)
 
+## 🧩 アプリの構成
+
+```mermaid
+---
+config:
+  flowchart:
+    wrappingWidth: 400
+---
+flowchart TD
+    subgraph fe ["フロントエンド · TypeScript, Vite"]
+        ui["ウィンドウ<br/>ドロップ · 出力先 · 履歴 · 結果"]
+        ls["localStorage<br/>履歴 · テーマ"]
+    end
+    subgraph be ["バックエンド · Rust, Tauri v2"]
+        cmds["コマンド<br/>変換 · 停止 · フォルダを開く"]
+        task["バックグラウンドのタスク<br/>スキャン → 1 件ずつ変換"]
+    end
+    conv["ssconverter クレート<br/>SDK サブモジュール"]
+    files[".sspj を読む<br/>.ssab · .ssqb を書く"]
+    ui --> ls
+    ui -->|invoke| cmds
+    cmds --> task --> conv --> files
+    task -. "ログ · 進み具合 · 失敗" .-> ui
+```
+
+フロントエンドがウィンドウ全体で、履歴とテーマを `localStorage` に持ちます。Tauri の IPC でバックエンドのコマンドを呼び、バックエンドはバックグラウンドのタスクで変換するので、ウィンドウは固まりません。ドロップしたフォルダはまずスキャンします（誤ってホームフォルダを落としても終わるよう、件数と時間に上限があります）。そのあと 1 件ずつ変換し、コンバーターのメッセージ・進み具合・失敗をイベントでウィンドウへ返します。**「Stop / Cancel」** は、スキャンとコンバーターの両方が見るフラグを立てます。
+
+**「📂 Reveal Output」** が開くフォルダは、コンバーターが自分のログで示したもので、アプリは計算しません。**「📤 Output」** の行に出す既定の出力先は、コンバーターの命名規則をアプリ側で言い直したものです。そのためテストが SDK のフィクスチャを変換して、ログの行と規則の両方を確かめます。どちらかを変えるサブモジュールの更新は、アプリではなくそのテストで落ちます。
+
 ## ⚙️ 開発環境の要件
 
 ソースコードからアプリケーションをビルドするには、以下の環境が必要です。
