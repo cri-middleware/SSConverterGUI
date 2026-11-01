@@ -12,6 +12,43 @@ the application, see [Installation](install.md) instead.
 - **Core Conversion Logic**: [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK)
   (`ssconverter` Rust crate)
 
+## 🧩 How it is put together
+
+```mermaid
+---
+config:
+  flowchart:
+    wrappingWidth: 400
+---
+flowchart TD
+    subgraph fe ["Frontend · TypeScript, Vite"]
+        ui["The window<br/>drop · output · history · result"]
+        ls["localStorage<br/>history · theme"]
+    end
+    subgraph be ["Backend · Rust, Tauri v2"]
+        cmds["Commands<br/>convert · stop · open folder"]
+        task["Background task<br/>scan, then convert each"]
+    end
+    conv["ssconverter crate<br/>SDK submodule"]
+    files[".sspj in<br/>.ssab · .ssqb out"]
+    ui --> ls
+    ui -->|invoke| cmds
+    cmds --> task --> conv --> files
+    task -. "log · progress · failures" .-> ui
+```
+
+The frontend is the whole window, and keeps the history and the theme in `localStorage`. It calls
+the backend's commands over Tauri's IPC, and the backend converts on a background task, so the
+window stays responsive. A dropped folder is scanned first — bounded in entries and in time, so a
+mis-dropped home folder cannot run unbounded — then each project converts in turn, and every
+converter message, the progress and each failure come back to the window as events.
+**Stop / Cancel** sets a flag that both the scan and the converter check.
+
+The folder **📂 Reveal Output** opens is the one the converter names in its own log; the app does
+not work it out. The default the **📤 Output** row shows does restate the converter's naming rule,
+so a test converts the SDK's fixture and checks both the log line and the rule — a submodule bump
+that changes either fails there rather than in the app.
+
 ## ⚙️ Prerequisites
 
 To build and run this application from source, you need the following environment:
