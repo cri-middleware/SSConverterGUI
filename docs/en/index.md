@@ -12,11 +12,10 @@ knowledge is required.
 - **A file or a whole folder, by drag and drop.** Drop a `.sspj`, or a folder to convert every
   project under it in one run, with no command line. A project that fails is listed with its full
   path and the converter's reason, and never discards the rest of the batch.
-- **Output where you want it.** By default a folder named after the project, next to its `.sspj` —
-  `<name>_emb/` for an embedded build, so it never overwrites a plain one — or a folder you choose,
-  kept for the next project. **📂 Reveal Output** opens it.
-- **Embedded or referenced textures.** One self-contained file, or the textures left beside it,
-  replaceable and shared between packs.
+- **Output folder and texture packaging of your choice.** Embedded (a single self-contained file)
+  or referenced (textures left beside it, replaceable and shared between packs), written either to
+  `<name>/` (`<name>_emb/` for embedded) next to the `.sspj` or to a folder you choose and keep for
+  the next project. **📂 Reveal Output** opens it.
 - **A run you can watch and stop.** A bar counts the projects off over the converter's log, and
   **Stop / Cancel** ends the run at the file in flight, keeping what finished. **Copy** puts the
   result — failures, warnings and versions — on the clipboard for a bug report or an AI assistant.

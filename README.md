@@ -8,8 +8,7 @@ A cross-platform GUI application for converting SpriteStudio project files (`.ss
 
 - **The same conversion every player runs.** A window around the SDK's `ssconverter` — the conversion `ssconverter-cli` and the players' own importers run — so the `.ssab` and `.ssqb` it writes load in every official player.
 - **A file or a whole folder, by drag and drop.** Drop a `.sspj`, or a folder to convert every project under it in one run, with no command line. A project that fails is listed with its full path and the converter's reason, and never discards the rest of the batch.
-- **Output where you want it.** By default a folder named after the project, next to its `.sspj` — `<name>_emb/` for an embedded build, so it never overwrites a plain one — or a folder you choose, kept for the next project. **📂 Reveal Output** opens it.
-- **Embedded or referenced textures.** One self-contained file, or the textures left beside it, replaceable and shared between packs.
+- **Output where and how you want it.** By default a folder named after the project, next to its `.sspj` — `<name>_emb/` for an embedded build, so it never overwrites a plain one — or a folder you choose, kept for the next project (**📂 Reveal Output** opens it). Choose one self-contained `.ssab` with textures embedded, or leave the textures beside it so they stay replaceable and shared between packs.
 - **A run you can watch and stop.** A bar counts the projects off over the converter's log, and **Stop / Cancel** ends the run at the file in flight, keeping what finished. **Copy** puts the result — failures, warnings and versions — on the clipboard for a bug report or an AI assistant.
 - **Re-run from history.** Each run is kept with its settings, so converting a project again after editing it needs nothing chosen again.
 
