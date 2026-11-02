@@ -2,9 +2,11 @@
 #
 # The shipped app statically links the whole Rust dependency graph (Tauri/wry,
 # the ssconverter SDK, and their transitive crates), so their license notices
-# must travel with the distributed binary. `release.yml` runs
-# `cargo about generate` over `src-tauri/Cargo.toml` with this config to produce
-# THIRD_PARTY_NOTICES.md, which is bundled into the release archives.
+# must travel with the distributed binary. The release scripts
+# (scripts/release-macos.sh, scripts/release-windows.ps1) run `cargo about generate`
+# over `src-tauri/Cargo.toml` with this config to produce THIRD_PARTY_NOTICES.md,
+# scripts/generate-npm-notices.mjs appends the frontend's notices, and the file is
+# bundled into the release archives.
 #
 # The generated notices are a build artifact (gitignored), regenerated per
 # release so they always match the shipped dependency set.

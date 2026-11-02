@@ -1,8 +1,9 @@
 # 🛠️ Development
 
-This page is for developers who want to modify and build the application from source, including
-the GUI frontend and the core `libssconverter` logic via the Rust backend. If you only want to use
-the application, see [Installation](install.md) instead.
+This page is for developers who want to modify and build the application from source: the GUI
+frontend and the Rust backend, which calls the SDK's `ssconverter` crate. Changes to the conversion
+itself go to SpriteStudio-SDK. If you only want to use the application, see
+[Installation](install.md) instead.
 
 ## 🛠️ Tech stack
 
@@ -44,8 +45,8 @@ mis-dropped home folder cannot run unbounded — then each project converts in t
 converter message, the progress and each failure come back to the window as events.
 **Stop / Cancel** sets a flag that both the scan and the converter check.
 
-The folder **📂 Reveal Output** opens is the one the converter names in its own log; the app does
-not work it out. The default the **📤 Output** row shows does restate the converter's naming rule,
+For a single project, the folder **📂 Reveal Output** opens is the one the converter names in its
+own log; the app does not work it out (for a batch it opens the folder that was selected). The default the **📤 Output** row shows does restate the converter's naming rule,
 so a test converts the SDK's fixture and checks both the log line and the rule — a submodule bump
 that changes either fails there rather than in the app.
 
@@ -54,8 +55,12 @@ that changes either fails there rather than in the app.
 To build and run this application from source, you need the following environment:
 
 - **Node.js**: `v26` or higher recommended. We use `pnpm` as the package manager; if you haven't
-  installed it yet, run `npm install -g pnpm` (or `corepack enable pnpm`) beforehand.
+  installed it yet, run `npm install -g pnpm` beforehand.
 - **Rust Toolchain**: installed via [rustup](https://rustup.rs/).
+- **Python 3.11 or later**, only to build the documentation. If the `python3` on your `PATH` is
+  older, point `prepare-docs` at a newer one with `python=<exe>`.
+- **PowerShell 7** (`pwsh`) on Windows, for the `.ps1` scripts. CI runs `build-release.ps1` with it;
+  Windows PowerShell 5.1 cannot run that script.
 - The [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your specific OS
   (e.g. C++ Build Tools on Windows, Xcode Command Line Tools on macOS, the required libraries on
   Linux).
@@ -88,7 +93,8 @@ pnpm run tauri dev
 
 ### 4. Build the application
 
-This generates a standalone executable.
+This builds the app in release mode: the executable in `src-tauri/target/release/`, and the
+platform's bundles under `src-tauri/target/release/bundle/`.
 
 ```bash
 pnpm run tauri build
@@ -96,7 +102,7 @@ pnpm run tauri build
 
 ### 5. Build a release archive (optional)
 
-`pnpm run tauri build` gives you a bare executable. To reproduce what a release run actually
+`pnpm run tauri build` does not make the archive a release ships. To reproduce what a release run actually
 uploads — the same archive name and layout, with `LICENSE.md`, `LICENSE.ja.md` and `THIRD_PARTY_NOTICES.md`
 bundled in — run `build-release`. It **is** what `.github/workflows/release.yml` runs, so a local
 run catches a packaging, signing or cross-compilation problem without dispatching a release.
@@ -123,15 +129,18 @@ archive and writes `SHA256SUMS` beside it. The archives land in `dist-release/`,
 git-ignored.
 
 Once the archives from both machines are in one directory, `scripts/build-release.sh build=no`
-checks all three together and writes the manifest over them. That is the workflow's last step,
-and the check that matters: a matrix entry that built nothing, or a stale archive from an earlier
+checks all three together and writes the manifest over them. The workflow runs that step before it
+creates the Release, and it is the check that matters: a matrix entry that built nothing, or a stale archive from an earlier
 version, would otherwise be attached to the Release unnoticed.
 
 `--help` lists every option. The ones worth knowing:
 
-- **Notices**: generated with [cargo-about](https://github.com/EmbarkStudios/cargo-about)
-  (`cargo install cargo-about`). Pass `notices=no` to skip that step for a quicker check — the
-  archive then differs from the released one.
+- **Notices**: `THIRD_PARTY_NOTICES.md` is generated here rather than committed — by
+  [cargo-about](https://github.com/EmbarkStudios/cargo-about) (`cargo install cargo-about`) for the
+  Rust crates, and by `scripts/generate-npm-notices.mjs` for the npm packages and the font.
+  `about.toml` holds the accepted-licence list, and an unlisted licence fails the build rather than
+  shipping unnoticed. Pass `notices=no` to skip that step for a quicker check — the archive then
+  differs from the released one.
 - **Windows arm64**: needs the **MSVC v143 - VS 2022 C++ ARM64 build tools** component from the
   Visual Studio Installer. The script adds the Rust target itself. The result cannot be run on the
   x86_64 host that built it — test it on an Arm device. `arch=x86_64` skips it.
@@ -174,8 +183,10 @@ scripts\build-docs.ps1
 ```
 
 Both scripts take `key=value` options and `--help` — `build-docs.sh locale=ja`,
-`prepare-docs.sh force=yes`. `serve` has no script on purpose: it validates nothing and serves
-one locale at a time, so it is no substitute for the build.
+`prepare-docs.sh force=yes`. `zensical serve` is no substitute for the build: it validates
+nothing and serves one locale at a time. To see the built site with the language selector working,
+run `scripts/build-pages.sh serve=yes` (`.ps1` on Windows), which builds the tree `pages.yml`
+publishes and serves `site/` on port 8000.
 
 Zensical builds **one locale per configuration**, so there is one build per locale and
 `build-docs` runs them in the only safe order: English first, because it writes `site/` and

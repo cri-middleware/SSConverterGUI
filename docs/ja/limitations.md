@@ -14,15 +14,15 @@ SSConverter GUI は **SDK の `ssconverter` に窓を付けたもの**です。�
 | | |
 |---|---|
 | プロジェクトの版 | **SpriteStudio 7.6 以上。** `.ssab` / `.ssqb` の形式がその版に対して定義されており、古いプロジェクトが新しい版へ変換されるわけではありません。 |
-| 読み込むもの | `.sspj` と、そこから参照される一式（`.ssae` / `.ssce` / `.ssee` / `.ssqe` と画像）。指定するのは `.sspj` だけで、残りはそこから辿ります。 |
+| 読み込むもの | `.sspj` と、そこから参照されるすべてのファイル（`.ssae` や `.ssce` から画像・サウンドまで）。指定するのは `.sspj` だけで、残りはそこから辿ります。画像とサウンドは `.sspj` のあるフォルダかその下に置きます。見つからないもの、そのフォルダの外にあるもの、絶対パスで指定されたものがあると、そのプロジェクトは失敗し、結果にコンバーターの理由が出ます。 |
 | 書き出すもの | アニメーションの **`.ssab`**、シーケンスの **`.ssqb`**。1 つの `.sspj` からアニメパックごとに `.ssab` が出ます。 |
 
-**Embedded Assets** はテクスチャをバイナリに焼き込みます（既定は隣に置く）。embedded は 1 ファイルで完結し、非 embedded はテクスチャを差し替えたり複数パックで共有したりできます。非 embedded はどの Player も読めますが、embedded を読めない Player もあります（[reference と embedded](https://cri-middleware.github.io/SpriteStudio-Docs/ja/overview/conversion/#reference-and-embedded)）。
+**Embedded Assets** は画像とサウンドをバイナリに焼き込みます（既定は隣に置く）。embedded は 1 ファイルで完結し、非 embedded は画像とサウンドを差し替えたり複数パックで共有したりできます。非 embedded はどの Player も読めますが、embedded を読めない Player もあります（[reference と embedded](https://cri-middleware.github.io/SpriteStudio-Docs/ja/overview/conversion/#reference-and-embedded)）。
 
 ## 対応プラットフォーム
 
 **macOS と Windows のみ。** Linux ビルドはありません。変換自体は SDK が動く環境ならどこでも動くので、Linux では
-[`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK) をお使いください（窓が無いだけで同じ変換です）。
+[`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/blob/HEAD/cli/README.ja.md) をお使いください（窓が無いだけで同じ変換です）。
 
 Windows の実行ファイルは**未署名**のため、初回起動時に SmartScreen の警告が出ます。表示と進め方は[インストール手順](install.md)にあります。
 
@@ -33,7 +33,7 @@ Windows の実行ファイルは**未署名**のため、初回起動時に Smar
 
 達したときに黙って失敗することはありません。**そこまでに見つかったものを変換したうえで**、上限と件数を明示して知らせます。
 
-> Directory scan stopped at its limit (30 seconds) after 214,908 entries; converting the 12 .sspj
+> Directory scan stopped at its limit (30 seconds) after 214908 entries; converting the 12 .sspj
 > file(s) found so far. Choose a more specific folder to reach the rest.
 
 **この警告は進捗表示ではなく結果として読んでください。** 一覧が不完全なので、あるはずのプロジェクトに単に到達していない可能性があります。フォルダを絞り直して再実行してください。
@@ -45,14 +45,15 @@ Windows の実行ファイルは**未署名**のため、初回起動時に Smar
 - 権限が無いなどで読めないフォルダと、その中身
 - フォルダの中にマウントされたドライブ、共有フォルダ、ディスクイメージ。走査は選んだフォルダがあるボリュームの中だけを辿ります（`ssconverter-cli` はその先にも入ります）
 - 名前が `.git` で始まるフォルダ（`ssconverter-cli` も同じく飛ばします）
+- フォルダへのシンボリックリンク（この走査も `ssconverter-cli` もリンクをたどりません）
 
 警告の出なかった一括変換で、あるはずのプロジェクトが抜けている場合は、たいていこのどれかの下にあります。
 
 ## 1 件の失敗で一括処理は止まりません
 
-`.sspj` は 1 件ずつ変換されます。失敗したプロジェクトは**フルパスで**報告され（実際の一括処理ではほとんどが `project.sspj` という名前なので）、処理は次へ進みます。最後のステータス行に成功・失敗の両方が出ます。
+`.sspj` は 1 件ずつ変換されます。失敗したプロジェクトは**フルパスで**報告され（実際の一括処理ではほとんどが `project.sspj` という名前なので）、処理は次へ進みます。最後にバッジが成功・失敗の両方を数えます（`3 ok / 1 failed`）。
 
-キャンセルは別の扱いです。実行中のファイルで一括処理ごと止まります。それより前に終わったプロジェクトの出力は残り、バッジにどこまで進んだかが出て、1 件でも変換できていれば履歴にも記録されます。実行中だったファイルは、出力の一部だけが書かれていることがあります（コンバータは出力フォルダを作り、バイナリを書き、続けてテクスチャをコピーしますが、停止はそのどの間にも入り得ます）。そのフォルダの中身を使う前に、そのプロジェクトをもう一度変換してください。
+キャンセルは別の扱いです。実行中のファイルで一括処理ごと止まります。それより前に終わったプロジェクトの出力は残り、バッジにどこまで進んだかが出て、1 件でも変換できていれば履歴にも記録されます。実行中だったファイルは、出力の一部だけが書かれていることがあります（コンバータは出力フォルダを作り、バイナリを書き、続けて画像とサウンドをコピーしますが、停止はそのどの間にも入り得ます）。そのフォルダの中身を使う前に、そのプロジェクトをもう一度変換してください。
 
 ## 対応範囲外
 
@@ -60,4 +61,4 @@ Windows の実行ファイルは**未署名**のため、初回起動時に Smar
 - **編集。** `.sspj` を書き換えることはありません。それは SpriteStudio の仕事です。
 - **逆変換。** `.ssab` は再生用の形式で、`.sspj` へ戻す経路はありません。
 - **フォルダの監視。** 変換は指示したときに走ります。保存のたびに再変換する仕組みは、各 Player のエディタ連携が持っています（Godot のインポートドック、Unity のインポータ、Ren'Py の Auto Importer）。
-- **CI。** [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK) をお使いください。パイプラインに GUI は形が合いませんし、出力は同一です。
+- **CI。** [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/blob/HEAD/cli/README.ja.md) をお使いください。パイプラインに GUI は形が合いませんし、出力は同一です。

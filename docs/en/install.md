@@ -12,7 +12,7 @@ knowledge. If you want to build from source instead, see [Development](developme
 
 Every build is portable: there is no installer, and the application itself stays in the folder you
 unpack it into. The only thing written elsewhere is its per-user data — the theme choice and the
-conversion history — in the standard application data folder.
+conversion history — in the folder listed under Uninstalling below.
 
 ## Download
 
@@ -30,21 +30,22 @@ Each archive also contains `LICENSE.md`, `LICENSE.ja.md` and `THIRD_PARTY_NOTICE
 !!! tip "Which Windows archive do I need?"
 
     Open **Settings → System → About** and look at **System type**. If it says *ARM-based
-    processor*, take the `arm64` archive; otherwise take `x86_64`. An Arm PC can also run the x86_64
-    build through emulation, but the arm64 build converts noticeably faster.
+    processor*, take the `arm64` archive; otherwise take `x86_64`. On Windows 11 an Arm PC can also
+    run the x86_64 build through emulation, but the arm64 build runs natively, without that cost.
 
 ### Verifying your download (optional)
 
 Every release ships a `SHA256SUMS` file listing the checksum of each archive. Download it into the
 same folder as the archive to confirm the file arrived intact.
 
-On macOS:
+On macOS (it prints the archive's name followed by `OK`):
 
 ```bash
-shasum -a 256 -c SHA256SUMS --ignore-missing
+grep universal SHA256SUMS | shasum -a 256 -c
 ```
 
-On Windows (PowerShell) — compare the printed hash against the matching line in `SHA256SUMS`:
+On Windows (PowerShell) — compare the printed hash against the matching line in `SHA256SUMS`
+(PowerShell prints it in upper case, `SHA256SUMS` in lower case):
 
 ```powershell
 Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
@@ -59,12 +60,11 @@ Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
 3. Double-click it to launch.
 
 The application is code-signed with a CRI Middleware Developer ID certificate and notarized by
-Apple, so it opens normally. You do **not** need to right-click → Open, or clear the quarantine
-attribute by hand.
+Apple, so it opens normally.
 
 !!! warning "If macOS reports the app as damaged or from an unidentified developer"
 
-    That means the file was altered in transit or is not an official build. Delete it, download the
+    The file may have been altered in transit, or may not be an official build. Delete it, download the
     archive again from the
     [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, and verify it
     against `SHA256SUMS` as shown above.
@@ -88,5 +88,10 @@ Once the application starts, continue to [Usage](usage.md).
 ## Uninstalling
 
 Delete the unpacked folder, or `SSConverterGUI.app`. The application installs no system-wide
-components; only its theme choice and conversion history remain, in the standard per-user
-application data folder.
+components. Its theme choice and conversion history stay in a per-user folder; delete that too to
+remove them:
+
+- macOS: `~/Library/WebKit/jp.co.cri-mw.spritestudio.ssconvertergui`
+- Windows: `%LOCALAPPDATA%\jp.co.cri-mw.spritestudio.ssconvertergui`
+
+Paste the path into Finder's **Go → Go to Folder…** or into File Explorer's address bar to open it.

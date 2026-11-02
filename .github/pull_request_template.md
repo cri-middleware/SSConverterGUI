@@ -32,7 +32,7 @@ that is useful information, not a problem.
 - [ ] Anything that exists twice changed twice — a page and its translation, a `.sh` and its `.ps1`.
 - [ ] No conversion logic here: core changes go to SpriteStudio-SDK, and nothing is committed inside the submodule.
 - [ ] No frontend framework: vanilla TypeScript, no inline styles, styling in `src/style.css`.
-- [ ] `package.json` and `src-tauri/Cargo.toml` versions kept in sync, if bumped.
+- [ ] `package.json`, `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock` versions kept in sync, if bumped.
 
 ## Anything reviewers should know? / レビュー時の注意点
 
