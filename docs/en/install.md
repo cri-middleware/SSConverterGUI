@@ -30,8 +30,8 @@ Each archive also contains `LICENSE.md`, `LICENSE.ja.md` and `THIRD_PARTY_NOTICE
 !!! tip "Which Windows archive do I need?"
 
     Open **Settings → System → About** and look at **System type**. If it says *ARM-based
-    processor*, take the `arm64` archive; otherwise take `x86_64`. An Arm PC can also run the x86_64
-    build through emulation, but the arm64 build converts noticeably faster.
+    processor*, take the `arm64` archive; otherwise take `x86_64`. On Windows 11 an Arm PC can also
+    run the x86_64 build through emulation, but the arm64 build converts noticeably faster.
 
 ### Verifying your download (optional)
 

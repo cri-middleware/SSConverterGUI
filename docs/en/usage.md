@@ -17,7 +17,7 @@ application yet, see [Installation](install.md).
    select, so you can set it once and convert several in turn; **"Reset"**, which appears once you
    have chosen one, goes back to the default. The files go straight into a folder you choose, with
    no `<name>/` folder of their own, so a file already there under the same name is overwritten: an
-   embedded build of the same project, or a texture or animation pack of the same name from another
+   embedded build of the same project, or an image, sound or animation pack of the same name from another
    project. Selecting a folder in step 2 resets it and switches the row off: a batch writes each
    project next to its own `.sspj`, so there is no single folder to name.
 4. *(Optional)* Check the **"Embedded Assets"** box to embed assets in the binary.
@@ -46,9 +46,10 @@ to add the files one by one.
 
 ## Conversion history
 
-Each run is kept as **one entry**, under whatever you selected: a `.sspj` for a single conversion,
-the folder for a batch. Re-running one repeats it with the settings it used, without selecting the
-input and output again. The line under the path says what those settings were and when it last
+The history keeps **one entry** for each thing you converted: a `.sspj` for a single conversion,
+the folder for a batch. Converting the same one again replaces its entry with that run's settings
+and moves it to the top. An entry's **⚡ Convert** repeats it with those settings, without selecting
+the input and output again. The line under the path says what those settings were and when it last
 ran. **Clear History** removes every entry after asking, and a cleared history cannot be brought back.
 
 ## Keyboard
