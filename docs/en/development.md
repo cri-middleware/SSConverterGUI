@@ -59,6 +59,8 @@ To build and run this application from source, you need the following environmen
 - **Rust Toolchain**: installed via [rustup](https://rustup.rs/).
 - **Python 3.11 or later**, only to build the documentation. If the `python3` on your `PATH` is
   older, point `prepare-docs` at a newer one with `python=<exe>`.
+- **PowerShell 7** (`pwsh`) on Windows, for the `.ps1` scripts. CI runs `build-release.ps1` with it;
+  Windows PowerShell 5.1 cannot run that script.
 - The [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your specific OS
   (e.g. C++ Build Tools on Windows, Xcode Command Line Tools on macOS, the required libraries on
   Linux).

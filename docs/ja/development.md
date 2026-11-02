@@ -46,6 +46,7 @@ flowchart TD
 - **Node.js**: `v26` 以上を推奨。パッケージマネージャーとして `pnpm` を使用します。未インストールの場合は、あらかじめ `npm install -g pnpm` を実行してください。
 - **Rust ツールチェーン**: [rustup](https://rustup.rs/) を経由したインストール。
 - **Python 3.11 以上**: ドキュメントのビルドにだけ使います。`PATH` 上の `python3` が古い場合は、`prepare-docs` に `python=<exe>` で新しいものを渡してください。
+- **PowerShell 7**（`pwsh`）: Windows で `.ps1` のスクリプトを実行するときに使います。CI も `build-release.ps1` をこれで実行しており、Windows PowerShell 5.1 ではこのスクリプトは動きません。
 - ご利用の OS における Tauri v2 の[前提条件 (Prerequisites)](https://v2.tauri.app/start/prerequisites/)
   を満たしていること（Windows なら C++ Build Tools、macOS なら Xcode Command Line Tools、Linux なら必要なライブラリ）。
 
