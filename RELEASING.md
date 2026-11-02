@@ -10,7 +10,7 @@ Anyone with the Write role on this repository can cut a release: every step is a
 
 A release is a tag on `main`, pushed first and built second. Three versions move together. `version` in `package.json` is the one that counts: `tauri.conf.json` reads it, the app shows it, every archive is named after it, and `scripts/release-version.sh` prints it. The crate `version` in `src-tauri/Cargo.toml` is a copy that moves in the same step, and `scripts/release-version.sh` refuses to print a version while the two disagree. The tag is `v` followed by it, and the release build refuses a tag that disagrees. The SDK this release ships is versioned on its own, by the submodule. Branches follow git-flow: `develop` integrates, `main` holds released commits only, and `release/X.Y` lives for one release — cut from `develop` when the release ships `develop`'s work, or from the line's latest tag when it ships only fixes on top of it, and deleted once the release is out.
 
-Every block runs as written in a new shell: it works out what it needs from the checkout, git and GitHub. The values set by hand are the version being released, written `<version>` in steps 1 and 2, and the SDK release it ships, `<sdk-tag>` in step 2 — fill them in, as in `7.0.1` and `v7.0.0`; left as they are, the line stops with a syntax error. A value that would not stop a command by itself when empty is read as `${VAR:?}`: an empty `VERSION` in step 2 would write an empty version, and an empty `RUN` would let the signing check in step 3 print nothing and pass.
+Every block runs as written in a new shell: it works out what it needs from the checkout, git and GitHub. The value set by hand is the version being released, written `<version>` in steps 1 and 2 — fill it in, as in `7.0.1`; left as it is, the line stops with a syntax error. A value that would not stop a command by itself when empty is read as `${VAR:?}`: an empty `VERSION` in step 2 would write an empty version, and an empty `RUN` would let the signing check in step 3 print nothing and pass.
 
 An agent can run every block, but a person tries the QA build's app and sorts the scan's summary in step 3, and two steps are a person's to decide: the merge in step 4, which puts the release on `main`, and step 6, which publishes it for good.
 
@@ -37,17 +37,14 @@ BASE=$(git -c versionsort.suffix=- tag --list "v${BRANCH#release/}.*" --sort=-v:
 git switch -C "$BRANCH" "${BASE:?}"
 ```
 
-### 2. SDK, version and changelog
+### 2. Version and changelog
 
-In one commit. The converter is the `ssconverter` crate built from the `SpriteStudio-SDK` submodule, so the submodule is the SDK this release ships: check it out at that SDK release's tag, `<sdk-tag>`. Set the version in `package.json` and `src-tauri/Cargo.toml`, and let cargo rewrite `src-tauri/Cargo.lock` for both — CI's clippy runs `--locked`. `<version>` is the one from step 1.
+In one commit. Set the version in `package.json` and `src-tauri/Cargo.toml`, and let cargo rewrite `src-tauri/Cargo.lock` for both — CI's clippy runs `--locked`. The SDK it ships is the commit of the `SpriteStudio-SDK` submodule — the converter is the `ssconverter` crate, a path dependency into it — and the app names the converter by that commit's version. Cargo reads that path dependency, so the block initializes the submodule first. `<version>` is the one from step 1.
 
 ```bash
 VERSION=<version>
-SDK_TAG=<sdk-tag>
 git submodule update --init SpriteStudio-SDK &&
-  git -C SpriteStudio-SDK fetch --tags origin &&
-  git -C SpriteStudio-SDK checkout "${SDK_TAG:?}"
-export VERSION="${VERSION:?}" &&
+  export VERSION="${VERSION:?}" &&
   npm pkg set version="$VERSION" &&
   perl -pi -e 's/^version = ".*"/version = "$ENV{VERSION}"/' src-tauri/Cargo.toml &&
   cargo update -p ssconverter-gui --manifest-path src-tauri/Cargo.toml
@@ -57,7 +54,7 @@ Then date the version's heading in `CHANGELOG.md` as `## [X.Y.Z] - YYYY-MM-DD`, 
 
 ```bash
 git diff
-git add SpriteStudio-SDK package.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
+git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
 git commit -m "chore(release): v$(scripts/release-version.sh)"
 ```
 
@@ -231,7 +228,7 @@ git push origin ":refs/tags/${TAG:?}" && git tag -d "${TAG:?}"
 
 リリースは `main` 上のタグです。先にタグを push し、ビルドはその後です。3 つのバージョンを一緒に動かします。基準は `package.json` の `version` で、`tauri.conf.json` がこれを読み、アプリが表示し、各アーカイブの名前になり、`scripts/release-version.sh` が出力します。`src-tauri/Cargo.toml` のクレート `version` はその写しで、同じ手順で動かします。2 つが食い違っている間、`scripts/release-version.sh` はバージョンを出力せずに失敗します。タグはその頭に `v` を付けたもので、食い違うタグはリリースビルドが拒否します。同梱する SDK のバージョンはこれとは別で、submodule が決めます。ブランチは git-flow です。`develop` が統合ブランチで、`main` にはリリース済みのコミットだけが入ります。`release/X.Y` は 1 回のリリースの間だけ使います。`develop` の作業を出すリリースなら `develop` から、タグの上に修正だけを載せるリリースならその系統の最新のタグから切り、リリースが済んだら消します。
 
-どのブロックも、新しいシェルで書かれたとおりに実行できます。必要なものはチェックアウト・git・GitHub から求めます。手で設定する値は、リリースするバージョン（手順 1 と 2 の `<version>`）と、同梱する SDK のリリース（手順 2 の `<sdk-tag>`）だけです。`7.0.1`、`v7.0.0` のように埋めてください。埋めずに実行すると、その行は構文エラーで止まります。空でもそれだけでは止まらない値は `${VAR:?}` で読みます。手順 2 の `VERSION` が空だと空のバージョンを書き込み、`RUN` が空だと手順 3 の署名の確認が何も出力せずに通ってしまうためです。
+どのブロックも、新しいシェルで書かれたとおりに実行できます。必要なものはチェックアウト・git・GitHub から求めます。手で設定する値は、リリースするバージョン（手順 1 と 2 の `<version>`）だけです。`7.0.1` のように埋めてください。埋めずに実行すると、その行は構文エラーで止まります。空でもそれだけでは止まらない値は `${VAR:?}` で読みます。手順 2 の `VERSION` が空だと空のバージョンを書き込み、`RUN` が空だと手順 3 の署名の確認が何も出力せずに通ってしまうためです。
 
 どのブロックもエージェントに実行させられますが、手順 3 の QA ビルドのアプリは人が試し、検査の一覧は人が仕分け、2 つの手順は人が判断します。リリースを `main` に入れる手順 4 のマージと、取り消せない公開を行う手順 6 です。
 
@@ -258,17 +255,14 @@ BASE=$(git -c versionsort.suffix=- tag --list "v${BRANCH#release/}.*" --sort=-v:
 git switch -C "$BRANCH" "${BASE:?}"
 ```
 
-### 2. SDK、バージョン、CHANGELOG
+### 2. バージョン、CHANGELOG
 
-1 コミットで行います。変換処理は `SpriteStudio-SDK` submodule からビルドする `ssconverter` クレートなので、submodule がこのリリースに同梱する SDK です。その SDK リリースのタグ `<sdk-tag>` に submodule を合わせます。`package.json` と `src-tauri/Cargo.toml` にバージョンを設定し、両方に合わせて `src-tauri/Cargo.lock` を cargo に書き直させます（CI の clippy は `--locked` で実行します）。`<version>` は手順 1 と同じものです。
+1 コミットで行います。`package.json` と `src-tauri/Cargo.toml` にバージョンを設定し、両方に合わせて `src-tauri/Cargo.lock` を cargo に書き直させます（CI の clippy は `--locked` で実行します）。同梱する SDK は `SpriteStudio-SDK` submodule のコミットです（変換処理の `ssconverter` クレートは、この submodule へのパス依存）。アプリはそのコミットのバージョンで変換器を名乗ります。cargo がこのパス依存を読むので、ブロックは先に submodule を初期化します。`<version>` は手順 1 と同じものです。
 
 ```bash
 VERSION=<version>
-SDK_TAG=<sdk-tag>
 git submodule update --init SpriteStudio-SDK &&
-  git -C SpriteStudio-SDK fetch --tags origin &&
-  git -C SpriteStudio-SDK checkout "${SDK_TAG:?}"
-export VERSION="${VERSION:?}" &&
+  export VERSION="${VERSION:?}" &&
   npm pkg set version="$VERSION" &&
   perl -pi -e 's/^version = ".*"/version = "$ENV{VERSION}"/' src-tauri/Cargo.toml &&
   cargo update -p ssconverter-gui --manifest-path src-tauri/Cargo.toml
@@ -278,7 +272,7 @@ export VERSION="${VERSION:?}" &&
 
 ```bash
 git diff
-git add SpriteStudio-SDK package.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
+git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
 git commit -m "chore(release): v$(scripts/release-version.sh)"
 ```
 
