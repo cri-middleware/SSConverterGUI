@@ -112,8 +112,8 @@ scripts/build-release.sh sign=no notices=no
 
 オプションの一覧は `--help` で確認できます。主なものは次のとおりです。
 
-- **ライセンス表記**: [cargo-about](https://github.com/EmbarkStudios/cargo-about) で生成します
-  (`cargo install cargo-about`)。`notices=no` を渡すとこの手順を省略でき、素早く確認できますが、アーカイブの内容はリリース版と異なります。
+- **ライセンス表記**: `THIRD_PARTY_NOTICES.md` は commit せず、ここで生成します。Rust のクレートの分は [cargo-about](https://github.com/EmbarkStudios/cargo-about)
+  (`cargo install cargo-about`) が、npm パッケージとフォントの分は `scripts/generate-npm-notices.mjs` が書きます。許容ライセンスの一覧は `about.toml` にあり、一覧に無いライセンスが入るとビルドが失敗します（気づかないまま出荷されません）。`notices=no` を渡すとこの手順を省略でき、素早く確認できますが、アーカイブの内容はリリース版と異なります。
 - **Windows arm64**: Visual Studio インストーラーの **MSVC v143 - VS 2022 C++ ARM64 build tools**
   コンポーネントが必要です。Rust のターゲット追加はスクリプトが行います。生成物はビルドした x86_64 ホスト上では実行できないため、動作確認は Arm 実機で行ってください。`arch=x86_64` を渡せばスキップできます。
 - **macOS の署名・公証**: 任意です。ワークフローと同じ環境変数で制御します。`APPLE_SIGNING_IDENTITY`

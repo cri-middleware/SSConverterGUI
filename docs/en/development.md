@@ -133,9 +133,12 @@ version, would otherwise be attached to the Release unnoticed.
 
 `--help` lists every option. The ones worth knowing:
 
-- **Notices**: generated with [cargo-about](https://github.com/EmbarkStudios/cargo-about)
-  (`cargo install cargo-about`). Pass `notices=no` to skip that step for a quicker check — the
-  archive then differs from the released one.
+- **Notices**: `THIRD_PARTY_NOTICES.md` is generated here rather than committed — by
+  [cargo-about](https://github.com/EmbarkStudios/cargo-about) (`cargo install cargo-about`) for the
+  Rust crates, and by `scripts/generate-npm-notices.mjs` for the npm packages and the font.
+  `about.toml` holds the accepted-licence list, and an unlisted licence fails the build rather than
+  shipping unnoticed. Pass `notices=no` to skip that step for a quicker check — the archive then
+  differs from the released one.
 - **Windows arm64**: needs the **MSVC v143 - VS 2022 C++ ARM64 build tools** component from the
   Visual Studio Installer. The script adds the Rust target itself. The result cannot be run on the
   x86_64 host that built it — test it on an Arm device. `arch=x86_64` skips it.

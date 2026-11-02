@@ -85,9 +85,6 @@ This repository is licensed under the terms of the [LICENSE.md](./LICENSE.md) (B
 The application statically links its whole Rust dependency graph — Tauri/wry, the `ssconverter` SDK
 and their transitive crates — and embeds its frontend bundle and the Inter font, so
 **`THIRD_PARTY_NOTICES.md` ships inside every release archive**, next to the executable. It is
-generated at release time rather than committed — by `cargo about` for the Rust crates and
-`scripts/generate-npm-notices.mjs` for the npm packages and the font — so it always matches the
-binary you downloaded; `about.toml` holds the accepted-licence list, and an unlisted licence fails
-the release build rather than shipping unnoticed.
+generated at release time, so it always matches the binary you downloaded.
 
 The bundled `SpriteStudio-SDK` submodule is BSD-3-Clause, like this repository.

@@ -60,8 +60,7 @@ Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
 3. Double-click it to launch.
 
 The application is code-signed with a CRI Middleware Developer ID certificate and notarized by
-Apple, so it opens normally. You do **not** need to right-click → Open, or clear the quarantine
-attribute by hand.
+Apple, so it opens normally.
 
 !!! warning "If macOS reports the app as damaged or from an unidentified developer"
 

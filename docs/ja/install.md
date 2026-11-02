@@ -52,7 +52,7 @@ Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
 3. ダブルクリックして起動します。
 
 本アプリケーションは株式会社 CRI・ミドルウェアの Developer ID 証明書で署名され、Apple の公証
-(notarization) を受けています。そのため通常どおり起動でき、右クリック →「開く」や、隔離属性の手動解除は **不要** です。
+(notarization) を受けています。そのため通常どおり起動できます。
 
 !!! warning "「アプリケーションが壊れています」「開発元が未確認です」と表示される場合"
 
