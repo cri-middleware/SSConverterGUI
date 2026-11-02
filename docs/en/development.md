@@ -55,8 +55,10 @@ that changes either fails there rather than in the app.
 To build and run this application from source, you need the following environment:
 
 - **Node.js**: `v26` or higher recommended. We use `pnpm` as the package manager; if you haven't
-  installed it yet, run `npm install -g pnpm` (or `corepack enable pnpm`) beforehand.
+  installed it yet, run `npm install -g pnpm` beforehand.
 - **Rust Toolchain**: installed via [rustup](https://rustup.rs/).
+- **Python 3.11 or later**, only to build the documentation. If the `python3` on your `PATH` is
+  older, point `prepare-docs` at a newer one with `python=<exe>`.
 - The [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your specific OS
   (e.g. C++ Build Tools on Windows, Xcode Command Line Tools on macOS, the required libraries on
   Linux).

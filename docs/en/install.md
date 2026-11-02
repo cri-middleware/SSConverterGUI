@@ -44,7 +44,8 @@ On macOS:
 shasum -a 256 -c SHA256SUMS --ignore-missing
 ```
 
-On Windows (PowerShell) — compare the printed hash against the matching line in `SHA256SUMS`:
+On Windows (PowerShell) — compare the printed hash against the matching line in `SHA256SUMS`
+(PowerShell prints it in upper case, `SHA256SUMS` in lower case):
 
 ```powershell
 Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256

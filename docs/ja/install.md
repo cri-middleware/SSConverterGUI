@@ -37,7 +37,7 @@ macOS の場合:
 shasum -a 256 -c SHA256SUMS --ignore-missing
 ```
 
-Windows (PowerShell) の場合 — 表示されたハッシュ値を `SHA256SUMS` の該当行と見比べてください:
+Windows (PowerShell) の場合 — 表示されたハッシュ値を `SHA256SUMS` の該当行と見比べてください（PowerShell は大文字、`SHA256SUMS` は小文字で表示します）:
 
 ```powershell
 Get-FileHash .\SSConverterGUI_<version>_<arch>.zip -Algorithm SHA256
