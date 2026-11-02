@@ -37,6 +37,15 @@ BASE=$(git -c versionsort.suffix=- tag --list "v${BRANCH#release/}.*" --sort=-v:
 git switch -C "$BRANCH" "${BASE:?}"
 ```
 
+Then bring the dependencies up to date, in a commit of its own: `pnpm update` and `cargo update` move `pnpm-lock.yaml` and `src-tauri/Cargo.lock`, which the app is built from, to the newest versions their ranges allow. Cargo reads the `ssconverter` path dependency, so the block initializes the submodule first. A new major version changes code, and goes in an ordinary pull request into `develop` of its own rather than here.
+
+```bash
+git submodule update --init SpriteStudio-SDK &&
+  pnpm update &&
+  cargo update --manifest-path src-tauri/Cargo.toml
+git commit -m "chore(deps): update within their ranges" -- pnpm-lock.yaml package.json src-tauri/Cargo.lock   # nothing to commit when nothing moved
+```
+
 ### 2. Version and changelog
 
 In one commit. Set the version in `package.json` and `src-tauri/Cargo.toml`, and let cargo rewrite `src-tauri/Cargo.lock` for both — CI's clippy runs `--locked`. The SDK it ships is the commit of the `SpriteStudio-SDK` submodule — the converter is the `ssconverter` crate, a path dependency into it — and the app names the converter by that commit's version. Cargo reads that path dependency, so the block initializes the submodule first. `<version>` is the one from step 1.
@@ -253,6 +262,15 @@ BRANCH=release/$(echo "${VERSION:?}" | cut -d. -f1,2)
 git fetch origin --tags
 BASE=$(git -c versionsort.suffix=- tag --list "v${BRANCH#release/}.*" --sort=-v:refname | head -n 1)   # その系統の最新のタグ
 git switch -C "$BRANCH" "${BASE:?}"
+```
+
+続けて依存を最新にし、単独のコミットにします。`pnpm update` と `cargo update` は、アプリのビルドに使う `pnpm-lock.yaml` と `src-tauri/Cargo.lock` を、範囲が許すいちばん新しい版に上げます。cargo は `ssconverter` のパス依存を読むので、ブロックは先に submodule を初期化します。メジャーバージョンを上げるのはコードの変更なので、ここではなく`develop` への通常のプルリクエストで行います。
+
+```bash
+git submodule update --init SpriteStudio-SDK &&
+  pnpm update &&
+  cargo update --manifest-path src-tauri/Cargo.toml
+git commit -m "chore(deps): update within their ranges" -- pnpm-lock.yaml package.json src-tauri/Cargo.lock   # 何も動かなければコミットするものは無い
 ```
 
 ### 2. バージョン、CHANGELOG
