@@ -22,7 +22,7 @@ SSConverter GUI は **SDK の `ssconverter` に窓を付けたもの**です。�
 ## 対応プラットフォーム
 
 **macOS と Windows のみ。** Linux ビルドはありません。変換自体は SDK が動く環境ならどこでも動くので、Linux では
-[`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK) をお使いください（窓が無いだけで同じ変換です）。
+[`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/blob/HEAD/cli/README.ja.md) をお使いください（窓が無いだけで同じ変換です）。
 
 Windows の実行ファイルは**未署名**のため、初回起動時に SmartScreen の警告が出ます。表示と進め方は[インストール手順](install.md)にあります。
 
@@ -51,7 +51,7 @@ Windows の実行ファイルは**未署名**のため、初回起動時に Smar
 
 ## 1 件の失敗で一括処理は止まりません
 
-`.sspj` は 1 件ずつ変換されます。失敗したプロジェクトは**フルパスで**報告され（実際の一括処理ではほとんどが `project.sspj` という名前なので）、処理は次へ進みます。最後のステータス行に成功・失敗の両方が出ます。
+`.sspj` は 1 件ずつ変換されます。失敗したプロジェクトは**フルパスで**報告され（実際の一括処理ではほとんどが `project.sspj` という名前なので）、処理は次へ進みます。最後にバッジが成功・失敗の両方を数えます（`3 ok / 1 failed`）。
 
 キャンセルは別の扱いです。実行中のファイルで一括処理ごと止まります。それより前に終わったプロジェクトの出力は残り、バッジにどこまで進んだかが出て、1 件でも変換できていれば履歴にも記録されます。実行中だったファイルは、出力の一部だけが書かれていることがあります（コンバータは出力フォルダを作り、バイナリを書き、続けて画像とサウンドをコピーしますが、停止はそのどの間にも入り得ます）。そのフォルダの中身を使う前に、そのプロジェクトをもう一度変換してください。
 
@@ -61,4 +61,4 @@ Windows の実行ファイルは**未署名**のため、初回起動時に Smar
 - **編集。** `.sspj` を書き換えることはありません。それは SpriteStudio の仕事です。
 - **逆変換。** `.ssab` は再生用の形式で、`.sspj` へ戻す経路はありません。
 - **フォルダの監視。** 変換は指示したときに走ります。保存のたびに再変換する仕組みは、各 Player のエディタ連携が持っています（Godot のインポートドック、Unity のインポータ、Ren'Py の Auto Importer）。
-- **CI。** [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK) をお使いください。パイプラインに GUI は形が合いませんし、出力は同一です。
+- **CI。** [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/blob/HEAD/cli/README.ja.md) をお使いください。パイプラインに GUI は形が合いませんし、出力は同一です。

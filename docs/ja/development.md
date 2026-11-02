@@ -5,7 +5,7 @@
 ## 🛠️ 技術スタック
 
 - **バックエンド / フレームワーク**: [Tauri v2](https://v2.tauri.app/) (Rust)
-- **フロントエンド**: [Vite](https://vitejs.dev/)
+- **フロントエンドのビルドツール**: [Vite](https://vitejs.dev/)
 - **UI 実装**: TypeScript / HTML / Vanilla CSS（重量級のフレームワークは使用していません）
 - **コア変換ロジック**: [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK)
   (`ssconverter` Rust クレート)

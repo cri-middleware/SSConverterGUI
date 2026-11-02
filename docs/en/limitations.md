@@ -33,7 +33,7 @@ Every player loads non-embedded, but not every player loads embedded — see
 
 **macOS and Windows only.** There is no Linux build of this application. The conversion itself
 runs anywhere the SDK does, so on Linux use
-[`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK), which is the same
+[`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/tree/HEAD/cli), which is the same
 conversion without a window.
 
 The Windows executable is **unsigned**, so SmartScreen warns on first launch. See
@@ -70,7 +70,7 @@ A project missing from a batch that reported no warning is most likely under one
 
 Each `.sspj` is converted on its own. A project that fails is reported with its **full path** — in a
 real batch nearly every project is called `project.sspj` — and the run continues to the next one.
-The status line at the end counts both.
+The badge at the end then counts both, as in `3 ok / 1 failed`.
 
 Cancelling is different: it stops the whole batch at the file in flight. The projects finished
 before it keep their output, the badge says how far the run got, and if any converted, the run is
@@ -87,5 +87,5 @@ so convert that project again before using what is in its folder.
 - **Watching a folder.** Conversion runs when you ask for it. A player that re-converts on save
   does that in its own editor integration — SpriteStudio Player for Godot's import dock,
   SpriteStudio Player for Unity's importer, SpriteStudio Player for Ren'Py's auto importer.
-- **CI.** Use [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK) — a GUI in a
+- **CI.** Use [`ssconverter-cli`](https://github.com/cri-middleware/SpriteStudio-SDK/tree/HEAD/cli) — a GUI in a
   pipeline is the wrong shape, and the two produce identical output.

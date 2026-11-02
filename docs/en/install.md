@@ -65,7 +65,7 @@ attribute by hand.
 
 !!! warning "If macOS reports the app as damaged or from an unidentified developer"
 
-    That means the file was altered in transit or is not an official build. Delete it, download the
+    The file may have been altered in transit, or may not be an official build. Delete it, download the
     archive again from the
     [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) page, and verify it
     against `SHA256SUMS` as shown above.

@@ -3,7 +3,7 @@ INHERIT: ./mkdocs.base.yml
 docs_dir: docs/en
 site_dir: site
 site_url: "https://cri-middleware.github.io/SSConverterGUI/"
-site_description: "A cross-platform desktop app for converting SpriteStudio projects (.sspj) into .ssab binaries"
+site_description: "A cross-platform desktop app for converting SpriteStudio projects (.sspj) into .ssab and .ssqb binaries"
 
 theme:
   language: en
