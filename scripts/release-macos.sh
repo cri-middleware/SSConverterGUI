@@ -124,15 +124,35 @@ app_path="${stage}/${app_name}"
 # build still packages.
 echo "==> Checking signature and notarization"
 status=0
+signed=0
+# Captured, not piped: under pipefail, `grep -q` stops at the first match and
+# codesign dies of SIGPIPE, failing a correctly signed app.
 if codesign --verify --deep --strict "$app_path" 2>/dev/null \
-  && codesign -dvv "$app_path" 2>&1 | grep -q 'Authority=Developer ID Application'; then
+  && grep -q '^Authority=Developer ID Application' <<< "$(codesign -dvv "$app_path" 2>&1)"; then
+  signed=1
   echo "    signed with a Developer ID Application certificate"
 else
   echo "    not signed by a Developer ID Application certificate"
   if [ "$sign" -eq 1 ]; then status=1; fi
 fi
-# A stapled ticket is what lets Gatekeeper clear the app offline.
+# A stapled ticket is what lets Gatekeeper clear the app offline. Tauri staples
+# as soon as notarytool reports Accepted and ignores the stapler's exit status,
+# but the ticket is not always published by then, so a missing one is fetched
+# again here for a few attempts.
+stapled=0
 if xcrun stapler validate "$app_path" >/dev/null 2>&1; then
+  stapled=1
+elif [ "$notarize" -eq 1 ] && [ "$signed" -eq 1 ]; then
+  for attempt in 1 2 3 4 5 6; do
+    if xcrun stapler staple "$app_path" >/dev/null 2>&1 \
+      && xcrun stapler validate "$app_path" >/dev/null 2>&1; then
+      stapled=1
+      break
+    fi
+    if [ "$attempt" -lt 6 ]; then sleep 10; fi
+  done
+fi
+if [ "$stapled" -eq 1 ]; then
   echo "    notarization ticket stapled"
 else
   echo "    no stapled notarization ticket"
