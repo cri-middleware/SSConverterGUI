@@ -124,8 +124,10 @@ app_path="${stage}/${app_name}"
 # build still packages.
 echo "==> Checking signature and notarization"
 status=0
+# Captured, not piped: under pipefail, `grep -q` stops at the first match and
+# codesign dies of SIGPIPE, failing a correctly signed app.
 if codesign --verify --deep --strict "$app_path" 2>/dev/null \
-  && codesign -dvv "$app_path" 2>&1 | grep -q 'Authority=Developer ID Application'; then
+  && grep -q '^Authority=Developer ID Application' <<< "$(codesign -dvv "$app_path" 2>&1)"; then
   echo "    signed with a Developer ID Application certificate"
 else
   echo "    not signed by a Developer ID Application certificate"
