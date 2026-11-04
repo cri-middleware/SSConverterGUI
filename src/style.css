@@ -428,6 +428,11 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.pane-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .pane-title {
   margin: 0;
   font-size: inherit;
