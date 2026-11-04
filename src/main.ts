@@ -82,7 +82,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div class="pane">
         <div class="pane-head">
           <h2 class="pane-title" id="logTitle">Logs</h2>
-          <button class="btn btn-secondary btn-small" id="btnClearLog">Clear Logs</button>
+          <div class="pane-actions">
+            <button class="btn btn-secondary btn-small" id="btnCopyLog">Copy Logs</button>
+            <button class="btn btn-secondary btn-small" id="btnClearLog">Clear Logs</button>
+          </div>
         </div>
         <div class="log-area log-area-fill" id="logArea" role="log" aria-labelledby="logTitle"></div>
       </div>
@@ -130,6 +133,7 @@ const btnSelectInDir = document.getElementById('btnSelectInDir') as HTMLButtonEl
 const btnSelectOut = document.getElementById('btnSelectOut') as HTMLButtonElement;
 const btnClearOut = document.getElementById('btnClearOut') as HTMLButtonElement;
 const btnConvert = document.getElementById('btnConvert') as HTMLButtonElement;
+const btnCopyLog = document.getElementById('btnCopyLog') as HTMLButtonElement;
 const btnClearLog = document.getElementById('btnClearLog') as HTMLButtonElement;
 const btnClearHistory = document.getElementById('btnClearHistory') as HTMLButtonElement;
 const dropZoneIn = document.getElementById('dropZoneIn')!;
@@ -910,6 +914,17 @@ document.addEventListener('keydown', event => {
     event.preventDefault();
     const button = { 'open-file': btnSelectInFile, 'open-folder': btnSelectInDir, 'convert': btnConvert }[action];
     button.click();
+});
+
+btnCopyLog.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(logArea.innerText || '');
+        const orig = btnCopyLog.textContent;
+        btnCopyLog.textContent = 'Copied!';
+        setTimeout(() => { btnCopyLog.textContent = orig; }, 2000);
+    } catch (e) {
+        log('Failed to copy logs to clipboard.', 'error');
+    }
 });
 
 btnClearLog.addEventListener('click', () => {
