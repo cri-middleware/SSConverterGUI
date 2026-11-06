@@ -1,5 +1,5 @@
 minimumReleaseAgeExclude:
-  - vite@8.3.5
+  - vite@8.3.6
   - '@tauri-apps/cli-darwin-arm64@2.12.4'
   - '@tauri-apps/cli-darwin-x64@2.12.4'
   - '@tauri-apps/cli-linux-arm-gnueabihf@2.12.4'
