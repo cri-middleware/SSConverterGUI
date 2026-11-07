@@ -648,13 +648,20 @@ function closeModal() {
 
 btnResultClose.addEventListener('click', closeModal);
 
+const copiedTimers = new Map<HTMLButtonElement, number>();
+
+function flashCopied(button: HTMLButtonElement) {
+    button.dataset.label ??= button.textContent ?? '';
+    button.textContent = 'Copied!';
+    window.clearTimeout(copiedTimers.get(button));
+    copiedTimers.set(button, window.setTimeout(() => { button.textContent = button.dataset.label ?? ''; }, 2000));
+}
+
 btnResultCopy.addEventListener('click', async () => {
     if (!shownResult) return;
     try {
         await navigator.clipboard.writeText(resultText(shownResult, versionsText));
-        const orig = btnResultCopy.textContent;
-        btnResultCopy.textContent = 'Copied!';
-        setTimeout(() => { btnResultCopy.textContent = orig; }, 2000);
+        flashCopied(btnResultCopy);
     } catch (e) {
         reportFailure('Failed to copy the result.');
     }
@@ -926,9 +933,7 @@ document.addEventListener('keydown', event => {
 btnCopyLog.addEventListener('click', async () => {
     try {
         await navigator.clipboard.writeText(logArea.innerText || '');
-        const orig = btnCopyLog.textContent;
-        btnCopyLog.textContent = 'Copied!';
-        setTimeout(() => { btnCopyLog.textContent = orig; }, 2000);
+        flashCopied(btnCopyLog);
     } catch (e) {
         log('Failed to copy logs to clipboard.', 'error');
     }
@@ -971,9 +976,7 @@ async function loadVersions() {
         btnCopyVersion.onclick = async () => {
             try {
                 await navigator.clipboard.writeText(textToCopy);
-                const orig = btnCopyVersion.textContent;
-                btnCopyVersion.textContent = 'Copied!';
-                setTimeout(() => { btnCopyVersion.textContent = orig; }, 2000);
+                flashCopied(btnCopyVersion);
             } catch (e) {
                 log('Failed to copy version.', 'error');
             }
