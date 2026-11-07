@@ -213,7 +213,9 @@ let revealTarget: string | null = null;
 // converter) about what a path is. Returns null after logging why on failure.
 async function classifyPath(path: string): Promise<PathKind | null> {
     try {
-        return await invoke<PathKind>('path_kind', { path });
+        const kind = await invoke<PathKind>('path_kind', { path });
+        // A run can have started during that await, and its inputs are frozen.
+        return isConverting ? null : kind;
     } catch (e) {
         log(`Could not inspect ${path}: ${e}`, 'error');
         return null;
@@ -269,6 +271,10 @@ async function onInputSelected(path: string, kind: PathKind) {
     selectedKind = kind;
     inDirDisplay.value = path;
     btnConvert.disabled = false;
+    // The badge and Reveal Output describe the last run, not this input.
+    updateBadge(convertStatus, 'Waiting', 'pending');
+    btnRevealOutput.hidden = true;
+    revealTarget = null;
 
     // A chosen output folder stays for the next project, so it can be set once
     // and several projects dropped in turn. The default is not kept here
