@@ -63,6 +63,18 @@ where
 }
 
 struct CancelState(Arc<AtomicBool>);
+struct RunningState(Arc<AtomicBool>);
+
+/// Held for the length of a run and released however it ends. The frontend
+/// cannot be what prevents a second run: a webview reload forgets the first
+/// while it carries on here.
+struct RunGuard(Arc<AtomicBool>);
+
+impl Drop for RunGuard {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Relaxed);
+    }
+}
 
 #[tauri::command]
 fn cancel_conversion(state: tauri::State<CancelState>) {
@@ -169,14 +181,25 @@ fn get_versions(app: tauri::AppHandle) -> VersionInfo {
 async fn convert_sspj(
     app: tauri::AppHandle,
     state: tauri::State<'_, CancelState>,
+    running: tauri::State<'_, RunningState>,
     input_path: String,
     output_path: Option<String>,
     embedded: bool,
 ) -> Result<ConvertSummary, String> {
+    if running
+        .0
+        .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+        .is_err()
+    {
+        return Err("A conversion is already running.".into());
+    }
+    let guard = RunGuard(running.0.clone());
+
     state.0.store(false, Ordering::Relaxed);
     let should_stop = state.0.clone();
 
     tauri::async_runtime::spawn_blocking(move || {
+        let _guard = guard;
         let mut config = ConverterConfig::default();
         config.convert_config.embedded = embedded;
 
@@ -321,6 +344,7 @@ async fn convert_sspj(
 pub fn run() {
     tauri::Builder::default()
         .manage(CancelState(Arc::new(AtomicBool::new(false))))
+        .manage(RunningState(Arc::new(AtomicBool::new(false))))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![

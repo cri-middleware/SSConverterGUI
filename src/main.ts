@@ -769,10 +769,8 @@ btnClearOut.addEventListener('click', () => {
 // embedded, so the placeholder has to follow the checkbox.
 chkEmbedded.addEventListener('change', () => { void refreshOutputPlaceholder(); });
 
-// Lock every control that feeds a conversion. The backend keeps a single
-// cancel flag shared by all runs, so two concurrent conversions would cancel
-// and un-cancel each other; keeping the inputs frozen also guarantees the
-// options recorded in history are the ones the run actually used.
+// Lock every control that feeds a conversion, so the options recorded in history
+// are the ones the run actually used.
 function setBusy(busy: boolean) {
     isConverting = busy;
     btnConvert.disabled = busy || !selectedPath;
