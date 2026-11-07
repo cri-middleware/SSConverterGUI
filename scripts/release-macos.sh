@@ -38,7 +38,7 @@ cd "$repo_root"
 version="$(node -p "require('./package.json').version")"
 out_dir="dist-release"
 app_dir="src-tauri/target/universal-apple-darwin/release/bundle/macos"
-# The archive holds the app plus two notice files, so it cannot extract to a
+# The archive holds the app plus the license files, so it cannot extract to a
 # single item. Finder therefore invents a containing folder named after the
 # archive — which is why the name must not end in `.app`: a folder with that
 # extension is an application bundle to LaunchServices, and double-clicking one

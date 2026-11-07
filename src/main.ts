@@ -14,8 +14,6 @@ interface ConvertSummary {
     failed: { path: string; error: string }[];
     // Every distinct directory the converter reported writing to, in order.
     output_dirs: string[];
-    // Already logged live via the `convert-warning` event; used here only to
-    // decide the final status.
     warnings: string[];
     // Stop ended the run at the file in flight; the lists above hold what
     // ended before it.
@@ -408,7 +406,6 @@ function renderHistory() {
             // means the run chose no directory and let the converter resolve
             // one; substituting a path here — even the one the converter would
             // pick — would pin it and stop the retry reproducing the original.
-            // A folder never used one, whatever an older entry recorded.
             selectedOutPath = kind === 'dir' ? null : item.outputPath;
             outDirDisplay.value = selectedOutPath || '';
             chkEmbedded.checked = item.embedded;
@@ -510,11 +507,6 @@ async function handleDrop(paths: string[] | undefined, pos?: { x: number; y: num
 
 listen<{ paths: string[]; position?: { x: number; y: number } }>('tauri://drag-drop', event => handleDrop(event.payload.paths, event.payload.position));
 
-// Converter progress from the backend. Failures and warnings arrive on their
-// own events so they keep their severity; the summary returned by
-// `convert_sspj` is used for counts only and never re-logs them.
-// A determinate bar: a spinner says nothing about how far into a fifty-project
-// batch a run is. The file being converted is already named in the log below.
 function showProgress(done: number, total: number) {
     modalProgress.hidden = false;
     const ratio = total > 0 ? done / total : 0;
@@ -856,9 +848,7 @@ async function runConversion() {
             });
         }
 
-        // One history entry per run, keyed by what was selected. Recording one
-        // per `.sspj` filled the list with rows nobody had chosen and left the
-        // folder of a batch — the thing you would want to run again — absent.
+        // One history entry per run, keyed by what was selected.
         // A stopped batch is kept too: running it again is how it gets finished.
         if (succeeded.length > 0) {
             saveHistory({

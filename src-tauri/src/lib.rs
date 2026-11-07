@@ -10,10 +10,7 @@ use tauri_plugin_opener::OpenerExt;
 // (e.g. a home folder) cannot run unbounded — without these only the Cancel
 // button could stop the walk.
 //
-// Depth is deliberately unbounded: `WalkDir::max_depth` just stops descending,
-// so a depth cap would drop deeply nested projects from a batch silently and
-// still report success. The entry and time budgets bound the walk just as
-// effectively and do raise `budget_exceeded` when they trip.
+// Depth is left unbounded: the entry and time budgets already bound the walk.
 const SCAN_MAX_DEPTH: usize = usize::MAX;
 const SCAN_MAX_ENTRIES: usize = 500_000;
 const SCAN_MAX_MILLIS: u64 = 30_000;
@@ -146,9 +143,8 @@ struct ConvertSummary {
     /// Every distinct directory the converter reported writing to, in the
     /// order it reported them. Empty when nothing was written.
     output_dirs: Vec<String>,
-    /// Non-fatal problems that make the run incomplete (currently only a
-    /// truncated directory scan). Already emitted live as `convert-warning`;
-    /// repeated here so the final status can say the batch was not exhaustive.
+    /// Non-fatal problems that make the run incomplete, such as a truncated
+    /// directory scan.
     warnings: Vec<String>,
     /// Stop ended the run at the file in flight. The lists above still hold
     /// every file that ended before it, so what was converted is not lost.
@@ -299,10 +295,8 @@ async fn convert_sspj(
                         cancelled = true;
                         break;
                     }
-                    // Full path, not just the file name: in a real batch nearly
-                    // every project is called `project.sspj`. This is the only
-                    // place a failure is logged — the frontend renders the
-                    // event rather than re-listing `failed` afterwards.
+                    // Full path: projects in different folders often share a
+                    // file name.
                     let _ = app.emit(
                         "convert-error",
                         format!("Conversion failed for {}: {}", file.display(), err),

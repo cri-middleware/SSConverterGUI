@@ -191,8 +191,7 @@ jobs:
 
     steps:
       # scripts/build-release.sh reads package.json for the version the archives
-      # are named after, so the tree has to be here — the download alone is not
-      # enough any more.
+      # are named after, so the checkout has to be here as well as the download.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-tags: true
