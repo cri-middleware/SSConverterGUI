@@ -429,11 +429,15 @@ function renderHistory() {
 // where the path will go.
 type DropZone = 'in' | 'out';
 
+const isMac = /Mac/.test(navigator.platform);
+
 function zoneAt(pos?: { x: number; y: number }): DropZone {
     if (!pos) return 'in'; // No position info: fall back to the input.
-    const dpr = window.devicePixelRatio || 1;
-    const x = pos.x / dpr;
-    const y = pos.y / dpr;
+    // wry reports a drop in points on macOS, which are already CSS pixels, and
+    // in physical pixels on Windows.
+    const scale = isMac ? 1 : (window.devicePixelRatio || 1);
+    const x = pos.x / scale;
+    const y = pos.y / scale;
     const rect = dropZoneOut.getBoundingClientRect();
     const overOut = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     return overOut ? 'out' : 'in';
@@ -890,7 +894,6 @@ btnConvert.addEventListener('click', runConversion);
 // Keyboard shortcuts for the three things done every time. They press the
 // button, so a disabled one (a run in progress) ignores them exactly as a click
 // is ignored. Not while the dialog is open: the window behind it is inert.
-const isMac = /Mac/.test(navigator.platform);
 const modKey = isMac ? '⌘' : 'Ctrl+';
 const shiftKey = isMac ? '⇧' : 'Shift+';
 btnSelectInFile.title = `Choose a .sspj (${modKey}O)`;
