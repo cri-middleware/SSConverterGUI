@@ -14,8 +14,6 @@ interface ConvertSummary {
     failed: { path: string; error: string }[];
     // Every distinct directory the converter reported writing to, in order.
     output_dirs: string[];
-    // Already logged live via the `convert-warning` event; used here only to
-    // decide the final status.
     warnings: string[];
     // Stop ended the run at the file in flight; the lists above hold what
     // ended before it.
@@ -215,7 +213,9 @@ let revealTarget: string | null = null;
 // converter) about what a path is. Returns null after logging why on failure.
 async function classifyPath(path: string): Promise<PathKind | null> {
     try {
-        return await invoke<PathKind>('path_kind', { path });
+        const kind = await invoke<PathKind>('path_kind', { path });
+        // A run can have started during that await, and its inputs are frozen.
+        return isConverting ? null : kind;
     } catch (e) {
         log(`Could not inspect ${path}: ${e}`, 'error');
         return null;
@@ -271,6 +271,10 @@ async function onInputSelected(path: string, kind: PathKind) {
     selectedKind = kind;
     inDirDisplay.value = path;
     btnConvert.disabled = false;
+    // The badge and Reveal Output describe the last run, not this input.
+    updateBadge(convertStatus, 'Waiting', 'pending');
+    btnRevealOutput.hidden = true;
+    revealTarget = null;
 
     // A chosen output folder stays for the next project, so it can be set once
     // and several projects dropped in turn. The default is not kept here
@@ -408,7 +412,6 @@ function renderHistory() {
             // means the run chose no directory and let the converter resolve
             // one; substituting a path here — even the one the converter would
             // pick — would pin it and stop the retry reproducing the original.
-            // A folder never used one, whatever an older entry recorded.
             selectedOutPath = kind === 'dir' ? null : item.outputPath;
             outDirDisplay.value = selectedOutPath || '';
             chkEmbedded.checked = item.embedded;
@@ -432,11 +435,15 @@ function renderHistory() {
 // where the path will go.
 type DropZone = 'in' | 'out';
 
+const isMac = /Mac/.test(navigator.platform);
+
 function zoneAt(pos?: { x: number; y: number }): DropZone {
     if (!pos) return 'in'; // No position info: fall back to the input.
-    const dpr = window.devicePixelRatio || 1;
-    const x = pos.x / dpr;
-    const y = pos.y / dpr;
+    // wry reports a drop in points on macOS, which are already CSS pixels, and
+    // in physical pixels on Windows.
+    const scale = isMac ? 1 : (window.devicePixelRatio || 1);
+    const x = pos.x / scale;
+    const y = pos.y / scale;
     const rect = dropZoneOut.getBoundingClientRect();
     const overOut = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     return overOut ? 'out' : 'in';
@@ -510,11 +517,6 @@ async function handleDrop(paths: string[] | undefined, pos?: { x: number; y: num
 
 listen<{ paths: string[]; position?: { x: number; y: number } }>('tauri://drag-drop', event => handleDrop(event.payload.paths, event.payload.position));
 
-// Converter progress from the backend. Failures and warnings arrive on their
-// own events so they keep their severity; the summary returned by
-// `convert_sspj` is used for counts only and never re-logs them.
-// A determinate bar: a spinner says nothing about how far into a fifty-project
-// batch a run is. The file being converted is already named in the log below.
 function showProgress(done: number, total: number) {
     modalProgress.hidden = false;
     const ratio = total > 0 ? done / total : 0;
@@ -528,6 +530,16 @@ listen<string>('convert-log', event => logFromBackend(event.payload));
 listen<string>('convert-warning', event => logFromBackend(event.payload, 'warning'));
 listen<string>('convert-error', event => logFromBackend(event.payload, 'error'));
 
+// The result dialog holds the window inert, so the log behind it goes unseen.
+function reportFailure(msg: string) {
+    log(msg, 'error');
+    if (isResultOpen()) {
+        resultIssues.prepend(renderIssue({ detail: msg, tone: 'error' }));
+        resultIssues.hidden = false;
+        resultIssues.scrollTop = 0;
+    }
+}
+
 async function revealOutput() {
     if (!revealTarget) return;
     try {
@@ -535,7 +547,7 @@ async function revealOutput() {
         // open its parent and select it, which is not where the output is.
         await invoke('open_folder', { path: revealTarget });
     } catch (e) {
-        log(`Could not open ${revealTarget}: ${e}`, 'error');
+        reportFailure(`Could not open ${revealTarget}: ${e}`);
     }
 }
 
@@ -636,15 +648,22 @@ function closeModal() {
 
 btnResultClose.addEventListener('click', closeModal);
 
+const copiedTimers = new Map<HTMLButtonElement, number>();
+
+function flashCopied(button: HTMLButtonElement) {
+    button.dataset.label ??= button.textContent ?? '';
+    button.textContent = 'Copied!';
+    window.clearTimeout(copiedTimers.get(button));
+    copiedTimers.set(button, window.setTimeout(() => { button.textContent = button.dataset.label ?? ''; }, 2000));
+}
+
 btnResultCopy.addEventListener('click', async () => {
     if (!shownResult) return;
     try {
         await navigator.clipboard.writeText(resultText(shownResult, versionsText));
-        const orig = btnResultCopy.textContent;
-        btnResultCopy.textContent = 'Copied!';
-        setTimeout(() => { btnResultCopy.textContent = orig; }, 2000);
+        flashCopied(btnResultCopy);
     } catch (e) {
-        log('Failed to copy the result.', 'error');
+        reportFailure('Failed to copy the result.');
     }
 });
 
@@ -767,10 +786,8 @@ btnClearOut.addEventListener('click', () => {
 // embedded, so the placeholder has to follow the checkbox.
 chkEmbedded.addEventListener('change', () => { void refreshOutputPlaceholder(); });
 
-// Lock every control that feeds a conversion. The backend keeps a single
-// cancel flag shared by all runs, so two concurrent conversions would cancel
-// and un-cancel each other; keeping the inputs frozen also guarantees the
-// options recorded in history are the ones the run actually used.
+// Lock every control that feeds a conversion, so the options recorded in history
+// are the ones the run actually used.
 function setBusy(busy: boolean) {
     isConverting = busy;
     btnConvert.disabled = busy || !selectedPath;
@@ -856,9 +873,7 @@ async function runConversion() {
             });
         }
 
-        // One history entry per run, keyed by what was selected. Recording one
-        // per `.sspj` filled the list with rows nobody had chosen and left the
-        // folder of a batch — the thing you would want to run again — absent.
+        // One history entry per run, keyed by what was selected.
         // A stopped batch is kept too: running it again is how it gets finished.
         if (succeeded.length > 0) {
             saveHistory({
@@ -900,7 +915,6 @@ btnConvert.addEventListener('click', runConversion);
 // Keyboard shortcuts for the three things done every time. They press the
 // button, so a disabled one (a run in progress) ignores them exactly as a click
 // is ignored. Not while the dialog is open: the window behind it is inert.
-const isMac = /Mac/.test(navigator.platform);
 const modKey = isMac ? '⌘' : 'Ctrl+';
 const shiftKey = isMac ? '⇧' : 'Shift+';
 btnSelectInFile.title = `Choose a .sspj (${modKey}O)`;
@@ -919,9 +933,7 @@ document.addEventListener('keydown', event => {
 btnCopyLog.addEventListener('click', async () => {
     try {
         await navigator.clipboard.writeText(logArea.innerText || '');
-        const orig = btnCopyLog.textContent;
-        btnCopyLog.textContent = 'Copied!';
-        setTimeout(() => { btnCopyLog.textContent = orig; }, 2000);
+        flashCopied(btnCopyLog);
     } catch (e) {
         log('Failed to copy logs to clipboard.', 'error');
     }
@@ -964,9 +976,7 @@ async function loadVersions() {
         btnCopyVersion.onclick = async () => {
             try {
                 await navigator.clipboard.writeText(textToCopy);
-                const orig = btnCopyVersion.textContent;
-                btnCopyVersion.textContent = 'Copied!';
-                setTimeout(() => { btnCopyVersion.textContent = orig; }, 2000);
+                flashCopied(btnCopyVersion);
             } catch (e) {
                 log('Failed to copy version.', 'error');
             }

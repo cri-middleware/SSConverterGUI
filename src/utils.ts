@@ -4,10 +4,7 @@ export interface HistoryItem {
     outputPath: string | null;
     embedded: boolean;
     timestamp: number;
-    /**
-     * Projects converted in that run. Absent on entries written before a run
-     * was one entry — those recorded a single `.sspj` each and cannot say.
-     */
+    /** Projects converted in that run; absent when unknown. */
     count?: number;
 }
 
@@ -22,9 +19,8 @@ export function isHistoryItem(value: unknown): value is HistoryItem {
         && (item.count === undefined || typeof item.count === 'number');
 }
 
-// localStorage is user-writable and may hold entries from an older format, so
-// drop anything malformed instead of letting a missing field throw out of
-// rendering — that would abort app startup with no way to recover.
+// localStorage is user-writable, so drop anything malformed instead of letting
+// a missing field throw out of rendering and abort startup.
 export function sanitizeHistory(value: unknown): HistoryItem[] {
     return Array.isArray(value) ? value.filter(isHistoryItem) : [];
 }
@@ -43,13 +39,8 @@ export function defaultOutputName(stem: string, embedded: boolean): string {
 }
 
 /**
- * What re-running a history entry would do, for the line under its path.
- *
- * Only what is true of that run: the history column is narrow, and spelling
- * out the defaults ("Emb: No", "Out: Default") pushed the timestamp past the
- * edge. An entry from before runs were recorded whole has no count, and must
- * not claim one; a run with nothing unusual about it returns an empty string
- * and the caller is left with just the date.
+ * What re-running a history entry would do, for the line under its path. Empty
+ * when nothing is unusual; a missing count is left out, not guessed.
  */
 export function historySummary(item: HistoryItem): string {
     const parts: string[] = [];
@@ -136,7 +127,7 @@ export function describeRun(succeeded: number, failed: number, incomplete: boole
  * How a run the user stopped reads. `succeeded` and `failed` count the projects
  * that ended before the stop, so the one in flight is in neither; the badge
  * gives that against `total` in the progress bar's `done / total`. A stop
- * before any project ended is the plain `Cancelled` it always was.
+ * before any project ended is a plain `Cancelled`.
  */
 export function describeCancelled(succeeded: number, failed: number, total: number): RunOutcome {
     const done = succeeded + failed;

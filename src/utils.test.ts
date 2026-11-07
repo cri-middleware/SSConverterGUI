@@ -106,8 +106,7 @@ describe('historySummary', () => {
             .toBe('12 projects · embedded · → /out');
     });
 
-    // Entries written before a run was one entry recorded a single `.sspj`
-    // each, so they have no count to report and must not invent one.
+    // An entry without a count reports none rather than inventing one.
     it('should omit the count for an entry that has none', () => {
         expect(historySummary(base)).toBe('');
     });

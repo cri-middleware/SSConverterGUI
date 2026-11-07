@@ -10,10 +10,7 @@ use tauri_plugin_opener::OpenerExt;
 // (e.g. a home folder) cannot run unbounded — without these only the Cancel
 // button could stop the walk.
 //
-// Depth is deliberately unbounded: `WalkDir::max_depth` just stops descending,
-// so a depth cap would drop deeply nested projects from a batch silently and
-// still report success. The entry and time budgets bound the walk just as
-// effectively and do raise `budget_exceeded` when they trip.
+// Depth is left unbounded: the entry and time budgets already bound the walk.
 const SCAN_MAX_DEPTH: usize = usize::MAX;
 const SCAN_MAX_ENTRIES: usize = 500_000;
 const SCAN_MAX_MILLIS: u64 = 30_000;
@@ -66,6 +63,18 @@ where
 }
 
 struct CancelState(Arc<AtomicBool>);
+struct RunningState(Arc<AtomicBool>);
+
+/// Held for the length of a run and released however it ends. The frontend
+/// cannot be what prevents a second run: a webview reload forgets the first
+/// while it carries on here.
+struct RunGuard(Arc<AtomicBool>);
+
+impl Drop for RunGuard {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Relaxed);
+    }
+}
 
 #[tauri::command]
 fn cancel_conversion(state: tauri::State<CancelState>) {
@@ -146,9 +155,8 @@ struct ConvertSummary {
     /// Every distinct directory the converter reported writing to, in the
     /// order it reported them. Empty when nothing was written.
     output_dirs: Vec<String>,
-    /// Non-fatal problems that make the run incomplete (currently only a
-    /// truncated directory scan). Already emitted live as `convert-warning`;
-    /// repeated here so the final status can say the batch was not exhaustive.
+    /// Non-fatal problems that make the run incomplete, such as a truncated
+    /// directory scan.
     warnings: Vec<String>,
     /// Stop ended the run at the file in flight. The lists above still hold
     /// every file that ended before it, so what was converted is not lost.
@@ -173,14 +181,25 @@ fn get_versions(app: tauri::AppHandle) -> VersionInfo {
 async fn convert_sspj(
     app: tauri::AppHandle,
     state: tauri::State<'_, CancelState>,
+    running: tauri::State<'_, RunningState>,
     input_path: String,
     output_path: Option<String>,
     embedded: bool,
 ) -> Result<ConvertSummary, String> {
+    if running
+        .0
+        .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+        .is_err()
+    {
+        return Err("A conversion is already running.".into());
+    }
+    let guard = RunGuard(running.0.clone());
+
     state.0.store(false, Ordering::Relaxed);
     let should_stop = state.0.clone();
 
     tauri::async_runtime::spawn_blocking(move || {
+        let _guard = guard;
         let mut config = ConverterConfig::default();
         config.convert_config.embedded = embedded;
 
@@ -196,6 +215,11 @@ async fn convert_sspj(
                 config.output = Some(std::ffi::OsString::from(out));
             }
         } else if path.is_dir() {
+            // The walk passes over what it cannot read, so an unreadable folder
+            // would otherwise report that it holds no projects.
+            std::fs::read_dir(path)
+                .map_err(|err| format!("Cannot read {}: {}", path.display(), err))?;
+
             let _ = app.emit("convert-log", "Scanning directory for .sspj files...");
 
             let visited = AtomicUsize::new(0);
@@ -299,10 +323,8 @@ async fn convert_sspj(
                         cancelled = true;
                         break;
                     }
-                    // Full path, not just the file name: in a real batch nearly
-                    // every project is called `project.sspj`. This is the only
-                    // place a failure is logged — the frontend renders the
-                    // event rather than re-listing `failed` afterwards.
+                    // Full path: projects in different folders often share a
+                    // file name.
                     let _ = app.emit(
                         "convert-error",
                         format!("Conversion failed for {}: {}", file.display(), err),
@@ -327,6 +349,7 @@ async fn convert_sspj(
 pub fn run() {
     tauri::Builder::default()
         .manage(CancelState(Arc::new(AtomicBool::new(false))))
+        .manage(RunningState(Arc::new(AtomicBool::new(false))))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![

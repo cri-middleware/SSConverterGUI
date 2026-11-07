@@ -1,7 +1,5 @@
-/* Self-hosted Inter (SIL Open Font License 1.1; see assets/fonts/OFL.txt).
-   Bundled locally so the app needs no network and sends no request to a font
-   CDN — fixing the offline break and the privacy leak of the previous
-   Google Fonts <link>. */
+/* Self-hosted Inter (SIL Open Font License 1.1; see assets/fonts/OFL.txt), so
+   the app needs no network and sends no request to a font CDN. */
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -50,9 +48,6 @@
   --focus-ring: #818cf8;
   color-scheme: dark;
 
-  /* Aliases for tokens referenced by inline styles in index.html / main.ts.
-     Defined once here, resolving through the theme-aware base tokens above so
-     both light and dark themes follow automatically. */
   --text-primary: var(--text-main);
   --border-color: var(--glass-border);
   --primary-color: var(--primary);
@@ -208,11 +203,8 @@ body {
   transform: translateY(0);
 }
 
-/* A button that is not the primary action. `color` is the point: `.btn` sets
-   `color: white`, so overriding only the background — which the Copy Versions
-   button did inline — leaves white text on a white pill in the light theme.
-   The surface is a token so it flips with the theme instead of being a fixed
-   translucent white that only reads on a dark panel. */
+/* .btn sets color: white, so a secondary button sets both text and surface from
+   theme tokens. */
 .btn-secondary {
   background-color: var(--btn-secondary-bg);
   border: 1px solid var(--glass-border);
@@ -369,8 +361,6 @@ body {
   background-color: #059669;
 }
 
-/* The status badge sits beside the action it describes rather than in a boxed
-   row of its own, which spent 81px of the panel on one word. */
 .action-row {
   display: flex;
   align-items: center;

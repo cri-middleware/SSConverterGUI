@@ -31,15 +31,13 @@ $ErrorActionPreference = 'Stop'
 
 # A failing native command sets $LASTEXITCODE but does not stop the script on
 # every PowerShell version, which would leave a stale exe to be zipped up as if
-# the build had succeeded.
+# the build had succeeded. No param() block: it would bind a forwarded -p or -o
+# to PowerShell's common parameters instead of passing it on.
 function Invoke-Checked {
-    param(
-        [Parameter(Mandatory)][string]$Command,
-        [Parameter(ValueFromRemainingArguments)][string[]]$Arguments
-    )
-    & $Command @Arguments
+    $command, $rest = $args
+    & $command @rest
     if ($LASTEXITCODE -ne 0) {
-        throw "$Command $($Arguments -join ' ') failed with exit code $LASTEXITCODE"
+        throw "$command $($rest -join ' ') failed with exit code $LASTEXITCODE"
     }
 }
 

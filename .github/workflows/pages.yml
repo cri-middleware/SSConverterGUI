@@ -94,7 +94,7 @@ jobs:
       # prepare-docs.sh creates .venv and installs the pins from docs/requirements.txt;
       # build-pages.sh then finds zensical there. (It falls back to PATH when there is no
       # venv, so a plain `pip install -r docs/requirements.txt` step would still work
-      # here — but then CI and the README would be running different things.) It stays a
+      # here — but then CI and the development guide would be running different things.) It stays a
       # step of its own so a dependency failure is legible as one in the run summary,
       # which is also why build-pages.sh is invoked below with prepare=no.
       - name: Install dependencies
@@ -109,9 +109,8 @@ jobs:
       #
       # --strict fails the build on broken links, so a publish
       # aborts rather than deploying a site with a dead link.
-      # One build per locale - there is no plugin producing both from a single run any
-      # more - English first, because the English build wipes site/ and the Japanese site
-      # lives inside it at site/ja. build-docs.sh owns that order; the reason it exists is
+      # One build per locale, English first, because the English build wipes site/ and the
+      # Japanese site lives inside it at site/ja. build-docs.sh owns that order; the reason it exists is
       # that the opposite order silently publishes a site with no Japanese pages at all.
       #
       # Every option is spelled out rather than left to the script's defaults: they are

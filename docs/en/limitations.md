@@ -20,7 +20,7 @@ cannot draw is on that player's own Limitations page, and what none of them draw
 
 | | |
 |---|---|
-| Project version | **SpriteStudio 7.6 or later.** The `.ssab` / `.ssqb` formats are defined against it, and an older project is not converted into a newer one. |
+| Project version | **SpriteStudio 7.6 or later** is supported. The `.ssab` / `.ssqb` formats are defined against it. |
 | What is read | The `.sspj` and every file it references, from the `.ssae` and `.ssce` to the images and sounds. Point the app at the `.sspj`; the rest is found from it. The images and sounds have to sit in the `.sspj`'s folder or below it: one that is missing, outside that folder, or given as an absolute path fails that project, with the converter's reason in the result. |
 | What is written | **`.ssab`** for animations, **`.ssqb`** for sequences. One `.sspj` yields one `.ssab` per animation pack. |
 
@@ -77,6 +77,9 @@ before it keep their output, the badge says how far the run got, and if any conv
 kept in the history. The file in flight may have written part of its output — the converter creates
 its folder, writes the binaries and then copies the images and sounds, and a stop can land between any two —
 so convert that project again before using what is in its folder.
+
+Closing the window or quitting during a run ends it at once, which can also cut short a file being
+written, even one left by an earlier conversion. Convert that project again in that case too.
 
 ## Not in scope
 
