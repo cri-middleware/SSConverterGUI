@@ -20,7 +20,7 @@ cannot draw is on that player's own Limitations page, and what none of them draw
 
 | | |
 |---|---|
-| Project version | **SpriteStudio 7.6 or later.** The `.ssab` / `.ssqb` formats are defined against it, and an older project is not converted into a newer one. |
+| Project version | **SpriteStudio 7.6 or later** is supported. The `.ssab` / `.ssqb` formats are defined against it. |
 | What is read | The `.sspj` and every file it references, from the `.ssae` and `.ssce` to the images and sounds. Point the app at the `.sspj`; the rest is found from it. The images and sounds have to sit in the `.sspj`'s folder or below it: one that is missing, outside that folder, or given as an absolute path fails that project, with the converter's reason in the result. |
 | What is written | **`.ssab`** for animations, **`.ssqb`** for sequences. One `.sspj` yields one `.ssab` per animation pack. |
 
