@@ -215,6 +215,11 @@ async fn convert_sspj(
                 config.output = Some(std::ffi::OsString::from(out));
             }
         } else if path.is_dir() {
+            // The walk passes over what it cannot read, so an unreadable folder
+            // would otherwise report that it holds no projects.
+            std::fs::read_dir(path)
+                .map_err(|err| format!("Cannot read {}: {}", path.display(), err))?;
+
             let _ = app.emit("convert-log", "Scanning directory for .sspj files...");
 
             let visited = AtomicUsize::new(0);
