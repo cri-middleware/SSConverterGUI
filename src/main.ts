@@ -530,6 +530,16 @@ listen<string>('convert-log', event => logFromBackend(event.payload));
 listen<string>('convert-warning', event => logFromBackend(event.payload, 'warning'));
 listen<string>('convert-error', event => logFromBackend(event.payload, 'error'));
 
+// The result dialog holds the window inert, so the log behind it goes unseen.
+function reportFailure(msg: string) {
+    log(msg, 'error');
+    if (isResultOpen()) {
+        resultIssues.prepend(renderIssue({ detail: msg, tone: 'error' }));
+        resultIssues.hidden = false;
+        resultIssues.scrollTop = 0;
+    }
+}
+
 async function revealOutput() {
     if (!revealTarget) return;
     try {
@@ -537,7 +547,7 @@ async function revealOutput() {
         // open its parent and select it, which is not where the output is.
         await invoke('open_folder', { path: revealTarget });
     } catch (e) {
-        log(`Could not open ${revealTarget}: ${e}`, 'error');
+        reportFailure(`Could not open ${revealTarget}: ${e}`);
     }
 }
 
@@ -646,7 +656,7 @@ btnResultCopy.addEventListener('click', async () => {
         btnResultCopy.textContent = 'Copied!';
         setTimeout(() => { btnResultCopy.textContent = orig; }, 2000);
     } catch (e) {
-        log('Failed to copy the result.', 'error');
+        reportFailure('Failed to copy the result.');
     }
 });
 
