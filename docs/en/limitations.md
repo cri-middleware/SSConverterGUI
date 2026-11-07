@@ -78,6 +78,9 @@ kept in the history. The file in flight may have written part of its output — 
 its folder, writes the binaries and then copies the images and sounds, and a stop can land between any two —
 so convert that project again before using what is in its folder.
 
+Closing the window or quitting during a run ends it at once, which can also cut short a file being
+written, even one left by an earlier conversion. Convert that project again in that case too.
+
 ## Not in scope
 
 - **Playback and preview.** The app converts; it does not draw. To see an animation, use a player
