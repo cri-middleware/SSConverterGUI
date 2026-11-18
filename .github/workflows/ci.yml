@@ -1,0 +1,231 @@
+name: CI
+
+# Two tiers, as in SpriteStudio-SDK. Every pull request runs the frontend's
+# tests and build, and fmt, clippy and the tests of the Rust crate, which it
+# also checks with the declared rust-version. The weekly
+# run, a dispatch and the release PR (release/X.Y into main) also build the app
+# the way release.yml does, for macOS (universal) and Windows (x86_64, arm64),
+# unsigned, and build the documentation site through docs.yml, which a pull
+# request that touches the docs runs on its own. `release.yml` runs no checks, so
+# this is the only place a broken test, type error, or lint lands before a
+# release build does.
+on:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - '.gitignore'
+      - 'LICENSE*'
+  # The weekly run also writes the develop caches that PRs restore from, since
+  # PRs do not save.
+  schedule:
+    # Each repository of the family takes its own hour on Sunday, so their
+    # weekly runs do not queue for the organization's runners; :17 keeps clear
+    # of the top of the hour, when GitHub delays scheduled runs.
+    - cron: '17 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# Third-party actions are pinned to a full commit SHA (tag in the trailing
+# comment), matching release.yml. Bump deliberately (Dependabot: github-actions).
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The frontend never touches the SpriteStudio-SDK submodule, so skip it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No `version:` — it comes from package.json's `packageManager` field, so
+      # CI and a developer machine cannot drift apart.
+      - name: Install pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: pnpm test
+
+      # `pnpm run build` is `tsc && vite build`, so this covers type checking and
+      # proves the bundle the Rust build embeds can actually be produced.
+      - name: Type check and build
+        run: pnpm run build
+
+  rust:
+    # Run on macOS rather than Linux: the app ships for macOS and Windows only,
+    # so a Linux job would need webkit2gtk system packages for a target nobody
+    # releases. macOS needs no extra system dependencies.
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The ssconverter SDK is a git submodule; it must be fetched to compile.
+          submodules: recursive
+          persist-credentials: false
+
+      # No `version:` — it comes from package.json's `packageManager` field, so
+      # CI and a developer machine cannot drift apart.
+      - name: Install pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          # Pinned by SHA, so the channel must be named explicitly here.
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: './src-tauri -> target'
+          key: ci
+          # Only develop writes caches. A PR's cache is visible to that PR alone,
+          # so saving one per PR would only fill the 10 GB quota and evict the
+          # develop caches every PR restores from.
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `tauri::generate_context!` embeds the frontend bundle at compile time, so
+      # `../dist` must exist before any cargo command touches the crate.
+      - name: Build frontend bundle
+        run: pnpm run build
+
+      - name: cargo fmt
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      # Scoped to this crate: the ssconverter submodule is a path dependency, and
+      # its lint cleanliness is the SDK repo's gate, not this one's.
+      # `--locked` also asserts Cargo.lock is in sync with the submodule's
+      # manifests — the check that catches a submodule bump landing without a
+      # lockfile refresh.
+      - name: cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings
+
+      # What the backend reads out of the converter — the output directory
+      # Reveal Output opens, and which paths count as a project — checked
+      # against the SDK's own fixtures in the submodule, so a bump that changes
+      # either fails here rather than in the running app.
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test -p ssconverter-gui --locked
+
+      # The rust-version Cargo.toml declares, checked with that toolchain as
+      # SpriteStudio-SDK's msrv job does. The SDK crates are path dependencies into
+      # the submodule, so a bump that raises their floor fails here.
+      - name: Read the declared rust-version
+        id: msrv
+        working-directory: src-tauri
+        run: |
+          msrv=$(grep -E '^rust-version = ' Cargo.toml | sed -E 's/rust-version = "(.+)"/\1/')
+          if [ -z "$msrv" ]; then
+            echo "::error::rust-version not found in src-tauri/Cargo.toml"
+            exit 1
+          fi
+          echo "version=$msrv" >> "$GITHUB_OUTPUT"
+
+      - name: Install the declared rust-version
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
+
+      - name: cargo check (declared rust-version)
+        working-directory: src-tauri
+        run: cargo check -p ssconverter-gui --all-targets --locked
+
+  # The weekly tier. `github.base_ref == 'main'` is the release PR: under git-flow
+  # only release/X.Y is merged into main.
+  app:
+    name: App (${{ matrix.platform }}, ${{ matrix.arch }})
+    if: github.event_name != 'pull_request' || github.base_ref == 'main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest # Universal binary (arm64 + x86_64)
+            arch: universal
+          - platform: windows-latest # Portable exe only
+            arch: x86_64
+          - platform: windows-latest # Portable exe only, cross-compiled
+            arch: arm64
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: './src-tauri -> target'
+          key: app-${{ matrix.platform }}-${{ matrix.arch }}
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
+
+      # The notices file ships in the archive, so the build that checks the
+      # archive generates it too.
+      - name: Install cargo-about
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
+        with:
+          tool: cargo-about
+
+      # scripts/build-release.sh and build-release.ps1, the entry points
+      # release.yml runs. sign=no keeps the macOS build from signing or
+      # notarizing even where the APPLE_* secrets would reach it.
+      - name: Build and package (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: ./scripts/build-release.sh sign=no
+
+      - name: Build and package (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: ./scripts/build-release.ps1 arch=${{ matrix.arch }}
+
+  # docs.yml, the build pages.yml publishes, both locales --strict. A pull
+  # request into anything but main that touches the docs runs it on its own.
+  docs:
+    name: 📚 Docs site
+    if: github.event_name != 'pull_request' || github.base_ref == 'main'
+    uses: ./.github/workflows/docs.yml

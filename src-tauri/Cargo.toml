@@ -1,27 +1,28 @@
 [package]
 name = "ssconverter-gui"
-version = "7.0.0-beta01"
-description = "A Tauri App"
-authors = ["you"]
+version = "7.0.0-beta.1"
+description = "Convert SpriteStudio (.sspj) projects to .ssab and .ssqb binaries"
+authors = ["CRI Middleware Co., Ltd."]
+license = "BSD-3-Clause"
 edition = "2024"
+rust-version = "1.100"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+# `_lib` keeps the library name distinct from the binary; without it the build
+# fails on Windows. See https://github.com/rust-lang/cargo/issues/8519
 name = "gui_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.6.3", features = [] }
+tauri-build = { version = "2.7.5", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+tauri = { version = "2.12.6", features = [] }
+tauri-plugin-opener = "2.7.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
 ssconverter = { path = "../SpriteStudio-SDK/libs/ssconverter" }
-tauri-plugin-dialog = "2"
+tauri-plugin-dialog = "2.8.4"
 

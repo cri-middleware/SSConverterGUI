@@ -1,0 +1,32 @@
+INHERIT: ./mkdocs.base.yml
+
+docs_dir: docs/en
+site_dir: site
+site_url: "https://cri-middleware.github.io/SSConverterGUI/"
+site_description: "A cross-platform desktop app for converting SpriteStudio projects (.sspj) into .ssab and .ssqb binaries"
+
+theme:
+  language: en
+
+extra:
+  site_root_prefix: ""
+  social:
+    - icon: material/motion-play
+      link: https://cri-middleware.github.io/SpriteStudio-Docs/
+      name: SpriteStudio Docs
+    - icon: fontawesome/brands/github
+      link: https://github.com/cri-middleware
+      name: cri-middleware on GitHub
+    - icon: material/web
+      link: https://www.webtech.co.jp/spritestudio/
+      name: SpriteStudio
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/spritestudio
+      name: SpriteStudio on X
+
+nav:
+  - 🏠 Home: index.md
+  - 📥 Installation: install.md
+  - ▶️ Usage: usage.md
+  - ⚠️ Limitations & Scope: limitations.md
+  - 🛠️ Development: development.md

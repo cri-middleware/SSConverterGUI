@@ -1,35 +1,46 @@
+# SSConverterGUI — AI Agent Guide
+
 ## Operating rules
 
-*   Keep changes scoped to the requested task.
-*   Do not commit unless the user explicitly asks.
-*   Before editing, read enough surrounding context to understand callers and invariants; if the
-    read tool truncated the file, read the remaining ranges before making non-trivial changes.
-*   Follow existing code style in touched files (naming, type usage, control flow, error
-    handling).
-*   **Documentation Updates**: The project maintains dual-language documentation. When modifying files like `README.md` or `CONTRIBUTING.md`, always update both the English version (`.md`) and the Japanese version (`.ja.md`) simultaneously to keep them in sync.
+*   Keep changes scoped to the requested task. Unrequested hardening is a suggestion, not a commit; a defect
+    you actually hit in the code you touched is not — fix it, or say plainly why you did not.
+*   Before editing, read enough surrounding context to understand callers and invariants, the ones below
+    included.
+*   **Anything that exists twice changes twice** — a page and its translation, a `.sh` and its `.ps1`.
+    Missing one half is this family's most common defect.
+*   **Never break a line between two Japanese characters**; Chrome renders the break as a space.
+*   **Finish with this repository's checks**: `pnpm test`, the Rust checks in
+    [CONTRIBUTING.md](./CONTRIBUTING.md) for anything under `src-tauri/` or a submodule bump, and for
+    anything under `docs/` the both-locale build in the [Development guide](./docs/en/development.md).
+    Read what a run says it verified, not its exit code — several checks pass, or skip themselves,
+    without a prerequisite.
+*   **Do not restate what another file owns**; the table below says which file. A fact no file owns goes
+    where its staleness will be noticed.
+*   **Never commit inside the `SpriteStudio-SDK` submodule.** A core change is an SDK pull request, then a
+    submodule bump here.
+*   **`ssconverter-cli` in the submodule is the reference implementation** of conversion behaviour and
+    options; where this app differs from it, the CLI is right.
 
-## Project Overview
+## What this repo is
 
-This is a cross-platform GUI application built with Tauri v2 for converting SpriteStudio (`.sspj`) projects to `.ssab` binaries.
+A Tauri v2 desktop app that converts `.sspj` projects to `.ssab`: Vite and vanilla TypeScript in `src/`,
+Rust in `src-tauri/`, and the conversion itself from the submodule's `ssconverter` crate.
 
-*   **Frontend**: Built with Vite, vanilla TypeScript, HTML, and CSS. Located primarily in the `src/` directory and `index.html`.
-*   **Backend**: Built with Rust using the Tauri v2 framework. Located in the `src-tauri/` directory.
-*   **Core SDK**: The actual conversion logic relies on the `ssconverter` crate from the `SpriteStudio-SDK`, which is included as a local Git submodule.
+## Where each answer is written
 
-## Development Guidelines
+| Question | File |
+|---|---|
+| Using the app: every option | the [docs site](./docs/en/) |
+| Install, a first conversion, where to read next | [README.md](./README.md) |
+| Constraints, setup, build, the docs site | [CONTRIBUTING.md](./CONTRIBUTING.md), [Development guide](./docs/en/development.md) |
+| Versions, releases and signing, maintainers only | [RELEASING.md](./RELEASING.md) |
+| What the app does not do | [docs/en/limitations.md](./docs/en/limitations.md) |
+| What a script takes | its `--help` |
 
-### Frontend
-*   The frontend avoids heavy frameworks (like React or Vue) and uses vanilla TypeScript for DOM manipulation in `src/main.ts`.
-*   Maintain the existing UI styling approach (vanilla CSS in `src/style.css`).
-*   Interact with the Rust backend using `@tauri-apps/api/core` (e.g., `invoke` for commands, `listen` for events).
+## Invariants
 
-### Backend (Rust)
-*   Tauri commands and backend logic are managed in `src-tauri/src/`.
-*   Ensure that any new Rust dependencies are added to `src-tauri/Cargo.toml`.
-*   The backend handles file system operations, dialogues, and invokes the `ssconverter` functions.
-*   **Conversion Logic Reference**: When implementing or modifying the conversion process, please refer to the `SpriteStudio-SDK` submodule. The conversion behavior and options should strictly conform to how the `ssconverter-cli` (located inside the SDK) operates, as it serves as the reference implementation.
-
-### Running & Building
-*   **Prerequisites**: Requires Node.js (v26+), `pnpm`, and the Rust toolchain (`rustup`). The repository must be cloned with the `--recursive` flag to fetch the `SpriteStudio-SDK` submodule.
-*   Start the development server with: `pnpm run tauri dev`
-*   Build the application with: `pnpm run tauri build`
+*   **Framework-free logic goes in `src/utils.ts`**, the frontend's only unit-tested layer. The Rust tests
+    cover just what the backend reads out of the converter, against the SDK's fixtures; the rest of the
+    Rust and Tauri layers is exercised by running the app.
+*   **A new backend capability needs its permission** in `src-tauri/capabilities/default.json`; a command
+    beyond the granted set fails at runtime, not at build time.

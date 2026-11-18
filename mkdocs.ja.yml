@@ -1,0 +1,32 @@
+INHERIT: ./mkdocs.base.yml
+
+docs_dir: docs/ja
+site_dir: site/ja
+site_url: "https://cri-middleware.github.io/SSConverterGUI/ja/"
+site_description: "SpriteStudio のプロジェクト（.sspj）を .ssab と .ssqb に変換するクロスプラットフォームのデスクトップアプリ"
+
+theme:
+  language: ja
+
+extra:
+  site_root_prefix: "../"
+  social:
+    - icon: material/motion-play
+      link: https://cri-middleware.github.io/SpriteStudio-Docs/ja/
+      name: SpriteStudio Docs（ポータル）
+    - icon: fontawesome/brands/github
+      link: https://github.com/cri-middleware
+      name: GitHub の cri-middleware
+    - icon: material/web
+      link: https://www.webtech.co.jp/spritestudio/
+      name: SpriteStudio
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/spritestudio
+      name: X の SpriteStudio
+
+nav:
+  - 🏠 ホーム: index.md
+  - 📥 インストール: install.md
+  - ▶️ 使い方: usage.md
+  - ⚠️ 制約と適用範囲: limitations.md
+  - 🛠️ 開発者向け: development.md

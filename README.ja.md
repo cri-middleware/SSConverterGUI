@@ -2,106 +2,86 @@
 
 # SSConverter GUI
 
-SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) をバイナリ形式 (`.ssab`) に変換するための、クロスプラットフォーム対応のGUIアプリケーションです。
-Tauri v2、Vite、TypeScript を使用して構築されており、効率的な変換作業のための直感的なインターフェースを提供します。
+SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) を、プレイヤーが読み込むバイナリ —— アニメーションの **`.ssab`** とシーケンスの **`.ssqb`** —— に変換するクロスプラットフォーム対応の GUI アプリケーションです。
 
----
+## ✨ 主な機能
 
-本ドキュメントは、以下の2種類のペルソナ（読者）を対象としています。
+- **どの Player とも同じ変換。** SDK の `ssconverter`（`ssconverter-cli` や各 Player のインポーターと同じ変換）にウィンドウを付けたものなので、書き出した `.ssab` と `.ssqb` はどの公式 Player でも読み込めます。
+- **ファイルでもフォルダでも、ドラッグ＆ドロップで。** `.sspj` を 1 つ、またはフォルダごとドロップすれば、その下のプロジェクトを 1 回でまとめて変換します。コマンドラインは要りません。失敗したプロジェクトはフルパスとコンバーターの理由つきで一覧され、残りの変換は無駄になりません。
+- **出力先も、画像とサウンドの持ち方も選べる。** 既定ではプロジェクト名のフォルダを `.sspj` の隣に作ります（埋め込みでは `<name>_emb/` なので、通常の出力を上書きしません）。選んだフォルダは次のプロジェクトにも引き継がれ、**「📂 Reveal Output」** で開けます。画像とサウンドを 1 つのファイルに埋め込むか、差し替えられてパック間で共有できるよう横に残すかも選べます。
+- **進み具合が見えて、止められる。** プロジェクトを数えるバーの下にコンバーターのログが流れ、**「Stop / Cancel」** は実行中のファイルで止めて、終わった分を残します。**「Copy」** は結果（失敗・警告・バージョン）をクリップボードに入れるので、不具合の報告や AI アシスタントにそのまま貼れます。
+- **履歴からやり直せる。** プロジェクトやフォルダごとに最後に実行したときの設定が残るので、プロジェクトを直したあとの再変換で何も選び直さずに済みます。
 
-1. **利用者**: 変換ツールとして完成済みのアプリケーションをそのまま使用したい方。
-2. **開発者**: GUI機能の追加やカスタマイズ、またはコア変換ロジック（SDK）の改修を行いたい方（ソースコードからビルドを行います）。
+## 📚 ドキュメント
 
----
+詳細なドキュメントは `docs/` フォルダにあります。
 
-## 1. 利用者向けガイド
+- [**ドキュメントサイト (ホスト版)**](https://cri-middleware.github.io/SSConverterGUI/ja/)
+- [**ドキュメント (日本語)**](./docs/ja/index.md)
+- [**Documentation (English)**](./docs/en/index.md)
+- [**AI アシスタント向け**](https://cri-middleware.github.io/SSConverterGUI/ja/llms.txt) — このドキュメントを Markdown で提供します。`llms.txt` はページの目次、`llms-full.txt` は全ページを 1 ファイルにまとめたものです
+- [**SpriteStudio Docs（ポータル）**](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と全公式 Player の入口
 
-コマンドラインの操作に慣れていない方でも、簡単に変換作業を行うことができます。
+### クイックリンク（日本語）
 
-### ✨ 主な機能
+- [インストール](./docs/ja/install.md)
+- [使い方](./docs/ja/usage.md)
+- [制約と適用範囲](./docs/ja/limitations.md)
+- [開発者向け](./docs/ja/development.md)
 
-- **かんたん変換**: `.sspj` ファイルを選択してボタンを押すだけで変換が完了します。
-- **ドラッグ＆ドロップ対応**: ファイルやフォルダを直接ウィンドウにドラッグ＆ドロップできます。
-- **一括変換**: フォルダを選択することで、その中に含まれる複数の `.sspj` ファイルをまとめて変換できます。
-- **アセットの埋め込み**: 変換時に画像などのアセットデータをバイナリに直接埋め込むオプションをサポートしています。
-- **変換履歴**: 過去の変換履歴から、同じ設定で素早く再実行できます。
-- **リアルタイムログ**: 進行状況やエラーログを画面上でリアルタイムに確認できます。
+## 🚀 クイックスタート
 
-### 💡 他のコンバータツールとの比較・優れている点
+**自分のプロジェクトを変換する場合**はこのまま下へ。ダウンロードして、`.sspj` を放り込んで、変換するだけです。
+**SSConverter GUI 自体を開発する場合**は下の[ソースからのビルド](#%EF%B8%8F-ソースからのビルド)へ。
 
-SpriteStudio プロジェクトの変換ツールには、本 GUI ツールの他にもいくつかのバリエーションが存在します。用途に合わせて使い分けてください。
+動作環境は **macOS 10.15 以降**（ユニバーサル）または **Windows 10 / 11**（x86_64 版と Arm 版を用意）です。いずれもポータブル版のため、インストーラはありません。対応するのは **SpriteStudio 7.6 以上**で作成されたプロジェクトです（`.ssab` / `.ssqb` の形式がその版に対して定義されています）。
 
-* **vs `ssconverter-cli` (SpriteStudio-SDK同梱のコマンドライン版)**
-  * **直感的な操作**: コマンドプロンプトやターミナルの知識が不要で、誰でもドラッグ＆ドロップですぐに変換できます。
-  * **一括変換が容易**: フォルダを指定するだけで内部の `.sspj` を自動検索して一括変換できるため、自前でバッチスクリプト等を書く手間が省けます。
-* **vs `ssconverter-web` (SSPlayerForWeb のブラウザ版)**
-  * **ローカルファイルへの直接アクセス**: Web版のようにファイルを一つ一つブラウザにアップロード・ダウンロードする手間がなく、ローカルのフォルダを直接高速に処理できます。
-  * **大規模プロジェクトに強い**: ブラウザのメモリ制限やセキュリティ制限（サンドボックス）を受けないため、アセットが大量にある巨大なプロジェクトの変換でも安定したネイティブパフォーマンスを発揮します。
+1. **ダウンロード**: [Releases](https://github.com/cri-middleware/SSConverterGUI/releases) からお使いの OS と CPU に合ったアーカイブ（macOS は `SSConverterGUI_<version>_universal.tar.gz`、Windows は `SSConverterGUI_<version>_x86_64.zip` か `…_arm64.zip`）を入手し、展開して起動します。Windows 版の `.exe` は未署名のため初回起動時に SmartScreen の警告が表示されます。詳しくは[インストール手順](./docs/ja/install.md)を参照してください。
+2. **選択**: `.sspj` ファイル（または複数の `.sspj` を含むフォルダ）を、**「📥 Target .sspj File or Folder」** の枠へドラッグ＆ドロップします。
+3. **変換**: **「⚡ Convert」** ボタンをクリックします。ステータスはボタン横のバッジに、1 件ごとの結果はその下のログに出ます。出力は `.sspj` の隣にできる、プロジェクト名のフォルダです（**Embedded Assets** にチェックを入れたときは `<name>_emb/`）。**「📂 Reveal Output」** で開けます。
 
-### 📥 インストールと起動
-
-1. [GitHub Releases](https://github.com/cri-middleware/SsConverterGUI/releases) ページから、お使いの OS に合った最新版の実行ファイル（インストーラまたはポータブル版）をダウンロードしてください。
-2. ダウンロードしたファイルを実行し、アプリケーションを起動します。
-
-### 💡 使い方
-
-1. アプリケーションを起動します。
-2. **"📥 Target .sspj File or Folder"** エリアに、`.sspj` ファイル、または複数の `.sspj` ファイルを含むフォルダをドラッグ＆ドロップします。（または「File...」「Folder...」ボタンからブラウズして選択します）
-3. *(オプション)* **"📤 Output Directory"** で出力先フォルダを指定します。空欄のままにした場合、元の `.sspj` ファイルと同じ場所に `.ssab` ファイルが生成されます。
-4. *(オプション)* アセット（画像等）をバイナリファイルに埋め込みたい場合は、**"Embedded Assets"** にチェックを入れます。
-5. **"⚡ Convert"** ボタンをクリックして、変換処理を開始します。
-6. 画面下部にステータスとログが表示されるので、完了を確認します。
-
----
-
-## 2. 開発者向けガイド
-
-GUIやアプリケーションの機能（Tauri）、およびコアとなる変換ロジック (`libssconverter` Rust クレート) の開発を行いたい方向けの手順です。ソースコードからすべて自身でビルドします。
-
-### 🛠️ 技術スタック
-
-- **バックエンド / フレームワーク**: [Tauri v2](https://v2.tauri.app/) (Rust)
-- **フロントエンド**: [Vite](https://vitejs.dev/)
-- **UI 実装**: TypeScript / HTML / Vanilla CSS
-- **コア変換ロジック**: [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) (`ssconverter` Rust クレート)
-
-### ⚙️ 開発環境の要件
-
-ソースコードからアプリケーションをビルドするには、以下の環境が必要です。
-
-- **Node.js**: `v26` 以上を推奨
-  - パッケージマネージャーとして `pnpm` を使用します。未インストールの場合は、あらかじめ `npm install -g pnpm` （または `corepack enable pnpm`）を実行してインストールしてください。
-- **Rust ツールチェーン**: [rustup](https://rustup.rs/) を経由したインストール
-- ご利用の OS における Tauri v2 の[前提条件 (Prerequisites)](https://v2.tauri.app/start/prerequisites/) を満たしていること。
-
-### 🚀 セットアップと実行手順
-
-1. **リポジトリとサブモジュールのクローン**
-   変換のコア機能として `SpriteStudio-SDK` をサブモジュールとして使用しています。クローンする際は必ず `--recursive` フラグを使用してください。
-   ```bash
-   git clone --recursive https://github.com/cri-middleware/SsConverterGUI.git
-   cd SsConverterGUI
+   ```
+   Ringo/                 ← SpriteStudio のプロジェクト
+   ├── Ringo.sspj         ← これをドロップする
+   ├── Ringo.png
+   ├── …
+   └── Ringo/             ← ⚡ Convert が書き出す
+       ├── Ringo.ssab
+       ├── Ringo.png
+       └── …
    ```
 
-2. **依存関係のインストール**
-   ```bash
-   pnpm install
-   ```
+出力したフォルダを、お使いの Player がアセットを読み込む場所へコピーします。どこに置くかは各 Player のクイックスタートにあります。[プラットフォームの選び方](https://cri-middleware.github.io/SpriteStudio-Docs/ja/overview/choose-your-platform/)から辿れます。
 
-3. **開発モードでの起動とビルド**
-   Rustによるコアロジックのビルドを含め、変更をリアルタイムに検知する開発サーバーを立ち上げてGUIを起動します。
-   ```bash
-   pnpm run tauri dev
-   ```
+SpriteStudio のデータが手元に無くても始められます。[公式のサンプルデータ](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/)がそのまま使えます。キャラクターなら [Ringo](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/#ringo) が手頃です。
 
-4. **アプリケーションのビルド**
-   配布用のスタンドアロンな実行ファイルを生成します。
-   ```bash
-   pnpm run tauri build
-   ```
+**次に読む:** [使い方](./docs/ja/usage.md) · [インストール](./docs/ja/install.md) · [制約と適用範囲](./docs/ja/limitations.md)
+
+## 🛠️ ソースからのビルド
+
+変換のコア機能として `SpriteStudio-SDK` をサブモジュールとして使用しているため、クローンの際は `--recursive` を付けてください。ビルドには Node.js (v26 以上)、`pnpm`、Rust ツールチェーンが必要です。
+
+```bash
+git clone --recursive https://github.com/cri-middleware/SSConverterGUI.git
+cd SSConverterGUI
+pnpm install
+pnpm run tauri dev
+```
+
+前提条件・技術スタック・アプリの構成・ビルド手順の詳細は、[開発者向けガイド](./docs/ja/development.md)を参照してください。
+
+## 🔗 関連リポジトリ
+
+このツールが書き出したものは、そのまま各公式 Player が読み込みます。同じ `.ssab` がすべての Player で動きます。
+
+- [SpriteStudio Docs](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と全公式 Player の入口。どれを使うかもここで選べます
+- [SpriteStudio-SDK](https://github.com/cri-middleware/SpriteStudio-SDK) — 本アプリの土台である `ssconverter` クレートを提供する SDK 本体（GUI なしで同じ変換をするのが `ssconverter-cli`）
 
 ## 📄 ライセンス
 
-本リポジトリのソースコードおよび成果物は、[LICENSE.md](./LICENSE.md) (BSD-3-Clause) の条件下で提供されています。
+本リポジトリのソースコードおよび成果物は、[LICENSE.md](./LICENSE.md) (BSD-3-Clause) の条件下で提供されています。参考訳は [LICENSE.ja.md](./LICENSE.ja.md) にあります。
 
-同梱されている `SpriteStudio-SDK` サブモジュールの利用条件については、該当リポジトリのライセンスファイルを参照してください。
+本アプリは Rust の依存グラフ全体（Tauri/wry、`ssconverter` SDK とその推移的依存）を静的リンクし、フロントエンドのバンドルと Inter フォントも埋め込んでいるため、
+**`THIRD_PARTY_NOTICES.md` は各リリースアーカイブに実行ファイルと並べて同梱されます**。リリース時に生成しているので、ダウンロードしたバイナリと常に一致します。
+
+同梱の `SpriteStudio-SDK` サブモジュールは、本リポジトリと同じ BSD-3-Clause です。

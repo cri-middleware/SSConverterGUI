@@ -1,0 +1,38 @@
+# cargo-about configuration for the SSConverterGUI desktop binary.
+#
+# The shipped app statically links the whole Rust dependency graph (Tauri/wry,
+# the ssconverter SDK, and their transitive crates), so their license notices
+# must travel with the distributed binary. The release scripts
+# (scripts/release-macos.sh, scripts/release-windows.ps1) run `cargo about generate`
+# over `src-tauri/Cargo.toml` with this config to produce THIRD_PARTY_NOTICES.md,
+# scripts/generate-npm-notices.mjs appends the frontend's notices, and the file is
+# bundled into the release archives.
+#
+# The generated notices are a build artifact (gitignored), regenerated per
+# release so they always match the shipped dependency set.
+
+# SPDX identifiers we accept for a distributable binary. Extend deliberately if a
+# new dependency introduces a license not listed here (cargo-about fails the
+# build on any unlisted license, which is the intended signal to review it).
+accepted = [
+    "Apache-2.0",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "OpenSSL",
+    "bzip2-1.0.6",
+]
+
+# Build- and dev-only dependencies are not part of the shipped binary.
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
+
+# Attribute the whole static-linked graph, not just direct deps (false is the
+# cargo-about default; set explicitly so transitive crates are always included).
+ignore-transitive-dependencies = false

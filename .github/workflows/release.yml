@@ -1,167 +1,292 @@
 name: Release
 
-# Run manually from the Actions tab. The release version comes from package.json.
+# Run manually from the Actions tab. Matches the sibling repos' release flow
+# (SpriteStudio-SDK / SSPlayerForGodot / SSPlayerForRenPy): the ref decides.
+# A run from a branch only builds — for QA on a release/X.Y branch. A run from
+# a v* tag also drafts the GitHub Release, unless upload_release is turned off
+# or the tag already has one; publishing it is a manual step.
 on:
   workflow_dispatch:
     inputs:
-      upload:
-        description: 'Upload artifacts to GitHub Releases'
-        type: boolean
+      upload_release:
+        description: 'Draft the GitHub Release, to publish by hand. Only from a v* tag that has no Release yet; from a branch the run is a build.'
+        required: false
         default: true
+        type: boolean
 
-# Needed to create the release and upload assets.
+# Least privilege at the workflow level: the build job (which holds the Apple
+# signing secrets and runs third-party actions) needs only read. The write scope
+# to create the Release is granted to the `package` job alone, below.
 permissions:
-  contents: write
+  contents: read
 
+# One run per ref at a time. A second dispatch of the same tag waits for the
+# first rather than cancelling it, so a half-built release is never abandoned.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Third-party actions are pinned to a full commit SHA (tag in the trailing
+# comment) so a moved/retagged release can't inject code into jobs that carry
+# secrets or write scope. Bump deliberately (Dependabot: github-actions).
 jobs:
-  # Create the draft release up front so the platform build jobs only have to
-  # attach assets to it (avoids a race where two jobs create the same release).
-  # Skipped entirely when the upload checkbox is off.
-  create-release:
-    if: ${{ inputs.upload }}
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      tag: ${{ steps.meta.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Resolve version from package.json
-        id: meta
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Create draft release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: SsConverter GUI ${{ steps.meta.outputs.tag }}
-          draft: true
-          prerelease: ${{ contains(steps.meta.outputs.version, '-') }}
-          body: |
-            Portable builds (no installer):
-            - macOS: `.app.tar.gz` (universal, signed & notarized) - unpack and move `SSConverterGUI.app` to Applications.
-            - Windows: `.zip` containing the portable `SSConverterGUI.exe` (requires WebView2 runtime, preinstalled on Windows 10/11).
-
   build:
-    needs: create-release
-    # Build even when create-release was skipped (upload off); only skip on its failure.
-    if: ${{ !cancelled() && needs.create-release.result != 'failure' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: macos-latest # Universal binary (arm64 + x86_64)
-            args: '--bundles app --target universal-apple-darwin'
+            arch: universal
           - platform: windows-latest # Portable exe only
-            args: '--no-bundle'
+            arch: x86_64
+          # arm64 cross-compiles from this x86_64 runner (MSVC ships the ARM64
+          # toolchain), mirroring how the SDK builds its Windows arm64 CLI. The
+          # script builds it with `--no-bundle`, so no installer generator has to
+          # understand the target architecture.
+          - platform: windows-latest # Portable exe only, cross-compiled
+            arch: arm64
 
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 120
 
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The ssconverter SDK is a git submodule; it must be fetched.
           submodules: recursive
           # Full history so the converter's build script can embed the git SHA.
           fetch-depth: 0
+          persist-credentials: false
 
+      # Through the script, so the version has one definition shared with
+      # build-release.sh and with anyone cutting a release by hand.
       - name: Resolve version from package.json
         shell: bash
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+        run: echo "VERSION=$(./scripts/release-version.sh)" >> "$GITHUB_ENV"
 
+      # The artifacts embed the package.json version while the Release is
+      # named after the tag — fail fast when the two disagree.
+      - name: Check tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          if [ "v${VERSION}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match package.json version ${VERSION}"
+            exit 1
+          fi
+
+      # Guard against shipping the unreleased CHANGELOG placeholder date
+      # (e.g. "Unreleased"): the top entry's date must be a real YYYY-MM-DD.
+      - name: Check CHANGELOG has a real release date
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          header=$(grep -m1 '^## \[' CHANGELOG.md || true)
+          echo "Top CHANGELOG entry: ${header}"
+          date_part=$(printf '%s' "${header}" | sed -E 's/.*- //')
+          if ! printf '%s' "${date_part}" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "::error::CHANGELOG.md top entry has a non-date '${date_part}' — set the real release date before tagging."
+            exit 1
+          fi
+
+      # No `version:` — it comes from package.json's `packageManager` field.
       - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 9
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: pnpm
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
         with:
-          # Universal macOS builds need both arch targets installed.
-          targets: "${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}"
+          # Pinned by SHA, so the channel must be named explicitly here (the
+          # action can no longer infer it from a `@stable` ref).
+          toolchain: stable
+          # No `targets:` — the release scripts add the ones they need.
 
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
+      # The shipped binary statically links the whole Rust dependency graph, so
+      # its third-party license notices must ship with it. cargo-about (no
+      # `targets` in about.toml) evaluates the union of all targets, so the file
+      # is identical on each runner; the release scripts regenerate it per build
+      # only so every archive is self-contained.
+      - name: Install cargo-about
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
-          workspaces: './src-tauri -> target'
-          key: ${{ matrix.platform }}
-
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+          tool: cargo-about
 
       # Decode the App Store Connect API key (.p8) used for notarization and
-      # expose its path to later steps. macOS only.
+      # expose its path to the build step. No-ops when the secret is absent,
+      # leaving the app un-notarized. macOS only.
       - name: Prepare Apple API key
         if: matrix.platform == 'macos-latest'
         env:
-          APPLE_API_KEY_BASE64: ${{ secrets.SS_APPLE_API_KEY_BASE64 }}
+          ASC_API_KEY_PASS: ${{ secrets.ASC_API_KEY_PASS }}
         run: |
-          echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
+          if [ -z "$ASC_API_KEY_PASS" ]; then
+            echo "ASC_API_KEY_PASS not set — skipping API key setup (the app will not be notarized)."
+            exit 0
+          fi
+          echo "$ASC_API_KEY_PASS" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
           echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple_api_key.p8" >> "$GITHUB_ENV"
 
-      # Build only (no tagName) - code signing & notarization happen in-place
-      # during this build step when the APPLE_* env vars are present.
-      - name: Build app
-        uses: tauri-apps/tauri-action@v1
-        env:
-          # macOS code signing (Developer ID Application). Absent on Windows.
-          APPLE_CERTIFICATE: ${{ secrets.SS_APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.SS_APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.SS_APPLE_SIGNING_IDENTITY }}
-          # macOS notarization via App Store Connect API key.
-          # APPLE_API_KEY_PATH is set by the "Prepare Apple API key" step.
-          APPLE_API_ISSUER: ${{ secrets.SS_APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.SS_APPLE_API_KEY }}
-        with:
-          args: ${{ matrix.args }}
-
-      - name: Package macOS artifact (.app.tar.gz)
+      # scripts/build-release.sh runs scripts/release-macos.sh — which builds,
+      # signs, notarizes, verifies and packages, the Tauri CLI importing
+      # APPLE_CERTIFICATE into a keychain of its own — and then checks the
+      # archive it produced. Signing is the environment's to decide: with none of
+      # the APPLE_* secrets set the app is simply unsigned.
+      #
+      # Except on a v* tag, the only ref that can publish a Release, where
+      # `sign=yes` makes the script's inspection of the real .app fatal. A
+      # missing or expired secret otherwise turns signing into a silent no-op,
+      # and looks exactly like "signing was never requested".
+      - name: Build and package (macOS)
         if: matrix.platform == 'macos-latest'
-        run: |
-          APP_DIR="src-tauri/target/universal-apple-darwin/release/bundle/macos"
-          APP_NAME=$(basename "$(ls -d "$APP_DIR"/*.app | head -1)")
-          tar -czf "SSConverterGUI_${VERSION}_universal.app.tar.gz" -C "$APP_DIR" "$APP_NAME"
+        env:
+          # macOS code signing (Developer ID Application).
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_DEV_ID_APP_CERT }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEV_ID_APP_CERT_PASS }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_DEV_ID_APP_NAME }}
+          # macOS notarization via App Store Connect API key.
+          APPLE_API_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+          APPLE_API_KEY: ${{ secrets.ASC_API_KEY_ID }}
+        run: ./scripts/build-release.sh sign=${{ startsWith(github.ref, 'refs/tags/v') && 'yes' || 'auto' }}
 
-      - name: Package Windows artifact (.zip)
+      # The same script for the Windows half: it runs
+      # scripts/release-windows.ps1 for the arch this matrix entry builds — the
+      # host x86_64 build or the arm64 cross-build — and then checks the archive.
+      # The Windows exe is deliberately not code-signed, so this step needs no
+      # secrets and there is no sign= to pass.
+      - name: Build and package (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
-        run: |
-          $exe = Get-ChildItem "src-tauri/target/release/*.exe" | Select-Object -First 1
-          $staging = "SSConverterGUI"
-          New-Item -ItemType Directory -Force -Path $staging | Out-Null
-          Copy-Item $exe.FullName -Destination "$staging/SSConverterGUI.exe"
-          Compress-Archive -Path "$staging/SSConverterGUI.exe" `
-            -DestinationPath "SSConverterGUI_${env:VERSION}_x64.zip"
+        run: ./scripts/build-release.ps1 arch=${{ matrix.arch }}
 
-      # Always keep the built files as workflow artifacts so a run is useful
-      # even when the Releases upload is turned off.
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ matrix.platform }}
+          # Both Windows entries run on windows-latest, so the arch is what
+          # keeps their artifact names distinct.
+          name: SSConverterGUI-${{ matrix.platform }}-${{ matrix.arch }}
+          # Globbing the archives, not the directory, keeps the Windows staging
+          # folder out of the artifact.
           path: |
-            *.app.tar.gz
-            *.zip
-          if-no-files-found: warn
+            dist-release/*.tar.gz
+            dist-release/*.zip
+          if-no-files-found: error
+          # A week, not the 90-day default: this is the matrix's handoff to the
+          # package job, not something to keep. See the same setting there.
+          retention-days: 7
 
-      - name: Upload artifact to release
-        if: ${{ inputs.upload }}
-        uses: softprops/action-gh-release@v3
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Only this job needs write access, and only to create the Release.
+    permissions:
+      contents: write
+
+    steps:
+      # scripts/build-release.sh reads package.json for the version the archives
+      # are named after, so the checkout has to be here as well as the download.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          tag_name: ${{ needs.create-release.outputs.tag }}
-          name: SsConverter GUI ${{ needs.create-release.outputs.tag }}
-          draft: true
-          prerelease: ${{ contains(needs.create-release.outputs.version, '-') }}
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: release-dist
+          merge-multiple: true
+
+      # The ref decides what the run is: a v* tag is a release, anything else is
+      # a build, kept on the run and drafting nothing. A tag that already has a
+      # Release, draft or published, keeps it as it is, so a run from an old tag
+      # rebuilds without touching the files people have downloaded and checked
+      # against its SHA256SUMS. To have a Release made again, delete it first.
+      - name: Decide on the GitHub Release
+        id: release
+        if: inputs.upload_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v*) ;;
+            *) echo "::notice::${GITHUB_REF_NAME} is not a v* tag — a build, no Release."; exit 0 ;;
+          esac
+          if out="$(gh release view "$GITHUB_REF_NAME" --json isDraft 2>&1)"; then
+            echo "::notice::${GITHUB_REF_NAME} already has a Release — left as it is. Delete it to have it made again."
+          elif [ "$out" = "release not found" ]; then
+            echo "draft=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "$out"
+            exit 1
+          fi
+
+      # The same script again, with build=no: the phase after the matrix. It
+      # checks the three archives are all present, named after this version and
+      # nothing else, then writes the checksum manifest over them. The build jobs
+      # already signed, notarized and archived their own platform, so there is
+      # nothing to lay out — what this adds is the check that they all arrived.
+      # Three jobs on two operating systems feed this directory, and a matrix
+      # entry that built nothing leaves a Release with no download for that
+      # platform, which nobody notices until somebody on it tries.
+      - name: Collect and check the release
+        run: ./scripts/build-release.sh build=no in=release-dist verify=yes
+
+      # Keep the bundle as a workflow artifact so a QA run from a branch is
+      # useful without creating a Release.
+      - name: Upload final release package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: SSConverterGUI-release-dist
+          path: release-dist
+          if-no-files-found: error
+          # A week, not the 90-day default. What is meant to last is attached to
+          # the GitHub Release, which never expires; this is a copy for a run
+          # that uploaded nothing. Artifact storage is an org-wide quota, and a
+          # full one does not degrade — `upload-artifact` fails, so the release
+          # build fails, in a step that has nothing to do with the release.
+          retention-days: 7
+
+      # The pre-release mark the draft carries: one once a full release is
+      # tagged, none before (scripts/release-channel.sh).
+      # A patch to an earlier line also names the full release before it in that
+      # line, which the generated notes start from instead of the newest release.
+      - name: Read the Release's channel
+        id: channel
+        if: steps.release.outputs.draft == 'true'
+        run: |
+          channel="$(./scripts/release-channel.sh "$GITHUB_REF_NAME")"
+          echo "::notice::${GITHUB_REF_NAME} is a ${channel} release"
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          if [ "$channel" = old ]; then
+            previous="$(git tag --list "${GITHUB_REF_NAME%.*}.*" --sort=v:refname |
+              awk -v tag="$GITHUB_REF_NAME" '$0 == tag { print previous; exit } $0 !~ /-|[0-9](a|b|rc)[0-9]+$/ { previous = $0 }')"
+            echo "previous=${previous}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.release.outputs.draft == 'true'
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
           files: |
-            *.app.tar.gz
-            *.zip
+            release-dist/*.tar.gz
+            release-dist/*.zip
+            release-dist/SHA256SUMS
+          tag_name: ${{ github.ref_name }}
+          # No `body`, as in the sibling repos: the generated notes are the
+          # release page, and everything else lives in the install guide.
+          generate_release_notes: true
+          previous_tag: ${{ steps.channel.outputs.previous }}
+          # Always a draft, as in the sibling repos: a human checks the assets
+          # and the generated notes, then publishes it from the GitHub UI as it
+          # is marked. A draft cannot be made Latest; publishing one that is not
+          # a pre-release makes it so.
+          draft: true
+          prerelease: ${{ steps.channel.outputs.channel == 'prerelease' }}

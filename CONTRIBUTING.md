@@ -1,5 +1,8 @@
 # Contributing to SSConverter GUI
 
+> [!IMPORTANT]
+> We are not accepting pull requests until a Contributor License Agreement (CLA) is in place. Issues remain open for bug reports and requests.
+
 Thank you for your interest in contributing to SSConverter GUI! We welcome all kinds of contributions, including bug reports, feature requests, documentation improvements, and code contributions.
 
 ## Table of Contents
@@ -25,15 +28,21 @@ If you find a bug, please check if it relates to the GUI (e.g. file selection, U
 ### Pull Requests
 1. Fork the repository.
 2. Clone your fork with `--recursive` to ensure the SDK submodule is initialized.
-3. Test your changes locally by running `pnpm run tauri dev`.
+3. Run `pnpm test`, `pnpm run build` (the type check) and, for a change to the backend, the Rust checks under
+   [Coding Standards](#coding-standards), then check your change in the running app with
+   `pnpm run tauri dev`. `pnpm test` covers the frontend's helpers only, and the Rust tests only what the
+   backend reads out of the converter, so also convert a real `.sspj` in the app.
 4. Submit a Pull Request.
 
 ## Development Environment
-Please refer to the "Developers Guide" section in the [README.md](./README.md) for detailed prerequisites and setup instructions.
+Please refer to the [Development Guide](./docs/en/development.md) for detailed prerequisites and setup instructions.
 
 ## Coding Standards
 - **Frontend**: Use strict TypeScript. Avoid inline styles; use the central `style.css`.
-- **Backend (Rust)**: Use `cargo clippy` and `cargo fmt`.
+- **Backend (Rust)**: in `src-tauri/`, `cargo fmt --all -- --check`,
+  `cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings` and
+  `cargo test -p ssconverter-gui --locked` — what CI runs. Clippy and the tests need the frontend built
+  (`pnpm run build`) and the submodule checked out; the tests convert the SDK's own fixtures.
 
 <br>
 <br>
@@ -42,13 +51,16 @@ Please refer to the "Developers Guide" section in the [README.md](./README.md) f
 
 # SSConverter GUI への貢献について
 
+> [!IMPORTANT]
+> コントリビューターライセンス契約（CLA）の準備が整うまで、プルリクエストは受け付けていません。バグ報告や要望は引き続き Issue で受け付けています。
+
 SSConverter GUI にご関心をお寄せいただき、ありがとうございます！ バグ報告、機能提案、ドキュメントの改善、コードの提供など、あらゆる形での貢献を歓迎します。
 
 ## 目次
-- [行動規範](#行動規範-1)
-- [貢献する方法](#貢献する方法-1)
-- [開発環境のセットアップ](#開発環境のセットアップ-1)
-- [コーディング規約](#コーディング規約-1)
+- [行動規範](#行動規範)
+- [貢献する方法](#貢献する方法)
+- [開発環境のセットアップ](#開発環境のセットアップ)
+- [コーディング規約](#コーディング規約)
 
 ## 行動規範
 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) を参照してください。
@@ -67,12 +79,12 @@ SSConverter GUI にご関心をお寄せいただき、ありがとうござい�
 ### プルリクエスト
 1. リポジトリをフォークしてください。
 2. サブモジュールを取得するため、必ず `--recursive` オプションを付けてクローンしてください。
-3. `pnpm run tauri dev` でローカルでの動作確認を行ってください。
+3. `pnpm test` と `pnpm run build`（型チェック）を実行し、バックエンドを変更した場合は[コーディング規約](#コーディング規約)の Rust のチェックも実行したうえで、`pnpm run tauri dev` で起動したアプリで変更を確認してください。`pnpm test` が見るのはフロントエンドの補助関数だけで、Rust のテストが見るのもバックエンドがコンバータから読み取る部分だけです。実際の `.sspj` もアプリで変換してください。
 4. プルリクエストを送信してください。
 
 ## 開発環境のセットアップ
-必要な環境やセットアップ手順については、[README.ja.md](./README.ja.md) の「開発者向けガイド」セクションを参照してください。
+必要な環境やセットアップ手順については、[開発者向けガイド](./docs/ja/development.md)を参照してください。
 
 ## コーディング規約
 - **フロントエンド**: Strict な TypeScript を記述してください。インラインスタイルは避け、`style.css` を活用してください。
-- **バックエンド (Rust)**: `cargo clippy` および `cargo fmt` に準拠してください。
+- **バックエンド (Rust)**: `src-tauri/` で `cargo fmt --all -- --check`、`cargo clippy -p ssconverter-gui --all-targets --locked -- -D warnings`、`cargo test -p ssconverter-gui --locked` を通してください（CI と同じコマンドです）。clippy とテストはフロントエンドのビルド (`pnpm run build`) とサブモジュールの取得が前提で、テストは SDK 自身のフィクスチャを変換します。
