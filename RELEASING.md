@@ -88,7 +88,7 @@ git push origin "${BRANCH:?}" &&
   ! gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # must print nothing
 ```
 
-A missing signing secret does not fail this run: the macOS job logs `Skipping code signing` or `Skipping notarization` and builds an unsigned app. The block's signing check looks for those lines and must print nothing, because the tag run in step 5 requires the signature and fails instead. If it prints anything, no change on the branch fixes it: the organization's signing secrets are not reaching this repository. An organization owner decides which repositories they reach, and on GitHub Free they cannot reach a private one. Dispatch again once they do.
+A missing signing secret does not fail this run: the macOS job logs `Skipping code signing` or `Skipping notarization` and builds an unsigned app. The block's signing check looks for those lines and must print nothing, because the tag run in step 5 requires the signature and fails instead. If it prints anything, no change on the branch fixes it: the organization's signing secrets are not reaching this repository. An organization owner decides which repositories they reach. Dispatch again once they do.
 
 Last, scan the branch for code that carries someone else's copyright or license. `provenance.yml` runs ScanCode, which finds copyright and license notices, and keeps its report and a summary on the run (`provenance`); the block downloads them into `qa/<run ID>` and prints the summary. **A person sorts what the summary lists.** A notice of the earlier SpriteStudio Players and SDK marks our own code. Anything else is rewritten, unless its license, read at its source, is compatible with BSD-3-Clause and the code keeps the notice that license asks for. After any change on the branch, run the block again.
 
@@ -319,7 +319,7 @@ git push origin "${BRANCH:?}" &&
   ! gh run view "${RUN:?}" --log | grep -E 'not set|Skipping' | grep -v 'echo '   # 何も出力されないこと
 ```
 
-署名の Secret が欠けていても、この run は失敗しません。macOS のジョブが `Skipping code signing` や `Skipping notarization` をログに出し、未署名のアプリを作ります。ブロックの署名の確認はその行を探すもので、何も出力されてはいけません。手順 5 のタグの run は署名を必須にしていて、そこで失敗することになるためです。何か出力されたら、ブランチをどう変えても直りません。組織の署名用 Secret がこのリポジトリに届いていません。どのリポジトリに届けるかは組織のオーナーが決めますが、GitHub Free では private のリポジトリには届けられません。届くようになったら実行し直してください。
+署名の Secret が欠けていても、この run は失敗しません。macOS のジョブが `Skipping code signing` や `Skipping notarization` をログに出し、未署名のアプリを作ります。ブロックの署名の確認はその行を探すもので、何も出力されてはいけません。手順 5 のタグの run は署名を必須にしていて、そこで失敗することになるためです。何か出力されたら、ブランチをどう変えても直りません。組織の署名用 Secret がこのリポジトリに届いていません。どのリポジトリに届けるかは組織のオーナーが決めます。届くようになったら実行し直してください。
 
 最後に、他者の著作権やライセンスの付いたコードが無いかを、ブランチで検査します。`provenance.yml` は ScanCode で著作権表示とライセンスの記述を見つけ、報告と一覧を run に残します（`provenance`）。ブロックはそれを `qa/<run の ID>` にダウンロードし、一覧を表示します。**一覧は人が仕分けます。** 以前の SpriteStudio の Player・SDK の表示が付いたコードは、自社のコードです。それ以外は書き直します。残せるのは、出所で確かめたライセンスが BSD-3-Clause と両立し、そのライセンスが求める表示をコードに残すときだけです。ブランチを変えたら、このブロックをもう一度実行します。
 
