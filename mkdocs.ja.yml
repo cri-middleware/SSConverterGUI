@@ -24,6 +24,22 @@ extra:
       link: https://x.com/spritestudio
       name: X の SpriteStudio
 
+plugins:
+  - search
+  - redirects
+  - llmstxt:
+      full_output: llms-full.txt
+      markdown_description: |
+        アプリにコマンドラインはありません。スクリプトや CI、AI アシスタントから変換するときは `ssconverter-cli`（https://github.com/cri-middleware/SpriteStudio-SDK/blob/HEAD/cli/README.ja.md）を使ってください。書き出されるバイト列は同じです。
+      sections:
+        アプリの使い方:
+          - index.md: "アプリの概要、主な機能、このアプリと `ssconverter-cli`・`ssconverter-web` のどれを使うかの選び方。"
+          - install.md: "macOS と Windows への導入（ポータブル版でインストーラーはありません）。動作環境、ダウンロードするアーカイブの選び方（Windows on Arm を含む）、`SHA256SUMS` での検証、起動、SmartScreen の警告、アンインストール。"
+          - usage.md: "`.sspj` やフォルダの変換手順。出力先、Embedded Assets、進み具合、Stop / Cancel と Copy、結果の見方、一括変換、変換履歴、キーボード操作、ライト・ダークのテーマ。"
+          - limitations.md: "読み込むものと書き出すもの、対応プラットフォームは macOS と Windows のみ（Linux では `ssconverter-cli`）、フォルダ走査の上限と飛ばされるフォルダ、失敗やキャンセルが一括変換に与える影響、対応範囲外のこと（再生、編集、逆変換、フォルダの監視、CI）。"
+        開発者向け:
+          - development.md: "ソースからのビルド。技術スタック、フロントエンドとバックエンドの構成、必要な環境、開発モードでの起動、`build-release` によるリリース用アーカイブのビルド、macOS の署名と公証、Windows arm64、このドキュメントサイトのビルド。"
+
 nav:
   - 🏠 ホーム: index.md
   - 📥 インストール: install.md

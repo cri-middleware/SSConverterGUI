@@ -24,6 +24,24 @@ extra:
       link: https://x.com/spritestudio
       name: SpriteStudio on X
 
+plugins:
+  - search
+  - redirects
+  - llmstxt:
+      full_output: llms-full.txt
+      markdown_description: |
+        The app has no command line: scripts, CI and coding assistants convert with
+        `ssconverter-cli` (https://github.com/cri-middleware/SpriteStudio-SDK/tree/HEAD/cli), which
+        writes the same bytes.
+      sections:
+        Using the App:
+          - index.md: "What the app does, its key features, and how to choose between this app, `ssconverter-cli` and `ssconverter-web`."
+          - install.md: "Installing on macOS or Windows (portable builds, no installer): system requirements, which archive to download (Windows on Arm included), checking it against `SHA256SUMS`, launching it, the SmartScreen warning, and uninstalling."
+          - usage.md: "Converting a `.sspj` or a folder: the output folder, Embedded Assets, progress, Stop / Cancel and Copy, the result, batch conversion, the conversion history, keyboard shortcuts, and the light and dark theme."
+          - limitations.md: "What the app reads and writes, that it runs on macOS and Windows only (use `ssconverter-cli` on Linux), the folder scan's limit and the folders it skips, how a failed or cancelled project affects a batch, and what is out of scope: playback, editing, reversing a conversion, watching a folder, CI."
+        Development:
+          - development.md: "Building the app from source: the tech stack, how the frontend and backend fit together, prerequisites, running in development mode, building the release archive with `build-release`, macOS signing and notarization, Windows arm64, and building this documentation site."
+
 nav:
   - 🏠 Home: index.md
   - 📥 Installation: install.md
