@@ -22,13 +22,6 @@ SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) �
 - [**AI アシスタント向け**](https://cri-middleware.github.io/SSConverterGUI/ja/llms.txt) — このドキュメントを Markdown で提供します。`llms.txt` はページの目次、`llms-full.txt` は全ページを 1 ファイルにまとめたものです
 - [**SpriteStudio Docs（ポータル）**](https://cri-middleware.github.io/SpriteStudio-Docs/ja/) — SDK と全公式 Player の入口
 
-### クイックリンク（日本語）
-
-- [インストール](./docs/ja/install.md)
-- [使い方](./docs/ja/usage.md)
-- [制約と適用範囲](./docs/ja/limitations.md)
-- [開発者向け](./docs/ja/development.md)
-
 ## 🚀 クイックスタート
 
 **自分のプロジェクトを変換する場合**はこのまま下へ。ダウンロードして、`.sspj` を放り込んで、変換するだけです。
