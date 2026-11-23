@@ -22,13 +22,6 @@ Comprehensive documentation is available in the `docs/` folder:
 - [**For AI assistants**](https://cri-middleware.github.io/SSConverterGUI/llms.txt) — these docs as Markdown: `llms.txt` indexes the pages and `llms-full.txt` holds all of them in one file
 - [**SpriteStudio Docs (portal)**](https://cri-middleware.github.io/SpriteStudio-Docs/) — the SDK and every official player in one place
 
-### Quick Links (English)
-
-- [Installation](./docs/en/install.md)
-- [Usage](./docs/en/usage.md)
-- [Limitations & Scope](./docs/en/limitations.md)
-- [Development](./docs/en/development.md)
-
 ## 🚀 Quick Start
 
 **Converting your projects?** Read on — download, drop a `.sspj` in, convert.
