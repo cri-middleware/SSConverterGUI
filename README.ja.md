@@ -46,7 +46,7 @@ SSConverter GUI は、SpriteStudio のプロジェクトファイル (`.sspj`) �
 
 出力したフォルダを、お使いの Player がアセットを読み込む場所へコピーします。どこに置くかは各 Player のクイックスタートにあります。[プラットフォームの選び方](https://cri-middleware.github.io/SpriteStudio-Docs/ja/overview/choose-your-platform/)から辿れます。
 
-SpriteStudio のデータが手元に無くても始められます。[公式のサンプルデータ](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/)がそのまま使えます。キャラクターなら [Ringo](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/#ringo) が手頃です。
+SpriteStudio のデータが手元に無くても始められます。[公式のサンプルデータ](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/)がそのまま使えます。キャラクターなら [Ringo](https://www.webtech.co.jp/help/ja/spritestudio7/download/sample/#ringo) が手頃です。自分のアニメーションを作るには SpriteStudio 本体を使います（[製品サイト](https://www.webtech.co.jp/spritestudio/)）。
 
 **次に読む:** [使い方](./docs/ja/usage.md) · [インストール](./docs/ja/install.md) · [制約と適用範囲](./docs/ja/limitations.md)
 
