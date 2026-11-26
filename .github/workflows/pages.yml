@@ -6,9 +6,7 @@ name: Publish docs via GitHub Pages
 #
 # The site documents the *released* application (the install guide sends users to
 # Releases), so publishing is tied to a published release rather than to every
-# merge on main — the same decoupling SSPlayerForWeb applies. Use "Run workflow"
-# for an immediate refresh, e.g. a docs fix that should not wait for the next
-# release.
+# merge on main — the same decoupling SSPlayerForWeb applies.
 #
 # A published release or a manual dispatch deploys, and nothing else does — the
 # same trigger pair every sibling repository uses. The --strict build that guards it
